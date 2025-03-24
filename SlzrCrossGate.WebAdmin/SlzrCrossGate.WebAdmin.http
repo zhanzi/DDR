@@ -1,0 +1,6 @@
+@SlzrCrossGate.WebAdmin_HostAddress = http://localhost:5270
+
+GET {{SlzrCrossGate.WebAdmin_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
