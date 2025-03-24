@@ -10,6 +10,8 @@ using SlzrCrossGate.Core.Database;
 using SlzrCrossGate.Core.Service;
 using Microsoft.AspNetCore.Identity;
 using SlzrCrossGate.Core.Models;
+using Minio;
+using SlzrCrossGate.Core.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -23,28 +25,22 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 
-// 配置 DbContext
-var databaseProvider = builder.Configuration.GetValue<string>("DatabaseProvider");
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
-
-switch (databaseProvider)
+//配置文件上传服务
+builder.Services.AddFileService(options =>
 {
-    case "SqlServer":
-        builder.Services.AddDbContext<TcpDbContext>(options =>
-            options.UseSqlServer(connectionString));
-        break;
-    case "MySql":
-        builder.Services.AddDbContext<TcpDbContext>(options =>
-            options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString)));
-        break;
-    //case "PostgreSql":
-    //    builder.Services.AddDbContext<TcpDbContext>(options =>
-    //        options.UseNpgsql(connectionString));
-    //    break;
-    default:
-        throw new Exception("Unsupported database provider: " + databaseProvider);
-}
+    var fileServiceConfig = builder.Configuration.GetSection("FileService");
+    options.DefaultStorageType = fileServiceConfig["DefaultStorageType"] ?? throw new ArgumentNullException("FileService:DefaultStorageType");
+    options.LocalFilePath = fileServiceConfig["LocalFilePath"] ?? throw new ArgumentNullException("FileService:LocalFilePath");
+    options.MinioEndpoint = fileServiceConfig["MinIO:Endpoint"] ?? throw new ArgumentNullException("MinIO:Endpoint");
+    options.MinioAccessKey = fileServiceConfig["MinIO:AccessKey"] ?? throw new ArgumentNullException("MinIO:AccessKey");
+    options.MinioSecretKey = fileServiceConfig["MinIO:SecretKey"] ?? throw new ArgumentNullException("MinIO:SecretKey");
+    options.MinioBucketName = fileServiceConfig["MinIO:BucketName"] ?? throw new ArgumentNullException("MinIO:BucketName");
+});
 
+// 配置数据库服务
+builder.Services.AddConfiguredDbContext(builder.Configuration);
+
+// 配置身份认证服务(WEB端需要)
 builder.Services.AddIdentity<ApplicationUser, ApplicationRole>(options => options.SignIn.RequireConfirmedAccount = true) // 修改此行
     .AddEntityFrameworkStores<TcpDbContext>()
     .AddDefaultTokenProviders(); // 添加此行

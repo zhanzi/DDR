@@ -12,17 +12,17 @@ namespace SlzrCrossGate.Core.Models
         public required string ID { get; set; }
 
         [MaxLength(200)]
-        public required string Name { get; set; }
+        public required string FileName { get; set; }
 
         [MaxLength(500)]
-        public string? SavePath { get; set; }
+        public string FilePath { get; set; }
 
-        public int Size { get; set; }
+        public long FileSize { get; set; }
 
         [MaxLength(8)]
         public required string Crc { get; set; }
 
-        public DateTime CreateTime { get; set; }
+        public DateTime UploadTime { get; set; }
 
         [MaxLength(200)]
         public string? ObjectStorageUrl { get; set; } // 对象存储的URL

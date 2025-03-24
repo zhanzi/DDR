@@ -3,7 +3,7 @@ using SlzrCrossGate.Core.Models;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 
-namespace SlzrCrossGate.ApiService.Service
+namespace SlzrCrossGate.Core.Service
 {
     public class TerminalManager
     {

@@ -37,5 +37,6 @@ namespace SlzrCrossGate.Core.Models
 
         public bool AutoRegister { get; set; }
 
+        public bool IsDelete { get; set; } = false;
     }
 }
