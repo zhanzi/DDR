@@ -11,25 +11,25 @@ using System.Threading.Tasks;
 
 namespace SlzrCrossGate.Tcp
 {
-    public class TcpConnectionContext
+    public class TcpConnectionContext : ConnectionContext
     {
         ConnectionContext _connectionContext;
         public TcpConnectionContext(ConnectionContext connectionContext)
         {
-            _connectionContext = connectionContext;connectionContext.DisposeAsync();
+            _connectionContext = connectionContext;
         }
 
-        public string ConnectionId => _connectionContext.ConnectionId;
-        public IFeatureCollection Features => _connectionContext.Features;
-        public IDictionary<object, object?> Items => _connectionContext.Items;
-        public IDuplexPipe Transport => _connectionContext.Transport;
-        public EndPoint? LocalEndPoint => _connectionContext.LocalEndPoint;
-        public EndPoint? RemoteEndPoint => _connectionContext.RemoteEndPoint;
-        public void Abort() => _connectionContext.Abort();
-        public CancellationToken ConnectionClosed => _connectionContext.ConnectionClosed;
+        public override IDuplexPipe Transport { get => _connectionContext.Transport; set => _connectionContext.Transport = value; }
 
-        public ValueTask DisposeAsync => _connectionContext.DisposeAsync();
+        public override string ConnectionId { get => _connectionContext.ConnectionId; set => _connectionContext.ConnectionId = value; }
 
+        public override IFeatureCollection Features => _connectionContext.Features;
+
+        public override IDictionary<object, object?> Items { get => _connectionContext.Items; set => _connectionContext.Items = value; }
+
+        public override EndPoint? RemoteEndPoint { get => _connectionContext.RemoteEndPoint; set => _connectionContext.RemoteEndPoint = value; }
+
+        public override ValueTask DisposeAsync() => _connectionContext.DisposeAsync();
 
         public DateTime ConnectionTime { get; set; } = DateTime.Now;
         public DateTime LastSendtime { get; set; } = DateTime.Now;
@@ -44,6 +44,13 @@ namespace SlzrCrossGate.Tcp
         public string FileVerInfo { get; set; } = "";
         public string PropertyInfo { get; set; } = "";
 
-
+        //send message
+        public async Task<bool> SendMessageAsync(ReadOnlyMemory<byte> message)
+        {
+            LastSendtime = DateTime.Now;
+            await Transport.Output.WriteAsync(message);
+            var result = await Transport.Output.FlushAsync();
+            return result.IsCompleted;
+        }
     }
 }

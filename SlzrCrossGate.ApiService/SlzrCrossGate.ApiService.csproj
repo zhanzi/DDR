@@ -25,4 +25,10 @@
     <Folder Include="Service\" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Update="schema.xml">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
 </Project>

@@ -17,6 +17,13 @@ namespace SlzrCrossGate.Tcp.Protocol
 
         private bool messageTypeIsBCD = true;
 
+        private byte[] _buffer = Array.Empty<byte>();
+
+        public byte[] GetCurBuffer()
+        {
+            return _buffer;
+        }
+
         #region 构造函数
         /// <summary>
         /// 使用指定的 Schema 构造数据包类
@@ -33,9 +40,9 @@ namespace SlzrCrossGate.Tcp.Protocol
         /// 使用指定的 Schema 文件构造数据包类
         /// </summary>
         /// <param name="schemaFile"></param>
-        public Iso8583Package(string schemaFile,bool messageTypeIsBCD)
-            : this(new Iso8583Schema(schemaFile), messageTypeIsBCD)
+        public Iso8583Package() : this(new Iso8583Schema("schema.xml"))
         {
+
         }
         #endregion
 
@@ -424,7 +431,7 @@ namespace SlzrCrossGate.Tcp.Protocol
         /// 组包一个 ISO 8583 数据包
         /// </summary>
         /// <returns></returns>
-        public byte[] GetSendBuffer()
+        private byte[] PackSendBody()
         {
             int len = 0;
             if (!String.IsNullOrEmpty(this.messageType))
@@ -558,19 +565,20 @@ namespace SlzrCrossGate.Tcp.Protocol
         }
 
         /// <summary>
-        /// 
+        /// 打包完整数据包
         /// </summary>
         /// <param name="NeedReSign"></param>
         /// <returns></returns>
-        public byte[] GetSendBufferWithHead( bool NeedReSign=false, int msgcount = 0)
+        public byte[] PackSendBuffer(bool NeedReSign = false, int msgcount = 0)
         {
-            var body = GetSendBuffer();
+            var body = PackSendBody();
             string headStr = "6000000000612200000001";
             if (NeedReSign)
             {
                 headStr = "6000000000612203000001";
             }
-            else {
+            else
+            {
                 if (msgcount > 0)
                 {
                     headStr = "6000000000612205000001";
@@ -578,14 +586,12 @@ namespace SlzrCrossGate.Tcp.Protocol
             }
             //int len = body.Length + 11+4;//4字节CRC
             int len = body.Length + 11;
-            var result = new byte[body.Length + 11+2];
-            result[0] = Convert.ToByte(len >> 8 & 0XFF);
-            result[1] = Convert.ToByte(len & 0XFF);
-            DataConvert.HexToBytes(headStr).CopyTo(result, 2);
-            body.CopyTo(result, 13);
-            //var crc = DataConvert.HexToBytes(Crc.calFileCRC(result).ToString("X2").PadLeft(8, '0'));
-            //return result.Concat(crc).ToArray();
-            return result;
+            _buffer = new byte[body.Length + 11 + 2];
+            _buffer[0] = Convert.ToByte(len >> 8 & 0XFF);
+            _buffer[1] = Convert.ToByte(len & 0XFF);
+            DataConvert.HexToBytes(headStr).CopyTo(_buffer, 2);
+            body.CopyTo(_buffer, 13);
+            return _buffer;
         }
         #endregion
 
@@ -595,7 +601,7 @@ namespace SlzrCrossGate.Tcp.Protocol
         /// </summary>
         /// <param name="buf">数据包</param>
         /// <param name="haveMT">数据包是否包含4字节的MessageType</param>
-        public void ParseBuffer(byte[] buf, bool haveMT=true)
+        private void ParseBuffer(byte[] buf, bool haveMT=true)
         {
             int pos = 0;
             if (buf == null)
@@ -691,6 +697,7 @@ namespace SlzrCrossGate.Tcp.Protocol
         /// <param name="haveMT"></param>
         public void ParseMessage(byte[] buf, bool haveMT = true)
         {
+            _buffer = buf;
             ParseBuffer(buf.Skip(13).ToArray());
         }
         #endregion

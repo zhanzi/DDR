@@ -1,13 +1,10 @@
-﻿using Microsoft.AspNetCore.Identity;
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Minio;
 using SlzrCrossGate.Core.Database;
-using SlzrCrossGate.Core.Models;
 using SlzrCrossGate.Core.Service;
-using SlzrCrossGate.Core.Service.File;
 using SlzrCrossGate.Core.Service.FileStorage;
 using SlzrCrossGate.Core.Services;
 

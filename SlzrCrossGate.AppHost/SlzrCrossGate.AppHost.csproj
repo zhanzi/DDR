@@ -12,10 +12,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\AdminWeb\AdminWeb.csproj" />
     <ProjectReference Include="..\SlzrCrossGate.ApiService\SlzrCrossGate.ApiService.csproj" />
     <ProjectReference Include="..\SlzrCrossGate.WebAdmin\SlzrCrossGate.WebAdmin.csproj" />
-    <ProjectReference Include="..\SlzrCrossGate.Web\SlzrCrossGate.Web.csproj" />
   </ItemGroup>
 
   <ItemGroup>

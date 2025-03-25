@@ -45,8 +45,10 @@ builder.Services.AddIdentity<ApplicationUser, ApplicationRole>(options => option
     .AddEntityFrameworkStores<TcpDbContext>()
     .AddDefaultTokenProviders(); // 添加此行
 
+
 builder.AddTcpService();
 builder.AddCoreService();
+
 
 // 配置Kestrel同时监听HTTP和TCP
 builder.WebHost.ConfigureKestrel(kestrel =>

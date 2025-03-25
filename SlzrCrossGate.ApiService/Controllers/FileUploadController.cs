@@ -9,9 +9,9 @@ namespace SlzrCrossGate.ApiService.Controllers
     [Route("api/[controller]")]
     public class FileUploadController : ControllerBase
     {
-        private readonly IFileService _fileService;
+        private readonly FileService _fileService;
 
-        public FileUploadController(IFileService fileService)
+        public FileUploadController(FileService fileService)
         {
             _fileService = fileService;
         }

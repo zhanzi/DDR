@@ -1,6 +1,7 @@
 using System;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http.Internal;
 using SlzrCrossGate.Core.Service.FileStorage;
 
 namespace SlzrCrossGate.Core.Services
@@ -18,15 +19,17 @@ namespace SlzrCrossGate.Core.Services
             _default_storageType = defaultStorageType;
         }
 
-        public async Task<string> UploadFileAsync(IFormFile file, string uploadedBy, string storageType = _default_storageType)
+        public async Task<string> UploadFileAsync(IFormFile file, string uploadedBy, string storageType = "")
         {
+            if (storageType=="") storageType= _default_storageType;
+
             if (storageType == "Local")
             {
-                return await _localFileService.UploadFileAsync(file, uploadedBy, storageType);
+                return await _localFileService.UploadFileAsync(file, uploadedBy);
             }
             else if (storageType == "MinIO")
             {
-                return await _minioFileService.UploadFileAsync(file, uploadedBy, storageType);
+                return await _minioFileService.UploadFileAsync(file, uploadedBy);
             }
             else
             {
@@ -34,8 +37,10 @@ namespace SlzrCrossGate.Core.Services
             }
         }
 
-        public async Task<string> UploadFileAsync(string localFilePath, string uploadedBy, string storageType = _default_storageType)
+        public async Task<string> UploadFileAsync(string localFilePath, string uploadedBy, string storageType = "")
         {
+            if (storageType == "") storageType = _default_storageType;
+
             if (string.IsNullOrEmpty(localFilePath) || !System.IO.File.Exists(localFilePath))
             {
                 throw new ArgumentException("Invalid local file path");

@@ -19,4 +19,10 @@
     <ProjectReference Include="..\SlzrCrossGate.Core\SlzrCrossGate.Core.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Update="schema.xml">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
 </Project>
