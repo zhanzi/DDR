@@ -21,4 +21,21 @@ namespace SlzrCrossGate.Tcp.Protocol
         {
         }
     }
+
+    public class Iso8583FieldeException : Exception
+    {
+        public Iso8583FieldeException()
+        {
+        }
+
+        public Iso8583FieldeException(string message)
+            : base(message)
+        {
+        }
+
+        public Iso8583FieldeException(string message, Exception innerException)
+            : base(message, innerException)
+        {
+        }
+    }
 }

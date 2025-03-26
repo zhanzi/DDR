@@ -33,9 +33,9 @@ namespace SlzrCrossGate.Tcp
 
         public DateTime ConnectionTime { get; set; } = DateTime.Now;
         public DateTime LastSendtime { get; set; } = DateTime.Now;
-        public DateTime LastReceivetime { get; set; } = DateTime.Now;
+        public DateTime LastActivityTime { get; private set; } = DateTime.Now;
 
-        public string TerminalId { get; set; } = "";
+        public string TerminalID { get; set; } = "";
         public string Token { get; set; } = "";
         public string MerchantID { get; set; }
         public string MachineID { get; set; }
@@ -51,6 +51,12 @@ namespace SlzrCrossGate.Tcp
             await Transport.Output.WriteAsync(message);
             var result = await Transport.Output.FlushAsync();
             return result.IsCompleted;
+        }
+
+        // 更新最后活动时间
+        public void UpdateLastActivityTime()
+        {
+            LastActivityTime = DateTime.Now;
         }
     }
 }

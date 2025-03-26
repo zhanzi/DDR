@@ -2,7 +2,7 @@
 
 namespace SlzrCrossGate.Common
 {
-    public static class DataConvert
+    public static partial class DataConvert
     {
         /// <summary>
         /// byte[] to Hex String
@@ -398,5 +398,15 @@ namespace SlzrCrossGate.Common
             }
             return busno.ToString();
         }
+
+        public static bool IsHex(string? v)
+        {
+            if (string.IsNullOrEmpty(v)) return false;
+            return HexRegex().IsMatch(v);
+        }
+
+        [System.Text.RegularExpressions.GeneratedRegex(@"^[0-9A-Fa-f]+$")]
+        private static partial System.Text.RegularExpressions.Regex HexRegex();
     }
+
 }

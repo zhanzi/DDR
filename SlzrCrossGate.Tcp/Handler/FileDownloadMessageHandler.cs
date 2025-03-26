@@ -20,7 +20,7 @@ namespace SlzrCrossGate.Tcp.Handler
             _schema = schema;
         }
 
-        public async Task HandleMessageAsync(TcpConnectionContext context, Iso8583Package message)
+        public async Task HandleMessageAsync(TcpConnectionContext context, Iso8583Message message)
         {
             // 处理文件下载指令
             _logger.LogInformation("处理文件下载指令");
@@ -54,14 +54,14 @@ namespace SlzrCrossGate.Tcp.Handler
             await Task.CompletedTask;
         }
 
-        private async Task SendErrorResponse(TcpConnectionContext context, Iso8583Package request, string errorCode)
+        private async Task SendErrorResponse(TcpConnectionContext context, Iso8583Message request, string errorCode)
         {
-            var response = new Iso8583Package(_schema);
+            var response = new Iso8583Message(_schema);
             response.MessageType = "0810"; // 假设响应类型为0810
-            response.SetString(39, errorCode); // 响应码
-            response.SetString(42, request.GetString(42)); // 文件ID
+            response.SetField(39, errorCode); // 响应码
+            response.SetField(42, request.GetString(42)); // 文件ID
 
-            var responseBytes = response.PackSendBuffer();
+            var responseBytes = response.Pack();
 
             await context.Transport.Output.WriteAsync(responseBytes);
         }

@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using SlzrCrossGate.Tcp.Protocol;
+using SlzrCrossGate.Tcp.Service;
 
 namespace SlzrCrossGate.Tcp
 {
@@ -38,10 +39,12 @@ namespace SlzrCrossGate.Tcp
             builder.Services.AddSingleton<TcpConnectionManager>();
             builder.Services.AddSingleton<ITcpSendService, TcpSendService>();
             builder.Services.AddConnections();
-            builder.Services.AddHostedService<TcpBackgroundService>();
+            builder.Services.AddHostedService<TcpLifecycleManagerService>();
 
             builder.Services.AddSingleton<Iso8583Schema>(new Iso8583Schema("schema.xml"));
 
+
+            
 
 
             //var app = builder.Build();

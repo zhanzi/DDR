@@ -5,14 +5,16 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace SlzrCrossGate.Tcp
+namespace SlzrCrossGate.Tcp.Service
 {
-    // 实现后台服务
-    public class TcpBackgroundService : IHostedService
+    /// <summary>
+    /// TCP连接生命周期管理服务
+    /// </summary>
+    public class TcpLifecycleManagerService : IHostedService
     {
         private readonly TcpConnectionManager _manager;
 
-        public TcpBackgroundService(TcpConnectionManager manager)
+        public TcpLifecycleManagerService(TcpConnectionManager manager)
         {
             _manager = manager;
         }

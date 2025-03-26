@@ -18,7 +18,7 @@ namespace SlzrCrossGate.Tcp.Handler
             _schema = schema;
         }
 
-        public async Task HandleMessageAsync(TcpConnectionContext context, Iso8583Package message)
+        public async Task HandleMessageAsync(TcpConnectionContext context, Iso8583Message message)
         {
             // 处理IC卡业务指令
             _logger.LogInformation("处理IC卡业务指令");

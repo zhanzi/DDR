@@ -9,7 +9,7 @@ namespace SlzrCrossGate.Tcp.Protocol
     /// </summary>
     public class Iso8583Package
     {
-        private string messageType;
+        private string messageType = "";
         private Iso8583Schema schema;
         private Bitmap bitmap;
         private SortedList<int, object> values;
@@ -45,6 +45,103 @@ namespace SlzrCrossGate.Tcp.Protocol
 
         }
         #endregion
+
+
+        /// <summary>
+        /// 设置值（通用方法）
+        /// </summary>
+        /// <param name="bitNum"></param>
+        /// <param name="value"></param>
+        /// <exception cref="Exception"></exception>
+        public void SetField(int bitNum, object value)
+        {
+            if (value == null)
+            {
+                this.bitmap.Set(bitNum, false);
+                this.values.Remove(bitNum);
+                return;
+            }
+            if (!this.schema.fields.ContainsKey(bitNum)) throw new Exception(String.Format("field {0} is not defined in schema.", bitNum));
+
+            Iso8583Field field = this.schema.fields[bitNum];
+            switch (field.DataType)
+            {
+                case Iso8583DataType.B:
+                    if (value is not byte[])
+                    {
+                        throw new Iso8583FieldeException("this field is binary, but the value is not byte[].");
+                    }
+                    break;
+                case Iso8583DataType.N:
+                case Iso8583DataType.BCD:
+                case Iso8583DataType.ANS:
+                    if (value is string && !DataConvert.IsHex(value.ToString()))
+                    {
+                        throw new Iso8583FieldeException("this field is number, but the value is not hex string.");
+                    }
+
+                    if (field.Format == Iso8583Format.LVAR || field.Format == Iso8583Format.LLVAR || field.Format == Iso8583Format.LLLVAR)
+                    {
+                        if (value.ToString()?.Length > field.Length)
+                        {
+                            throw new Iso8583FieldeException("this field is number, but the value is too long.");
+                        }
+                    }
+                    else
+                    {
+                        if (value.ToString()?.Length != field.Length)
+                        {
+                            throw new Iso8583FieldeException("this field need length " + field.Length + ", but the value is " + value.ToString()?.Length);
+                        }
+                    }
+
+                    break;
+                default:
+                    if (value is not string)
+                    {
+                        throw new Iso8583FieldeException("this field is string, but the value is not string.");
+                    }
+                    break;
+            }
+            this.bitmap.Set(bitNum, true);
+            this.values[bitNum] = value;
+        }
+
+        /// <summary>
+        /// 获取值（通用方法）
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="bitNum"></param>
+        /// <returns></returns>
+        public T GetField<T>(int bitNum)
+        {
+            Iso8583Field field = this.schema.fields[bitNum];
+            if (field == null)
+            {
+                throw new Exception("field is not defined in schema.");
+            }
+            if (!this.values.ContainsKey(bitNum) || this.values[bitNum] == null)
+            {
+                throw new Exception("field is not set value.");
+            }
+            if (field.DataType != Iso8583DataType.B)
+            {
+                return (T)this.values[bitNum];
+            }
+            else if (typeof(T) == typeof(byte[]))
+            {
+                return (T)this.values[bitNum];
+            }
+            else if (typeof(T) == typeof(string))
+            {
+                return (T)(object)DataConvert.BytesToHex((byte[])this.values[bitNum]);
+            }
+            else
+            {
+                throw new Exception("field is binary, but the value is not byte[] or string.");
+            }
+        }
+
 
         #region 公共属性
         /// <summary>

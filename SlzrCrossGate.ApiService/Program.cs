@@ -12,6 +12,9 @@ using Microsoft.AspNetCore.Identity;
 using SlzrCrossGate.Core.Models;
 using Minio;
 using SlzrCrossGate.Core.Services;
+using OpenTelemetry.Metrics;
+using OpenTelemetry.Resources;
+using OpenTelemetry.Trace;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -45,9 +48,30 @@ builder.Services.AddIdentity<ApplicationUser, ApplicationRole>(options => option
     .AddEntityFrameworkStores<TcpDbContext>()
     .AddDefaultTokenProviders(); // 添加此行
 
+builder.Services.Configure<RabbitMQOptions>(builder.Configuration.GetSection("RabbitMQ"));
+builder.Services.AddSingleton<IRabbitMQService, RabbitMQService>();
+
 
 builder.AddTcpService();
 builder.AddCoreService();
+
+builder.Services.AddOpenTelemetry()
+    //.WithTracing(tracerProviderBuilder =>
+    //{
+    //    tracerProviderBuilder
+    //        .AddSource("SlzrCrossGate.Tcp")  // 添加自定义活动源
+    //        .SetResourceBuilder(ResourceBuilder.CreateDefault()
+    //            .AddService("SlzrCrossGate.Tcp"))
+    //        .AddAspNetCoreInstrumentation()
+    //        .AddHttpClientInstrumentation();
+    //})
+    .WithMetrics(meterProviderBuilder =>
+    {
+        meterProviderBuilder
+            .AddMeter("SlzrCrossGate.Tcp")  // 添加自定义度量源
+            .AddAspNetCoreInstrumentation()
+            .AddHttpClientInstrumentation();
+    });
 
 
 // 配置Kestrel同时监听HTTP和TCP

@@ -19,7 +19,7 @@ namespace SlzrCrossGate.Tcp.Handler
             _schema = schema;
         }
 
-        public async Task HandleMessageAsync(TcpConnectionContext context, Iso8583Package message)
+        public async Task HandleMessageAsync(TcpConnectionContext context, Iso8583Message message)
         {
             // 处理增量名单下载指令
             _logger.LogInformation("处理增量名单下载指令");

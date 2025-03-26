@@ -1,6 +1,5 @@
 using Microsoft.Extensions.Logging;
 using SlzrCrossGate.Tcp.Protocol;
-using System.Threading.Tasks;
 
 namespace SlzrCrossGate.Tcp.Handler
 {
@@ -16,7 +15,7 @@ namespace SlzrCrossGate.Tcp.Handler
             _schema = schema;
         }
 
-        public async Task HandleMessageAsync(TcpConnectionContext context, Iso8583Package message)
+        public async Task HandleMessageAsync(TcpConnectionContext context, Iso8583Message message)
         {
             // 处理终端签到指令
             _logger.LogInformation("处理终端签到指令");

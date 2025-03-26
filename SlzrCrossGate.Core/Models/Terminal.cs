@@ -30,9 +30,9 @@ namespace SlzrCrossGate.Core.Models
 
         [MaxLength(8)]
         /// <summary>
-        /// 自编码
+        /// 设备编号,车辆编号,自编码,自定义编号
         /// </summary>
-        public required string MachineNO { get; set; }
+        public required string DeviceNO { get; set; }
 
         [MaxLength(8)]
         public required string LineNO { get; set; }

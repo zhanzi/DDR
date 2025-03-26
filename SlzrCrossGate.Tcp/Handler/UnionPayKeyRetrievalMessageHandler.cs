@@ -18,7 +18,7 @@ namespace SlzrCrossGate.Tcp.Handler
             _schema = schema;
         }
 
-        public async Task HandleMessageAsync(TcpConnectionContext context, Iso8583Package message)
+        public async Task HandleMessageAsync(TcpConnectionContext context, Iso8583Message message)
         {
             // 处理银联终端密钥获取指令
             _logger.LogInformation("处理银联终端密钥获取指令");
@@ -30,16 +30,16 @@ namespace SlzrCrossGate.Tcp.Handler
             //var key = await _keyService.GetKeyAsync(terminalId);
 
             // 记录密钥获取日志
-            _logger.LogInformation($"终端 {terminalId} 获取密钥");
+            _logger.LogInformation("终端 {TerminalId} 获取密钥", terminalId);
 
             // 发送密钥获取响应
-            var response = new Iso8583Package(_schema);
+            var response = new Iso8583Message(_schema);
             response.MessageType = "0410"; // 假设响应类型为0410
-            response.SetString(39, "00"); // 假设39域表示响应码，00表示成功
-            response.SetString(41, terminalId); // 终端ID
-           // response.SetString(62, key); // 假设62域存储密钥
+            response.SetField(39, "00"); // 假设39域表示响应码，00表示成功
+            response.SetField(41, terminalId); // 终端ID
+                                               // response.SetString(62, key); // 假设62域存储密钥
 
-            var responseBytes = response.PackSendBuffer();
+            var responseBytes = response.Pack();
 
             await context.Transport.Output.WriteAsync(responseBytes);
 

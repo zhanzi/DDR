@@ -20,7 +20,7 @@ namespace SlzrCrossGate.Tcp.Handler
             _schema = schema;
         }
 
-        public async Task HandleMessageAsync(TcpConnectionContext context, Iso8583Package message)
+        public async Task HandleMessageAsync(TcpConnectionContext context, Iso8583Message message)
         {
             // 处理数据上传指令
             _logger.LogInformation("处理数据上传指令");
@@ -29,7 +29,7 @@ namespace SlzrCrossGate.Tcp.Handler
             var terminalId = message.GetString(41); // 假设终端ID在41域
 
             // 获取上传的数据
-            var data = message.GetArrayData(60); // 假设60域存储上传的数据
+            var data = message.GetBytes(61); // 假设60域存储上传的数据
 
             // 记录数据上传日志
             _logger.LogInformation($"终端 {terminalId} 上传数据");

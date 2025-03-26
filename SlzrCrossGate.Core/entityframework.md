@@ -20,9 +20,8 @@ dotnet ef migrations add <MigrationName> \
   --output-dir Migrations
 
 # 示例：添加 "AddUserProfile" 迁移
-dotnet ef migrations add AddUserProfile \
-  --project SLzrCrossGate.Core \
-  --startup-project SLzrCrossGate.ApiService
+dotnet ef migrations add AddUserProfile --project SLzrCrossGate.Core --startup-project SLzrCrossGate.ApiService
+dotnet ef migrations add UpdateTerminal --project SLzrCrossGate.Core --startup-project SLzrCrossGate.ApiService
 ```
 
 ## 本地测试应用迁移
