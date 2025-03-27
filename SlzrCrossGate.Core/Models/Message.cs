@@ -25,13 +25,17 @@ namespace SlzrCrossGate.Core.Models
 
         [MaxLength(500)]
         public string? Description { get; set; }
+
     }
 
-    public class MsgContent
+    public class MsgContent : ITenantEntity
     {
         [Key]
         [StringLength(4)]
         public int ID { get; set; }
+
+        [MaxLength(8)]
+        public required string MerchantID { get; set; }
 
         [StringLength(4)]
         public required string MsgTypeID { get; set; }
@@ -50,11 +54,15 @@ namespace SlzrCrossGate.Core.Models
         public string? Operator { get; set; }
     }
 
-    public class MsgBox {
+    public class MsgBox : ITenantEntity
+    {
 
         [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
         [Key]
         public int ID { get; set; }
+
+        [MaxLength(8)]
+        public required string MerchantID { get; set; }
 
         public int MsgContentID { get; set; }
 
@@ -63,7 +71,7 @@ namespace SlzrCrossGate.Core.Models
         public required string TerminalID { get; set; }
 
         //消息状态 0:未读 1:已读 2:已回复
-        public int Status { get; set; }
+        public MessageStatus Status { get; set; }
 
         //发送时间
         public DateTime SendTime { get; set; }

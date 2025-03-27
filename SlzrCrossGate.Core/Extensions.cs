@@ -4,9 +4,12 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Minio;
 using SlzrCrossGate.Core.Database;
+using SlzrCrossGate.Core.Models;
+using SlzrCrossGate.Core.Repositories;
 using SlzrCrossGate.Core.Service;
 using SlzrCrossGate.Core.Service.FileStorage;
 using SlzrCrossGate.Core.Services;
+using SlzrCrossGate.Core.Services.BusinessServices;
 
 
 namespace SlzrCrossGate.Core
@@ -15,7 +18,38 @@ namespace SlzrCrossGate.Core
     {
         public static TBuilder AddCoreService<TBuilder>(this TBuilder builder) where TBuilder : IHostApplicationBuilder
         {
+
+            // 注册仓储
+            builder.Services.AddScoped<MsgBoxRepository>();
+
+
+            // 注册业务服务
+            builder.Services.AddScoped<MsgBoxService>();
+
+
+            //注册rabbitmqservice
+            builder.Services.Configure<RabbitMQOptions>(builder.Configuration.GetSection("RabbitMQ"));
+            builder.Services.AddSingleton<IRabbitMQService,RabbitMQService>();
+
+            //配置文件上传服务
+            builder.Services.AddFileService(options =>
+            {
+                var fileServiceConfig = builder.Configuration.GetSection("FileService");
+                options.DefaultStorageType = fileServiceConfig["DefaultStorageType"] ?? throw new ArgumentNullException("FileService:DefaultStorageType");
+                options.LocalFilePath = fileServiceConfig["LocalFilePath"] ?? throw new ArgumentNullException("FileService:LocalFilePath");
+                options.MinioEndpoint = fileServiceConfig["MinIO:Endpoint"] ?? throw new ArgumentNullException("MinIO:Endpoint");
+                options.MinioAccessKey = fileServiceConfig["MinIO:AccessKey"] ?? throw new ArgumentNullException("MinIO:AccessKey");
+                options.MinioSecretKey = fileServiceConfig["MinIO:SecretKey"] ?? throw new ArgumentNullException("MinIO:SecretKey");
+                options.MinioBucketName = fileServiceConfig["MinIO:BucketName"] ?? throw new ArgumentNullException("MinIO:BucketName");
+            });
+            //注册终端管理服务
             builder.Services.AddSingleton<TerminalManager>();
+
+            // 配置数据库服务
+            builder.Services.AddConfiguredDbContext(builder.Configuration);
+
+
+
             return builder;
         }
 

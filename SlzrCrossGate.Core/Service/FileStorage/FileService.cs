@@ -2,9 +2,8 @@ using System;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Internal;
-using SlzrCrossGate.Core.Service.FileStorage;
 
-namespace SlzrCrossGate.Core.Services
+namespace SlzrCrossGate.Core.Service.FileStorage
 {
     public class FileService
     {
@@ -41,7 +40,7 @@ namespace SlzrCrossGate.Core.Services
         {
             if (storageType == "") storageType = _default_storageType;
 
-            if (string.IsNullOrEmpty(localFilePath) || !System.IO.File.Exists(localFilePath))
+            if (string.IsNullOrEmpty(localFilePath) || !File.Exists(localFilePath))
             {
                 throw new ArgumentException("Invalid local file path");
             }

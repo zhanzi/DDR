@@ -1,4 +1,12 @@
-﻿## 安装EF工具
+﻿# 创建数据库容器
+```bash
+# mysql
+docker run -d --name mysql01 -e MYSQL_ROOT_PASSWORD=slzr!12345 -v D:\Database\mysql:/var/lib/mysql -p 3306:3306 --restart unless-stopped mysql:8.0
+
+```
+
+
+## 安装EF工具
 
 ```bash
 dotnet tool install --global dotnet-ef --version 8.0.14
@@ -8,6 +16,7 @@ dotnet tool install --global dotnet-ef --version 8.0.14
 
 ```bash
 dotnet ef migrations add InitialCreate --project SLzrCrossGate.Core --startup-project SLzrCrossGate.ApiService
+
 ```
 
 ## 模型发生变化时，更新数据库
@@ -95,3 +104,13 @@ dotnet ef migrations add FixedMigration
 
 - 文档记录：维护 MIGRATION_README.md 说明重大变更
 
+## 开发阶段重新初始化数据库
+可以通过删除 Migrations 文件夹下的所有内容来重新初始化数据库，然后执行 dotnet ef migrations add InitialCreate。这种做法在开发阶段是常见的，尤其是当您需要重新设计数据库模式时。
+不过，需要注意几点：
+1.	删除 Migrations 文件夹内容会丢失所有迁移历史记录
+2.	如果目标数据库已经存在，您可能需要先将其删除，或者使用 dotnet ef database drop 命令删除
+3.	确保您的 TcpDbContext 类中的所有模型配置都是最新的
+操作步骤：
+1.	删除 Migrations 文件夹下的所有文件
+2.	执行命令：dotnet ef migrations add InitialCreate
+3.	然后执行：dotnet ef database update 创建新数据库

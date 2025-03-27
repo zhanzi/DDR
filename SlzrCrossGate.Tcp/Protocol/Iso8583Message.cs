@@ -41,6 +41,9 @@ namespace SlzrCrossGate.Tcp.Protocol
         public string MessageType { get => _iso8583Package.MessageType; set => value = _iso8583Package.MessageType; }
         public bool Exist(int fieldNo) => _iso8583Package.ExistValue(fieldNo);
         public void SetField(int fieldNo, object value) => _iso8583Package.SetField(fieldNo, value);
+
+        public void SetDateTime(int fieldNo, DateTime value) => _iso8583Package.SetDateTime(fieldNo, value);
+
         public T GetField<T>(int fieldNo) => _iso8583Package.GetField<T>(fieldNo);
         public string GetString(int fieldNo) => GetField<string>(fieldNo);
         public byte[] GetBytes(int fieldNo) => GetField<byte[]>(fieldNo);
@@ -61,7 +64,7 @@ namespace SlzrCrossGate.Tcp.Protocol
             
             
         }
-        public byte[] Pack() => _iso8583Package.PackSendBuffer();
+        public byte[] Pack(bool needReLogin = false, int msgcount = 0) => _iso8583Package.PackSendBuffer(needReLogin, msgcount);
         public byte[] GetCurBuffer() => _iso8583Package.GetCurBuffer();
 
 

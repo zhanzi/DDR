@@ -12,8 +12,8 @@ using SlzrCrossGate.Core.Database;
 namespace SlzrCrossGate.Core.Migrations
 {
     [DbContext(typeof(TcpDbContext))]
-    [Migration("20250326074741_UpdateTerminal")]
-    partial class UpdateTerminal
+    [Migration("20250327025649_InitialCreate")]
+    partial class InitialCreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)

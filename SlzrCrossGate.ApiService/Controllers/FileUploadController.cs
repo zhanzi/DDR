@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
-using SlzrCrossGate.Core.Services;
 using Microsoft.AspNetCore.Http;
 using System.Threading.Tasks;
+using SlzrCrossGate.Core.Service.FileStorage;
 
 namespace SlzrCrossGate.ApiService.Controllers
 {

@@ -30,4 +30,11 @@ namespace SlzrCrossGate.Core.Models
         Active = 1,
         Inactive = 2
     }
+
+    public enum MessageStatus
+    {
+        Unread = 0,
+        Read = 1,
+        Replied = 2
+    }
 }

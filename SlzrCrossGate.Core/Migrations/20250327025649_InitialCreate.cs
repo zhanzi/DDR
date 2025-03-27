@@ -226,7 +226,8 @@ namespace SlzrCrossGate.Core.Migrations
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     Operator = table.Column<string>(type: "varchar(50)", maxLength: 50, nullable: true)
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    AutoRegister = table.Column<bool>(type: "tinyint(1)", nullable: false)
+                    AutoRegister = table.Column<bool>(type: "tinyint(1)", nullable: false),
+                    IsDelete = table.Column<bool>(type: "tinyint(1)", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -332,7 +333,7 @@ namespace SlzrCrossGate.Core.Migrations
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     MachineID = table.Column<string>(type: "varchar(8)", maxLength: 8, nullable: false)
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    MachineNO = table.Column<string>(type: "varchar(8)", maxLength: 8, nullable: false)
+                    DeviceNO = table.Column<string>(type: "varchar(8)", maxLength: 8, nullable: false)
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     LineNO = table.Column<string>(type: "varchar(8)", maxLength: 8, nullable: false)
                         .Annotation("MySql:CharSet", "utf8mb4"),
@@ -365,14 +366,14 @@ namespace SlzrCrossGate.Core.Migrations
                 {
                     ID = table.Column<string>(type: "varchar(32)", maxLength: 32, nullable: false)
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    Name = table.Column<string>(type: "varchar(200)", maxLength: 200, nullable: false)
+                    FileName = table.Column<string>(type: "varchar(200)", maxLength: 200, nullable: false)
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    SavePath = table.Column<string>(type: "varchar(500)", maxLength: 500, nullable: true)
+                    FilePath = table.Column<string>(type: "varchar(500)", maxLength: 500, nullable: false)
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    Size = table.Column<int>(type: "int", nullable: false),
+                    FileSize = table.Column<long>(type: "bigint", nullable: false),
                     Crc = table.Column<string>(type: "varchar(8)", maxLength: 8, nullable: false)
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    CreateTime = table.Column<DateTime>(type: "datetime(6)", nullable: false),
+                    UploadTime = table.Column<DateTime>(type: "datetime(6)", nullable: false),
                     ObjectStorageUrl = table.Column<string>(type: "varchar(200)", maxLength: 200, nullable: true)
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     BucketName = table.Column<string>(type: "varchar(100)", maxLength: 100, nullable: true)

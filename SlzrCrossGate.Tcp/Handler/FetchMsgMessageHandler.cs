@@ -1,7 +1,9 @@
 using Microsoft.Extensions.Logging;
+using SlzrCrossGate.Common;
+using SlzrCrossGate.Core.Models;
+using SlzrCrossGate.Core.Services.BusinessServices;
 using SlzrCrossGate.Tcp.Protocol;
-using System.Threading.Tasks;
-using System.Collections.Generic;
+using System.Text;
 
 namespace SlzrCrossGate.Tcp.Handler
 {
@@ -11,49 +13,51 @@ namespace SlzrCrossGate.Tcp.Handler
         private readonly ILogger<FetchMsgMessageHandler> _logger;
         //private readonly IMessageService _messageService;
         private readonly Iso8583Schema _schema;
+        private readonly MsgBoxService _msgBoxService;
 
-        public FetchMsgMessageHandler(ILogger<FetchMsgMessageHandler> logger, Iso8583Schema schema)
+        public FetchMsgMessageHandler(ILogger<FetchMsgMessageHandler> logger, Iso8583Schema schema, MsgBoxService msgBoxService)
         {
             _logger = logger;
             //_messageService = messageService;
             _schema = schema;
+            _msgBoxService = msgBoxService;
         }
 
         public async Task HandleMessageAsync(TcpConnectionContext context, Iso8583Message message)
         {
-            // 处理获取收件箱消息指令
-            _logger.LogInformation("处理获取收件箱消息指令");
 
-            // 获取终端ID
-            var terminalId = message.GetString(41); // 假设终端ID在41域
+            var msg = await _msgBoxService.GetFirstUnreadMessagesAsync(message.TerimalID);
 
-            // 获取收件箱消息
-            var inboxMessages = "";// await _messageService.GetInboxMessagesAsync(terminalId);
+            var response = new Iso8583Message(_schema);
+            response.MessageType = "0510";
+            response.SetField(3, "805001");
+            response.SetField(39, "0000");
+            response.SetDateTime(12, DateTime.Now);
+            response.SetDateTime(13, DateTime.Now);
+            response.SetField(41, message.MachineID);
+            if (msg == null) {
+                response.SetField(39, "0010");
+            }
+            else
+            {
+                var body = msg.Content;
+                if (msg.CodeType == MessageCodeType.ASCII)
+                {
+                    body = DataConvert.BytesToHex(Encoding.Default.GetBytes(body));
+                }
+                var msgStr = msg.MsgTypeID + msg.ID.ToString("X2").PadLeft(8, '0') + body;
 
-            // 记录获取收件箱消息日志
-            _logger.LogInformation($"终端 {terminalId} 获取收件箱消息");
-
-            // 发送收件箱消息响应
-            var response = new Iso8583Package(_schema);
-            response.MessageType = "0510"; // 假设响应类型为0810
-            response.SetString(39, "00"); // 假设39域表示响应码，00表示成功
-            response.SetString(41, terminalId); // 终端ID
-
-            // 假设62域存储收件箱消息
-            var messagesData = ConvertMessagesToByteArray(inboxMessages);
-            response.SetArrayData(62, messagesData);
-
-            var responseBytes = response.PackSendBuffer();
+                response.SetField(51, msgStr);
+            }
+            
+            var responseBytes = response.Pack();
 
             await context.Transport.Output.WriteAsync(responseBytes);
+            await context.Transport.Output.FlushAsync();
 
-            await Task.CompletedTask;
+            if (msg != null) await _msgBoxService.MarkMessageAsReadAsync(message.TerimalID, msg.ID);
         }
 
-        private byte[] ConvertMessagesToByteArray(string inboxMessages)
-        {
-            throw new NotImplementedException();
-        }
 
     }
 }

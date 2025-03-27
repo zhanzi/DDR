@@ -1,8 +1,7 @@
 using Microsoft.Extensions.Logging;
-using SlzrCrossGate.Tcp.Protocol;
-using System.Threading.Tasks;
-using System.IO;
+using SlzrCrossGate.Core.Service.FileStorage;
 using SlzrCrossGate.Core.Services;
+using SlzrCrossGate.Tcp.Protocol;
 
 namespace SlzrCrossGate.Tcp.Handler
 {
@@ -12,43 +11,43 @@ namespace SlzrCrossGate.Tcp.Handler
         private readonly ILogger<DataUploadMessageHandler> _logger;
         private readonly FileService _fileService;
         private readonly Iso8583Schema _schema;
+        private readonly IRabbitMQService _rabbitMQService;
 
-        public DataUploadMessageHandler(ILogger<DataUploadMessageHandler> logger, FileService fileService, Iso8583Schema schema)
+        public DataUploadMessageHandler(ILogger<DataUploadMessageHandler> logger, FileService fileService, Iso8583Schema schema,IRabbitMQService rabbitMQService)
         {
             _logger = logger;
             _fileService = fileService;
             _schema = schema;
+            _rabbitMQService = rabbitMQService;
         }
 
         public async Task HandleMessageAsync(TcpConnectionContext context, Iso8583Message message)
         {
-            // 处理数据上传指令
-            _logger.LogInformation("处理数据上传指令");
-
-            // 获取终端ID
-            var terminalId = message.GetString(41); // 假设终端ID在41域
-
             // 获取上传的数据
-            var data = message.GetBytes(61); // 假设60域存储上传的数据
+            var data = message.GetBytes(61); 
 
-            // 记录数据上传日志
-            _logger.LogInformation($"终端 {terminalId} 上传数据");
-
-            // 保存上传的数据
-            var filePath = $"{terminalId}_{DateTime.Now:yyyyMMddHHmmss}.dat";
-            await _fileService.GetFileContentAsync(filePath);
+            // 上传MQ
+            await _rabbitMQService.PublishConsumeDataAsync(new SlzrDatatransferModel.ConsumeData()
+            {
+                MachineID = message.MachineID,
+                MerchantID = message.MerchantID,
+                MachineNO = message.DeviceNO,
+                PsamNO = "",
+                buffer = data
+            });
 
             // 发送上传成功响应
-            var response = new Iso8583Package(_schema);
-            response.MessageType = "0310"; // 假设响应类型为0810
-            response.SetString(39, "00"); // 假设39域表示响应码，00表示成功
-            response.SetString(41, terminalId); // 终端ID
+            var response = new Iso8583Message(_schema);
+            response.MessageType = "0310"; 
+            response.SetField(39, "0000"); 
+            response.SetField(11, message.GetString(11));
+            response.SetField(14, message.GetString(14));
+            response.SetField(41, message.MachineID);
 
-            var responseBytes = response.PackSendBuffer();
+            var responseBytes = response.Pack();
 
             await context.Transport.Output.WriteAsync(responseBytes);
-
-            await Task.CompletedTask;
+            await context.Transport.Output.FlushAsync();
         }
     }
 }
