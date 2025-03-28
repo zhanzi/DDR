@@ -136,7 +136,7 @@
   <Iso8583Field>
     <BitNum>48</BitNum>
     <FieldName>文件内容</FieldName>
-    <DataType>N</DataType>
+    <DataType>B</DataType>
     <Length>9999</Length>
     <Format>LLLVAR</Format>
   </Iso8583Field>

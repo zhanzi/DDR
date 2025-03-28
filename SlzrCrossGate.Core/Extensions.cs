@@ -1,15 +1,19 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using Minio;
 using SlzrCrossGate.Core.Database;
 using SlzrCrossGate.Core.Models;
 using SlzrCrossGate.Core.Repositories;
 using SlzrCrossGate.Core.Service;
+using SlzrCrossGate.Core.Service.BusinessServices;
 using SlzrCrossGate.Core.Service.FileStorage;
 using SlzrCrossGate.Core.Services;
 using SlzrCrossGate.Core.Services.BusinessServices;
+using System.Threading.Tasks;
 
 
 namespace SlzrCrossGate.Core
@@ -18,13 +22,20 @@ namespace SlzrCrossGate.Core
     {
         public static TBuilder AddCoreService<TBuilder>(this TBuilder builder) where TBuilder : IHostApplicationBuilder
         {
+            builder.Services.AddMemoryCache();
 
             // 注册仓储
             builder.Services.AddScoped<MsgBoxRepository>();
+            builder.Services.AddScoped<Repository<UploadFile>>(); 
+            builder.Services.AddScoped<Repository<FileVer>>();
+            builder.Services.AddScoped<Repository<TerminalEvent>>();
 
 
             // 注册业务服务
             builder.Services.AddScoped<MsgBoxService>();
+            builder.Services.AddScoped<PublishFileSerice>();
+            builder.Services.AddScoped<TerminalEventService>();
+
 
 
             //注册rabbitmqservice
@@ -87,22 +98,21 @@ namespace SlzrCrossGate.Core
         /// </summary>
         /// <param name="services"></param>
         /// <returns></returns>
-        public static IServiceCollection AddFileService(this IServiceCollection services, Action<FileServiceOptions> configureOptions)
+        public static async Task<IServiceCollection> AddFileService(this IServiceCollection services, Action<FileServiceOptions> configureOptions)
         {
             var options = new FileServiceOptions();
             configureOptions(options);
 
-            IFileService localFileService = new LocalFileService(options.LocalFilePath); ;
-
+            IFileStorage localFileService = new LocalFileStorage(options.LocalFilePath); ;
 
             var minioClient = new MinioClient()
                     .WithEndpoint(options.MinioEndpoint)
                     .WithCredentials(options.MinioAccessKey, options.MinioSecretKey)
                     .Build();
-            IFileService minioFileService = new MinioFileService(minioClient, options.MinioBucketName);
+            IFileStorage minioFileService = new MinioFileStorage(minioClient, options.MinioBucketName);
 
 
-            services.AddSingleton<FileService>(new FileService(localFileService, minioFileService, options.DefaultStorageType));
+            services.AddSingleton<FileService>(provider => new FileService(provider.GetRequiredService<ILogger<FileService>>(), localFileService, minioFileService, options.DefaultStorageType, provider.GetRequiredService<IMemoryCache>()));
 
             return services;
         }

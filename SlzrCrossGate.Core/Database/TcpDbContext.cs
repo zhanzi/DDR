@@ -13,11 +13,6 @@ namespace SlzrCrossGate.Core.Database
 
         }
 
-
-        //public DbSet<ApplicationUser> ApplicationUsers { get; set; }
-
-        //public DbSet<ApplicationRole> ApplicationRoles { get; set; }
-
         public DbSet<Merchant> Merchants { get; set; }
         public DbSet<FilePublish> FilePublishs { get; set; }
 
@@ -60,7 +55,14 @@ namespace SlzrCrossGate.Core.Database
                 .HasIndex(c => c.ReceiveTime)
                 .IncludeProperties(c => new { c.MerchantID });
 
+            // 配置TerminalEvent的EventTime作为聚集索引
+            modelBuilder.Entity<TerminalEvent>()
+                .HasKey(e => e.EventTime)
+                .IsClustered();
 
+            // 配置 TerminalEvent 的联合索引
+            modelBuilder.Entity<TerminalEvent>()
+                .HasIndex(e => new { e.MerchantID, e.TerminalID, e.EventType });
 
 
             // 配置租户隔离

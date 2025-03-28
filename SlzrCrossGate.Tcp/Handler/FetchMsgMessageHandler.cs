@@ -11,14 +11,12 @@ namespace SlzrCrossGate.Tcp.Handler
     public class FetchMsgMessageHandler : IIso8583MessageHandler
     {
         private readonly ILogger<FetchMsgMessageHandler> _logger;
-        //private readonly IMessageService _messageService;
         private readonly Iso8583Schema _schema;
         private readonly MsgBoxService _msgBoxService;
 
         public FetchMsgMessageHandler(ILogger<FetchMsgMessageHandler> logger, Iso8583Schema schema, MsgBoxService msgBoxService)
         {
             _logger = logger;
-            //_messageService = messageService;
             _schema = schema;
             _msgBoxService = msgBoxService;
         }

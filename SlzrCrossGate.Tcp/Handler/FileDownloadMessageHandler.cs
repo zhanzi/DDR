@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using SlzrCrossGate.Common;
 using SlzrCrossGate.Core.Models;
+using SlzrCrossGate.Core.Service.BusinessServices;
 using SlzrCrossGate.Core.Service.FileStorage;
 using SlzrCrossGate.Tcp.Protocol;
 
@@ -11,13 +12,21 @@ namespace SlzrCrossGate.Tcp.Handler
     public class FileDownloadMessageHandler : IIso8583MessageHandler
     {
         private readonly ILogger<FileDownloadMessageHandler> _logger;
+        private readonly PublishFileSerice  _publishFileSerice;
         private readonly FileService _fileService;
         private readonly Iso8583Schema _schema;
+        private readonly TerminalEventService _terminalEventService;
 
-        public FileDownloadMessageHandler(ILogger<FileDownloadMessageHandler> logger, FileService fileService, Iso8583Schema schema)
+        public FileDownloadMessageHandler(ILogger<FileDownloadMessageHandler> logger, 
+            PublishFileSerice publishFileSerice, 
+            FileService fileService,
+            TerminalEventService terminalEventService,
+            Iso8583Schema schema)
         {
             _logger = logger;
+            _publishFileSerice = publishFileSerice;
             _fileService = fileService;
+            _terminalEventService = terminalEventService;
             _schema = schema;
         }
 
@@ -31,7 +40,7 @@ namespace SlzrCrossGate.Tcp.Handler
             response.SetField(3, "806003");
             response.SetDateTime(12, DateTime.Now);
             response.SetDateTime(13, DateTime.Now);
-
+            response.SetField(41, message.MachineID);
 
             // 根据协议版本确定参数位置
             bool isNewVersion = Convert.ToInt32(message.ProtocolVer, 16) >= 0x0200;
@@ -43,7 +52,7 @@ namespace SlzrCrossGate.Tcp.Handler
 
             string deviceType = message.TerminalType;
 
-            string terminalId = message.TerimalID; 
+            string terminalId = message.TerimalID;
 
             try
             {
@@ -53,43 +62,44 @@ namespace SlzrCrossGate.Tcp.Handler
                 int fileOffset = Convert.ToInt32(filePathInfo.Substring(codeLen + 4, 8), 16);
                 int requestLength = Convert.ToInt32(filePathInfo.Substring(codeLen + 12, 8), 16);
 
-                _logger.LogInformation("文件下载请求: 终端ID={terminalId}, 文件={fileCode}, 版本={fileVersion}, 偏移={fileOffset}, 长度={requestLength}", terminalId, fileCode, fileVersion, fileOffset, requestLength);
+                _logger.LogInformation("file download request:MerchantID={MerchantID},TerminalID={TerminalID}, fileCode={FileCode}, fileVersion={FileVersion}, fileOffset={FileOffset}, requestLength={RequestLength}", message.MerchantID, terminalId, fileCode, fileVersion, fileOffset, requestLength);
 
                 // 查找文件
-                var filePublish = await FindFilePublishAsync(merchantId, fileCode, fileVersion);
+                var filePublish = await _publishFileSerice.GetFileInfoAsync(message.MerchantID, fileCode, fileVersion);
                 if (filePublish == null)
                 {
-                    _logger.LogWarning($"文件不存在: 商户={merchantId}, 文件={fileCode}, 版本={fileVersion}");
-                    return await SendErrorResponseAsync(context, response, message, "0006", "文件不存在");
+                    _logger.LogWarning("filePublish is null:MerchantID={MerchantID} fileCode={FileCode}, fileVersion={FileVersion}", message.MerchantID, fileCode, fileVersion);
+                    await SendErrorResponseAsync(context, response, message, "0006", "文件不存在");
+                    return;
                 }
+                var fileLength = filePublish.FileSize;
 
-                // 获取文件内容
-                byte[] fileData = await _fileService.GetFileContentAsync(filePublish.FilePath);
-
-                if (fileData == null)
+                // 检查文件偏移是否超出范围
+                if (fileOffset >= fileLength)
                 {
-                    _logger.LogWarning($"文件内容为空: {filePublish.FilePath}");
-                    return await SendErrorResponseAsync(context, response, message, "0006", "文件不存在");
+                    _logger.LogWarning("fileOffset >= fileLength:fileOffset={FileOffset}, fileLength={FileLength},MerchantID={MerchantID},TerminalID={TerminalID}, fileCode={FileCode}, fileVersion={FileVersion},fileID={FileID}", fileOffset, fileLength, message.MerchantID, message.TerimalID, fileCode, fileVersion, filePublish.ID);
+                    await SendErrorResponseAsync(context, response, message, "0007", "文件偏移超出范围");
+                    return;
                 }
 
-                // 检查请求的偏移和长度是否有效
-                if (fileOffset + requestLength > fileData.Length)
+                if (fileOffset + requestLength > fileLength)
                 {
-                    _logger.LogWarning($"请求的文件长度过长: 偏移={fileOffset}, 请求长度={requestLength}, 文件长度={fileData.Length}");
-                    return await SendErrorResponseAsync(context, response, message, "0007", "请求的文件长度过长");
+                    requestLength = fileLength - fileOffset;
                 }
+
+                // 获取文件片段
+                var fileSegment = await _fileService.GetFileSegmentAsync(filePublish.FilePath, fileOffset, requestLength);
+
+                if (fileSegment == null)
+                {
+                    _logger.LogWarning("fileSegment is null:filePath={FilePath}, fileOffset={FileOffset}, requestLength={RequestLength},fileID={FileID}", filePublish.FilePath, fileOffset, requestLength, filePublish.ID);
+                    await SendErrorResponseAsync(context, response, message, "0008", "文件片段不存在");
+                    return;
+                }
+                response.SetField(48, fileSegment);
 
                 // 设置成功响应
                 response.SetField(39, "0000");
-                response.SetField(41, machineId);
-                response.SetField(42, merchantId);
-
-                if (message.Exist(43))
-                    response.SetField(43, message.GetString(43));
-
-                if (message.Exist(44))
-                    response.SetField(44, message.GetString(44));
-
                 // 设置文件路径信息
                 if (isNewVersion)
                 {
@@ -100,85 +110,42 @@ namespace SlzrCrossGate.Tcp.Handler
                     response.SetField(47, filePathInfo);
                 }
 
-                // 提取并设置文件片段
-                byte[] fileFragment = new byte[requestLength];
-                Array.Copy(fileData, fileOffset, fileFragment, 0, requestLength);
-                response.SetField(48, DataConvert.BytesToHex(fileFragment));
-
-                // 如果是文件第一个片段
-                if (fileOffset == 0)
-                {
-                    _logger.LogInformation($"开始传输文件: {fileCode}, 版本: {fileVersion}, 总大小: {fileData.Length}字节");
-                }
-
-                // 如果是文件最后一个片段
-                if (fileOffset + requestLength >= fileData.Length)
-                {
-                    _logger.LogInformation($"文件传输完成: {fileCode}, 版本: {fileVersion}");
-
-                    // 记录文件发布状态
-                    if (_publishFileOnlyNotifyOnce)
-                    {
-                        var clientFiles = _clientPublishFile.GetOrAdd(terminalId, _ => new SortedSet<string>());
-                        string fileKey = $"{fileCode}{fileVersion}";
-
-                        lock (clientFiles)
-                        {
-                            if (!clientFiles.Contains(fileKey))
-                            {
-                                clientFiles.Add(fileKey);
-                                _logger.LogInformation($"文件发布记录已添加: 终端={terminalId}, 文件={fileCode}, 版本={fileVersion}");
-
-                                // 可以在此处添加发布历史记录到数据库
-                                _ = RecordFileDownloadHistoryAsync(terminalId, merchantId, filePublish);
-                            }
-                        }
-                    }
-                }
-
                 response.SetField(64, "00000000"); // MAC值，这里设置为零
 
                 var responseBytes = response.Pack();
                 await context.Transport.Output.WriteAsync(responseBytes);
                 await context.Transport.Output.FlushAsync();
 
-                _logger.LogInformation($"已发送文件片段: 偏移={fileOffset}, 长度={requestLength}");
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "处理文件下载请求时发生错误");
-                await SendErrorResponseAsync(context, response, message, "0009", "内部处理错误");
-            }
-        }
-
-        private async Task<FilePublish> FindFilePublishAsync(string merchantId, string fileCode, string fileVersion)
-        {
-            return await Task.FromResult(_dbContext.FilePublishs.FirstOrDefault(f =>
-                f.MerchantID == merchantId &&
-                f.FileCode == fileCode &&
-                f.Version == fileVersion &&
-                f.Status == PublishStatus.Published));
-        }
-
-        private async Task RecordFileDownloadHistoryAsync(string terminalId, string merchantId, FilePublish filePublish)
-        {
-            try
-            {
-                var history = new FilePublishHistory
+                // 如果是文件第一个片段
+                if (fileOffset == 0)
                 {
-                    FilePublishId = filePublish.ID,
-                    TerminalID = terminalId,
-                    MerchantID = merchantId,
-                    DownloadTime = DateTime.Now,
-                    Status = DownloadStatus.Success
-                };
+                    await _terminalEventService.RecordTerminalEventAsync(
+                        message.MerchantID,
+                        terminalId,
+                        TerminalEventType.FileDownloadStart,
+                        EventSeverity.Info,
+                        $"FileCode={fileCode},FileVersion={fileVersion},FilePath={filePublish.FilePath},FileID={filePublish.ID}" // 事件内容
+                        );
+                }
 
-                await _dbContext.FilePublishHistories.AddAsync(history);
-                await _dbContext.SaveChangesAsync();
+                // 如果是文件最后一个片段
+                if (fileOffset + requestLength >= fileLength)
+                {
+                    await _terminalEventService.RecordTerminalEventAsync(
+                        message.MerchantID,
+                        terminalId,
+                        TerminalEventType.FileDownloadEnd,
+                        EventSeverity.Info,
+                        $"FileCode={fileCode},FileVersion={fileVersion},FilePath={filePublish.FilePath},FileID={filePublish.ID}" // 事件内容
+                        );
+                }
+
+
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "记录文件下载历史时出错");
+                _logger.LogError(ex, "handle file download error:MerchantID={MerchantID},TerminalID={TerminalID}, filePathInfo={filePathInfo}", message.MerchantID, terminalId, filePathInfo);
+                await SendErrorResponseAsync(context, response, message, "0009", "内部处理错误");
             }
         }
 
@@ -187,26 +154,11 @@ namespace SlzrCrossGate.Tcp.Handler
             response.SetField(39, errorCode);
             response.SetField(38, errorMessage);
 
-            if (request.Exist(41))
-                response.SetField(41, request.GetString(41));
-
-            if (request.Exist(42))
-                response.SetField(42, request.GetString(42));
-
-            if (request.Exist(43))
-                response.SetField(43, request.GetString(43));
-
-            if (request.Exist(44))
-                response.SetField(44, request.GetString(44));
-
-            response.SetField(64, "00000000"); // MAC值，这里设置为零
+            //response.SetField(64, "00000000"); // MAC值，这里设置为零
 
             var responseBytes = response.Pack();
             await context.Transport.Output.WriteAsync(responseBytes);
             await context.Transport.Output.FlushAsync();
-
-            _logger.LogWarning($"发送错误响应: {errorCode} - {errorMessage}");
-            return;
         }
     }
 }

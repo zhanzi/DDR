@@ -27,6 +27,8 @@ namespace SlzrCrossGate.Core.Services
 
         private RabbitMQOptions _options;
 
+
+
         public RabbitMQService(IOptions<RabbitMQOptions> options, ILogger<RabbitMQService> logger)
         {
             _logger = logger;
@@ -60,6 +62,12 @@ namespace SlzrCrossGate.Core.Services
             }
         }
 
+
+        public async Task DeclareTopicExchange(string exchange)
+        {
+            await _channel.ExchangeDeclareAsync(exchange, ExchangeType.Topic, true);
+        }
+
         public async Task PublishAsync<T>(string exchange, string routingKey, T message)
         {
             try
@@ -71,10 +79,7 @@ namespace SlzrCrossGate.Core.Services
                     exchange: exchange,
                     routingKey: routingKey,
                     mandatory: false,
-                    basicProperties: new BasicProperties()
-                    {
-
-                    },
+                    basicProperties: new BasicProperties() { },
                     body: body);
 
                 _logger.LogInformation("Message published to {Exchange} with routing key {RoutingKey}", exchange, routingKey);
@@ -92,6 +97,11 @@ namespace SlzrCrossGate.Core.Services
         {
             try
             {
+                // 确保交换机存在
+                _channel.ExchangeDeclareAsync(exchange, ExchangeType.Topic, true).GetAwaiter().GetResult();
+                // 创建默认的消费数据接收队列
+                _channel.QueueBindAsync(queue, exchange, routingKey).GetAwaiter().GetResult();
+
                 var consumer = new AsyncEventingBasicConsumer(_channel);
                 consumer.ReceivedAsync += async (model, ea) =>
                 {
@@ -133,6 +143,10 @@ namespace SlzrCrossGate.Core.Services
             }
         }
 
+        public async Task SubscribeConsumeDataAsync(Func<SlzrDatatransferModel.ConsumeData, Task> handler)
+        {
+            await SubscribeAsync(_options.TcpExchange, _options.TcpQueue, "Tcp.city.#", handler);
+        }
 
         public async Task PublishConsumeDataAsync(SlzrDatatransferModel.ConsumeData consumeData) {
             //SlzrBus.SignleInstance().Publish<ConsumeData>(consumedata, $"Tcp.city.{CloudMers[busmercode]}.{consumedata.MerchantID}.{consumedata.buffer[2].ToString("X2")}");
@@ -147,5 +161,6 @@ namespace SlzrCrossGate.Core.Services
             _channel?.Dispose();
             _connection?.Dispose();
         }
+
     }
 }

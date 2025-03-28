@@ -9,16 +9,11 @@ using System.Threading.Tasks;
 
 namespace SlzrCrossGate.Core.Repositories
 {
-    public class Repository<T> : IRepository<T> where T : class
+    public class Repository<T>(TcpDbContext context) : IRepository<T> where T : class
     {
-        protected readonly TcpDbContext _context;
+        protected readonly TcpDbContext _context = context;
 
-        public Repository(TcpDbContext context)
-        {
-            _context = context;
-        }
-
-        public async Task<T> GetByIdAsync(object id)
+        public async Task<T?> GetByIdAsync(object id)
         {
             return await _context.Set<T>().FindAsync(id);
         }
@@ -33,7 +28,7 @@ namespace SlzrCrossGate.Core.Repositories
             return await _context.Set<T>().Where(predicate).ToListAsync();
         }
 
-        public async Task<T> SingleOrDefaultAsync(Expression<Func<T, bool>> predicate)
+        public async Task<T?> SingleOrDefaultAsync(Expression<Func<T, bool>> predicate)
         {
             return await _context.Set<T>().SingleOrDefaultAsync(predicate);
         }

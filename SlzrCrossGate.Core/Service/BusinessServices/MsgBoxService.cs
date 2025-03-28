@@ -22,11 +22,11 @@ namespace SlzrCrossGate.Core.Services.BusinessServices
             _logger = logger;
         }
 
-        public async Task<MsgReadDto> GetFirstUnreadMessagesAsync(string terminalId)
+        public async Task<MsgReadDto?> GetFirstUnreadMessagesAsync(string terminalId)
         {
             try
             {
-                return await _messageRepository.GetFirstUnconfirmedMessageAsync(terminalId);
+                return await _messageRepository.GetFirstUnRepliedMessageAsync(terminalId);
             }
             catch (Exception ex)
             {
@@ -54,11 +54,11 @@ namespace SlzrCrossGate.Core.Services.BusinessServices
             try
             {
                 await _messageRepository.MarkMessageAsRepliedAsync(msgConfirmDtos);
-                _logger.LogInformation("{msgConfirmDtos.Count} messages marked as replied", msgConfirmDtos.Count);
+                _logger.LogInformation("{Count} messages marked as replied", msgConfirmDtos.Count());
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error confirming message {MessageId} by terminal {TerminalId}", messageId, terminalId);
+                _logger.LogError(ex, "Error confirming messages");
                 throw;
             }
         }

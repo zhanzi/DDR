@@ -10,27 +10,15 @@ using SlzrCrossGate.Core.DTOs;
 
 namespace SlzrCrossGate.Core.Repositories
 {
-    public class MsgBoxRepository : Repository<MsgBox>
+    public class MsgBoxRepository(TcpDbContext context) : Repository<MsgBox>(context)
     {
-        public MsgBoxRepository(TcpDbContext context) : base(context) { }
-
-        public async Task<List<MsgBox>> GetUnconfirmedMessagesAsync(string terminalId, string merchantId)
-        {
-            return await _context.MsgBoxes
-                .Include(m => m.MsgContent)
-                .Where(m => m.TerminalID == terminalId && 
-                           m.MerchantID == merchantId &&
-                           m.Status == MessageStatus.Pending)
-                .ToListAsync();
-        }
-
-        //获取第一条未确认消息
-        public async Task<MsgReadDto> GetFirstUnconfirmedMessageAsync(string terminalId)
+        //获取第一条未回复消息
+        public async Task<MsgReadDto?> GetFirstUnRepliedMessageAsync(string terminalId)
         {
             var query = from msgbox in _context.MsgBoxes
                         join msgcontent in _context.MsgContents on msgbox.MsgContentID equals msgcontent.ID
                         join msgtype in _context.MsgTypes on msgcontent.MsgTypeID equals msgtype.ID
-                        where msgbox.TerminalID == terminalId && msgbox.Status == MessageStatus.Unread
+                        where msgbox.TerminalID == terminalId && msgbox.Status != MessageStatus.Replied
                         select new MsgReadDto
                         {
                             CodeType = msgtype.CodeType,
@@ -38,14 +26,13 @@ namespace SlzrCrossGate.Core.Repositories
                             ID = msgcontent.ID,
                             MsgTypeID = msgcontent.MsgTypeID
                         };
-           await query.FirstOrDefaultAsync();
+            return await query.FirstOrDefaultAsync();
         }
 
         //修改消息为已读状态
         public async Task MarkMessageAsReadAsync(int messageId)
         {
-            var message = await _context.MsgBoxes
-                .FirstOrDefaultAsync(m => m.ID == messageId);
+            var message = await GetByIdAsync(messageId);
             if (message != null)
             {
                 message.Status = MessageStatus.Read;
@@ -54,12 +41,11 @@ namespace SlzrCrossGate.Core.Repositories
             }
         }
 
+        //修改消息为已回复状态
         public async Task MarkMessageAsRepliedAsync(IEnumerable<MsgConfirmDto> msgConfirmDtos)
         {
             var confirmDtoIds = msgConfirmDtos.Select(c => c.ID).ToArray();
-            var messages = await _context.MsgBoxes
-                .Where(m => confirmDtoIds.Contains(m.ID))
-                .ToListAsync();
+            var messages = await FindAsync(m => confirmDtoIds.Contains(m.ID));
 
             var confirmDtoDict = msgConfirmDtos.ToDictionary(c => c.ID); 
             foreach (var message in messages)

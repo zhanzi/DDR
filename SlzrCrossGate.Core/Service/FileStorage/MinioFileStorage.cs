@@ -6,12 +6,12 @@ using Minio.DataModel.Args;
 
 namespace SlzrCrossGate.Core.Service.FileStorage
 {
-    public class MinioFileService : IFileService
+    public class MinioFileStorage : IFileStorage
     {
         private readonly IMinioClient _minioClient;
         private readonly string _bucketName;
 
-        public MinioFileService(IMinioClient minioClient, string bucketName)
+        public MinioFileStorage(IMinioClient minioClient, string bucketName)
         {
             _minioClient = minioClient;
             _bucketName = bucketName;

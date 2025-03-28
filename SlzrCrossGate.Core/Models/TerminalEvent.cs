@@ -21,6 +21,8 @@ namespace SlzrCrossGate.Core.Models
         public DateTime EventTime { get; set; }
         [MaxLength(100)]
         public required string EventName { get; set; }
+        public TerminalEventType EventType { get; set; }
+        public EventSeverity Severity { get; set; } // 添加事件严重性字段
         [MaxLength(2000)]
         public string? Remark { get; set; }
         [MaxLength(20)]

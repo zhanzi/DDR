@@ -4,11 +4,11 @@ using Microsoft.AspNetCore.Http;
 
 namespace SlzrCrossGate.Core.Service.FileStorage
 {
-    public class LocalFileService : IFileService
+    public class LocalFileStorage : IFileStorage
     {
         private readonly string _localFilePath;
 
-        public LocalFileService(string localFilePath)
+        public LocalFileStorage(string localFilePath)
         {
             _localFilePath = localFilePath;
         }

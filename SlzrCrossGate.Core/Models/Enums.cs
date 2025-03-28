@@ -37,4 +37,24 @@ namespace SlzrCrossGate.Core.Models
         Read = 1,
         Replied = 2
     }
+
+    /// <summary>
+    /// 事件严重程度
+    /// </summary>
+    public enum EventSeverity
+    {
+        Info,
+        Warning,
+        Error
+    }
+
+    /// <summary>
+    /// 终端事件类型
+    /// </summary>
+    public enum TerminalEventType
+    {
+        FileDownloadStart = 1,
+        FileDownloadEnd = 2,
+        // 其他事件类型
+    }
 }
