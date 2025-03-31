@@ -15,31 +15,22 @@ namespace SlzrCrossGate.Core.Database
 
         public DbSet<Merchant> Merchants { get; set; }
         public DbSet<FilePublish> FilePublishs { get; set; }
-
         public DbSet<FilePublishHistory> FilePublishHistories { get; set; }
-
         public DbSet<FileVer> FileVers { get; set; }
-
         public DbSet<FileType> FileTypes { get; set; }
-
         public DbSet<MsgType> MsgTypes { get; set; }
-
         public DbSet<MsgContent> MsgContents { get; set; }
-
         public DbSet<MsgBox> MsgBoxes { get; set; }
-
         public DbSet<Terminal> Terminals { get; set; }
-
         public DbSet<TerminalEvent> TerminalEvents { get; set; }
-
         public DbSet<UploadFile> UploadFiles { get; set; }
-
         public DbSet<ConsumeData> ConsumeDatas { get; set; }
-
- 
+        public DbSet<UnionPayTerminalKey> UnionPayTerminalKeys { get; set; }
+        public DbSet<IncrementContent> IncrementContents { get; set; }
 
         public DbSet<ApplicationUser> ApplicationUsers { get; set; }
         public DbSet<ApplicationRole> ApplicationRoles { get; set; }
+        
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -53,17 +44,34 @@ namespace SlzrCrossGate.Core.Database
             // 配置 ReceiveTime 作为非聚集索引
             modelBuilder.Entity<ConsumeData>()
                 .HasIndex(c => c.ReceiveTime)
-                .IncludeProperties(c => new { c.MerchantID });
+                .IncludeProperties(c => new { c.MerchantID,c.MachineID });
 
-            // 配置TerminalEvent的EventTime作为聚集索引
+
+            // 配置TerminalEvent的联合索引（e.MerchantID, e.TerminalID, e.EventType, e.EventTime）,并按EventTime倒序排列
             modelBuilder.Entity<TerminalEvent>()
-                .HasKey(e => e.EventTime)
-                .IsClustered();
+                .HasIndex(e => new { e.MerchantID, e.TerminalID, e.EventType, e.EventTime })
+                .IsDescending([false, false, false, true]);
+            // 配置TerminalEvent的联合索引（e.MerchantID, e.TerminalID, e.EventTime）,并按EventTime倒序排列
+            modelBuilder.Entity<TerminalEvent>()
+                .HasIndex(e => new { e.MerchantID, e.TerminalID, e.EventTime })
+                .IsDescending([false, false, true]);
+
+
 
             // 配置 TerminalEvent 的联合索引
             modelBuilder.Entity<TerminalEvent>()
                 .HasIndex(e => new { e.MerchantID, e.TerminalID, e.EventType });
 
+            // 配置UnionPayTerminalKey的索引
+            modelBuilder.Entity<UnionPayTerminalKey>()
+                .HasIndex(e => new { e.MerchantID, e.MachineID });
+            modelBuilder.Entity<UnionPayTerminalKey>()
+                .HasIndex(e => new { e.MerchantID, e.IsInUse });
+
+            //配置IncrementContent的联合主键
+            modelBuilder.Entity<IncrementContent>()
+                .HasKey(e => new { e.MerchantID, e.IncrementType, e.SerialNum })
+                .IsClustered();
 
             // 配置租户隔离
             foreach (var entityType in modelBuilder.Model.GetEntityTypes())

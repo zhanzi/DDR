@@ -53,7 +53,7 @@ namespace SlzrCrossGate.Tcp
             return result.IsCompleted;
         }
 
-        // 更新最后活动时间
+        // update last activity time
         public void UpdateLastActivityTime()
         {
             LastActivityTime = DateTime.Now;

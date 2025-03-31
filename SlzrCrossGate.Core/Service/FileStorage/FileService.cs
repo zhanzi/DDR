@@ -69,17 +69,28 @@ namespace SlzrCrossGate.Core.Service.FileStorage
         {
             try
             {
+                string cacheKey = $"{filePath}";
+                if (_cache.TryGetValue(cacheKey, out byte[]? cachedContent))
+                {
+                    return cachedContent;
+                }
+
+                byte[]? fileContent = null;
+
                 if (filePath.StartsWith("minio://"))
                 {
                     // MinIO ¥Ê¥¢
                     var minioFilePath = filePath.Substring("minio://".Length);
-                    return await _minioFileStorage.GetFileContentAsync(minioFilePath);
+                    fileContent = await _minioFileStorage.GetFileContentAsync(minioFilePath);
                 }
                 else
                 {
                     // ±æµÿ¥Ê¥¢
-                    return await _localFileStorage.GetFileContentAsync(filePath);
+                    fileContent = await _localFileStorage.GetFileContentAsync(filePath);
                 }
+
+                _cache.Set(cacheKey, fileContent, TimeSpan.FromMinutes(10)); // ª∫¥Ê10∑÷÷”
+                return fileContent;
             }
             catch (Exception ex)
             {

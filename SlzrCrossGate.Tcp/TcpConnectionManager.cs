@@ -51,7 +51,7 @@ namespace SlzrCrossGate.Tcp
                 if (_connections.TryGetValue(id, out var context))
                 {
                     _logger.LogInformation("Closing idle connection {ConnectionId}", id);
-                    context.Abort();
+                    //context.Abort();
                     TryRemoveConnection(id);
                 }
             }
@@ -93,10 +93,11 @@ namespace SlzrCrossGate.Tcp
 
         public bool TryRemoveConnection(string terminalId)
         {
-            var removed = _connections.TryRemove(terminalId, out _);
-            if (removed)
+            var removed = _connections.TryRemove(terminalId, out TcpConnectionContext? context);
+            if (removed && context != null)
             {
                 _terminalManager.RemoveTerminal(terminalId);
+                _ = context.DisposeAsync().AsTask();
             }
             return removed;
         }

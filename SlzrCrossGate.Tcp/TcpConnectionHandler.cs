@@ -89,7 +89,7 @@ namespace SlzrCrossGate.Tcp
                             connectionTimeoutCts.Cancel();
                             readToken = tcpContext.ConnectionClosed;
                         }
-
+                        tcpContext.UpdateLastActivityTime();
                         await HandleMessageAsync(tcpContext, message);
                     }
 
@@ -112,7 +112,7 @@ namespace SlzrCrossGate.Tcp
             {
                 _logger.LogInformation("Connection closed, IP:{0}", remoteEndPoint);
                 _connectionManager.TryRemoveConnection(tcpContext.TerminalID);
-                await context.DisposeAsync();
+                //await context.DisposeAsync();
             }
         }
 

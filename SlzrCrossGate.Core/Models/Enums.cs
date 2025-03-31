@@ -53,8 +53,19 @@ namespace SlzrCrossGate.Core.Models
     /// </summary>
     public enum TerminalEventType
     {
-        FileDownloadStart = 1,
-        FileDownloadEnd = 2,
-        // 其他事件类型
+        //签到事件
+        SignIn = 1,
+        //签退事件
+        SignOut = 2,
+        //文件下载开始
+        FileDownloadStart = 3,
+        //文件下载结束
+        FileDownloadEnd = 4,
+        //文件版本已更新
+        FileVersionUpdated = 5,
+        //属性已变更
+        AttributeChanged = 6,
+        //银联密钥已绑定
+        UnionPayKeyBound = 7
     }
 }

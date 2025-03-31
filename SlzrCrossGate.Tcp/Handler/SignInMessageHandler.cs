@@ -1,5 +1,8 @@
 using Microsoft.Extensions.Logging;
+using SlzrCrossGate.Core.Models;
+using SlzrCrossGate.Core.Service.BusinessServices;
 using SlzrCrossGate.Tcp.Protocol;
+using System.IO;
 
 namespace SlzrCrossGate.Tcp.Handler
 {
@@ -8,38 +11,40 @@ namespace SlzrCrossGate.Tcp.Handler
     {
         private readonly ILogger<SignInMessageHandler> _logger;
         private readonly Iso8583Schema _schema;
+        TerminalEventService _terminalEventService;
 
-        public SignInMessageHandler(ILogger<SignInMessageHandler> logger,Iso8583Schema schema)
+        public SignInMessageHandler(ILogger<SignInMessageHandler> logger,Iso8583Schema schema,
+            TerminalEventService terminalEventService)
         {
             _logger = logger;
             _schema = schema;
+            _terminalEventService = terminalEventService;
         }
 
         public async Task HandleMessageAsync(TcpConnectionContext context, Iso8583Message message)
         {
-            // 处理终端签到指令
-            _logger.LogInformation("处理终端签到指令");
+            // TODO:处理终端签到指令
 
-            // 获取终端ID
-            var terminalId = message.GetString(41); // 
-
-            // 记录终端签到日志
-            _logger.LogInformation($"终端 {terminalId} 签到成功");
 
             // 发送签到成功响应
             var response = new Iso8583Package(_schema);
             response.MessageType = "0810"; // 假设响应类型为0810
             response.SetString(39, "00"); // 假设39域表示响应码，00表示成功
-            response.SetString(41, terminalId); // 终端ID
-
-
-
+            response.SetString(41, message.MachineID); // 终端ID
 
             var responseBytes = response.PackSendBuffer();
 
             await context.Transport.Output.WriteAsync(responseBytes);
+            await context.Transport.Output.FlushAsync();
 
-            await Task.CompletedTask;
+            await _terminalEventService.RecordTerminalEventAsync(
+                message.MerchantID,
+                message.TerimalID,
+                TerminalEventType.FileDownloadStart,
+                EventSeverity.Info,
+                $"sign in success"
+                );
+
         }
     }
 }

@@ -1,5 +1,8 @@
 using Microsoft.Extensions.Logging;
+using SlzrCrossGate.Common;
+using SlzrCrossGate.Core.Models;
 using SlzrCrossGate.Tcp.Protocol;
+using System.Text;
 using System.Threading.Tasks;
 
 namespace SlzrCrossGate.Tcp.Handler
@@ -18,26 +21,18 @@ namespace SlzrCrossGate.Tcp.Handler
 
         public async Task HandleMessageAsync(TcpConnectionContext context, Iso8583Message message)
         {
-            // 处理心跳指令
-            _logger.LogInformation("处理心跳指令");
+            var response = new Iso8583Message(_schema);
+            response.MessageType = "0890";
+            response.SetField(3, "805001");
+            response.SetField(39, "0000");
+            response.SetDateTime(12, DateTime.Now);
+            response.SetDateTime(13, DateTime.Now);
+            response.SetField(41, message.MachineID);
 
-            // 获取终端ID
-            var terminalId = message.GetString(41); // 假设终端ID在41域
-
-            // 记录心跳日志
-            _logger.LogInformation($"终端 {terminalId} 发送心跳");
-
-            // 发送心跳响应
-            var response = new Iso8583Package(_schema);
-            response.MessageType = "0890"; // 假设响应类型为0810
-            response.SetString(39, "00"); // 假设39域表示响应码，00表示成功
-            response.SetString(41, terminalId); // 终端ID
-
-            var responseBytes = response.PackSendBuffer();
+            var responseBytes = response.Pack();
 
             await context.Transport.Output.WriteAsync(responseBytes);
-
-            await Task.CompletedTask;
+            await context.Transport.Output.FlushAsync();
         }
     }
 }

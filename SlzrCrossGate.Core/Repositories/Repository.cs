@@ -28,6 +28,35 @@ namespace SlzrCrossGate.Core.Repositories
             return await _context.Set<T>().Where(predicate).ToListAsync();
         }
 
+        //查询第一个符合条件的实体
+        public async Task<T?> FirstOrDefaultAsync(Expression<Func<T, bool>> predicate)
+        {
+            return await _context.Set<T>().FirstOrDefaultAsync(predicate);
+        }
+
+        //查询第一个符合条件的实体带排序
+        public async Task<T?> FirstOrDefaultAsync(Expression<Func<T, bool>> predicate, Expression<Func<T, object>> order, bool isAsc)
+        {
+            var query = _context.Set<T>().Where(predicate);
+            query = isAsc ? query.OrderBy(order) : query.OrderByDescending(order);
+            return await query.FirstOrDefaultAsync();
+        }
+
+        //分页查询
+        public async Task<IEnumerable<T>> FindPagedAsync(Expression<Func<T, bool>> predicate, int pageIndex, int pageSize)
+        {
+            return await _context.Set<T>().Where(predicate).Skip((pageIndex - 1) * pageSize).Take(pageSize).ToListAsync();
+        }
+
+        //分页查询带排序
+        public async Task<IEnumerable<T>> FindPagedAsync(Expression<Func<T, bool>> predicate, Expression<Func<T, object>> order, bool isAsc, int pageIndex, int pageSize)
+        {
+            var query = _context.Set<T>().Where(predicate);
+            query = isAsc ? query.OrderBy(order) : query.OrderByDescending(order);
+            return await query.Skip((pageIndex - 1) * pageSize).Take(pageSize).ToListAsync();
+        }
+
+
         public async Task<T?> SingleOrDefaultAsync(Expression<Func<T, bool>> predicate)
         {
             return await _context.Set<T>().SingleOrDefaultAsync(predicate);
@@ -63,7 +92,7 @@ namespace SlzrCrossGate.Core.Repositories
             await _context.SaveChangesAsync();
         }
 
-        public async Task<int> CountAsync(Expression<Func<T, bool>> predicate = null)
+        public async Task<int> CountAsync(Expression<Func<T?, bool>> predicate)
         {
             if (predicate == null)
                 return await _context.Set<T>().CountAsync();

@@ -31,7 +31,6 @@ namespace SlzrCrossGate.Core.Service.BusinessServices
             {
                 MerchantID = merchantId,
                 TerminalID = terminalId,
-                EventTime = DateTime.Now,
                 EventName = eventType.ToString(),
                 EventType = eventType,
                 Severity = eventSeverity,

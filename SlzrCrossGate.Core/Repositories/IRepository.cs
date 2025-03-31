@@ -1,4 +1,5 @@
 // SlzrCrossGate.Core/Repositories/IRepository.cs
+using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -18,6 +19,10 @@ namespace SlzrCrossGate.Core.Repositories
         Task UpdateAsync(T entity);
         Task RemoveAsync(T entity);
         Task RemoveRangeAsync(IEnumerable<T> entities);
-        Task<int> CountAsync(Expression<Func<T, bool>> predicate = null);
+        Task<int> CountAsync(Expression<Func<T?, bool>> predicate);
+        Task<T?> FirstOrDefaultAsync(Expression<Func<T, bool>> predicate);
+        Task<T?> FirstOrDefaultAsync(Expression<Func<T, bool>> predicate, Expression<Func<T, object>> order, bool isAsc);
+        Task<IEnumerable<T>> FindPagedAsync(Expression<Func<T, bool>> predicate, int pageIndex, int pageSize);
+        Task<IEnumerable<T>> FindPagedAsync(Expression<Func<T, bool>> predicate, Expression<Func<T, object>> order, bool isAsc, int pageIndex, int pageSize);
     }
 }

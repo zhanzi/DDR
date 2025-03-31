@@ -32,9 +32,6 @@ namespace SlzrCrossGate.Tcp.Handler
 
         public async Task HandleMessageAsync(TcpConnectionContext context, Iso8583Message message)
         {
-            // 处理文件下载指令
-            _logger.LogInformation("处理文件下载指令");
-
             var response = new Iso8583Message(_schema);
             response.MessageType = "0850"; // 文件下载响应
             response.SetField(3, "806003");

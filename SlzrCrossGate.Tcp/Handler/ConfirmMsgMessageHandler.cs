@@ -24,7 +24,6 @@ namespace SlzrCrossGate.Tcp.Handler
 
         public async Task HandleMessageAsync(TcpConnectionContext context, Iso8583Message message)
         {
-
             var content = message.GetString(52);
 
             var msgConfirmDtos = ConvertToMsgConfirmDtos(content);

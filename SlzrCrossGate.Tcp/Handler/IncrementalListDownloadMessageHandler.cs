@@ -2,6 +2,7 @@ using Microsoft.Extensions.Logging;
 using SlzrCrossGate.Tcp.Protocol;
 using System.Threading.Tasks;
 using System.Collections.Generic;
+using SlzrCrossGate.Core.Service.BusinessServices;
 
 namespace SlzrCrossGate.Tcp.Handler
 {
@@ -9,45 +10,36 @@ namespace SlzrCrossGate.Tcp.Handler
     public class IncrementalListDownloadMessageHandler : IIso8583MessageHandler
     {
         private readonly ILogger<IncrementalListDownloadMessageHandler> _logger;
-        //private readonly IListService _listService;
         private readonly Iso8583Schema _schema;
+        private readonly IncrementContentService _incrementContentService;
 
-        public IncrementalListDownloadMessageHandler(ILogger<IncrementalListDownloadMessageHandler> logger, Iso8583Schema schema)
+        public IncrementalListDownloadMessageHandler(ILogger<IncrementalListDownloadMessageHandler> logger, Iso8583Schema schema, IncrementContentService incrementContentService)
         {
             _logger = logger;
-            //_listService = listService;
             _schema = schema;
+            _incrementContentService = incrementContentService;
         }
 
         public async Task HandleMessageAsync(TcpConnectionContext context, Iso8583Message message)
         {
-            // 处理增量名单下载指令
-            _logger.LogInformation("处理增量名单下载指令");
+            var incrementContentRequest = message.GetString(55);
+            var incrementType = incrementContentRequest.Substring(0, 4);
+            var curSerialNum = Convert.ToInt32(incrementContentRequest.Substring(4, 8), 16);
+            var count = Convert.ToInt32(incrementContentRequest.Substring(12, 8), 16);
 
-            // 获取终端ID
-            var terminalId = message.GetString(41); // 假设终端ID在41域
-
-            // 获取增量名单
-            //var incrementalList = await _listService.GetIncrementalListAsync(terminalId);
-
-            // 记录增量名单下载日志
-            _logger.LogInformation($"终端 {terminalId} 下载增量名单");
+            var contentResponse = await _incrementContentService.GetIncrementContentAsync(message.MerchantID, incrementType, curSerialNum, count);
 
             // 发送增量名单下载响应
-            var response = new Iso8583Package(_schema);
-            response.MessageType = "0550"; // 假设响应类型为0810
-            response.SetString(39, "00"); // 假设39域表示响应码，00表示成功
-            response.SetString(41, terminalId); // 终端ID
+            var response = new Iso8583Message(_schema);
+            response.MessageType = "0550";
+            response.SetField(39, "00");
+            response.SetField(41, message.MachineID);
+            response.SetField(56, contentResponse?? $"{incrementType}000000000000000000000000");
 
-            // 假设62域存储增量名单
-            //var listData = ConvertListToByteArray(incrementalList);
-            //response.SetArrayData(62, listData);
-
-            var responseBytes = response.PackSendBuffer();
+            var responseBytes = response.Pack();
 
             await context.Transport.Output.WriteAsync(responseBytes);
-
-            await Task.CompletedTask;
+            await context.Transport.Output.FlushAsync();
         }
 
         private byte[] ConvertListToByteArray(IEnumerable<string> list)

@@ -43,7 +43,7 @@ namespace SlzrCrossGate.Core
             builder.Services.AddSingleton<IRabbitMQService,RabbitMQService>();
 
             //配置文件上传服务
-            builder.Services.AddFileService(options =>
+            _ = builder.Services.AddFileService(options =>
             {
                 var fileServiceConfig = builder.Configuration.GetSection("FileService");
                 options.DefaultStorageType = fileServiceConfig["DefaultStorageType"] ?? throw new ArgumentNullException("FileService:DefaultStorageType");

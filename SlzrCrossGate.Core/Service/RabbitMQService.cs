@@ -3,6 +3,7 @@ using Microsoft.Extensions.Options;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using System;
+using System.Runtime.Intrinsics.X86;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
@@ -93,7 +94,7 @@ namespace SlzrCrossGate.Core.Services
             }
         }
 
-        public async Task SubscribeAsync<T>(string exchange, string queue, string routingKey, Func<T, Task> handler)
+        public async Task SubscribeAsync<T>(string exchange, string queue, string routingKey, Func<T, Task> handler, bool autoAck = true)
         {
             try
             {
@@ -112,8 +113,10 @@ namespace SlzrCrossGate.Core.Services
                         var message = JsonSerializer.Deserialize<T>(json);
 
                         if (message != null) await handler(message);
-
-                        await _channel.BasicAckAsync(ea.DeliveryTag, false);
+                        if (autoAck)
+                        {
+                            await _channel.BasicAckAsync(ea.DeliveryTag, false);
+                        }
                     }
                     catch (Exception ex)
                     {
@@ -130,7 +133,7 @@ namespace SlzrCrossGate.Core.Services
                         //await _channel.BasicRejectAsync(ea.DeliveryTag, false);
                         //await _channel.BasicPublishAsync("dead-letter-exchange", "dead-letter-queue", false, ea.BasicProperties, ea.Body);
 
-                        
+
                     }
                 };
                 await _channel.BasicConsumeAsync(queue, false, consumer);
@@ -143,9 +146,38 @@ namespace SlzrCrossGate.Core.Services
             }
         }
 
-        public async Task SubscribeConsumeDataAsync(Func<SlzrDatatransferModel.ConsumeData, Task> handler)
+        /// <summary>
+        /// 批量处理消费数据，需要手动ACK
+        /// </summary>
+        /// <param name="handler"></param>
+        /// <returns></returns>
+        public async Task SubscribeConsumeDataAsync(Func<SlzrDatatransferModel.ConsumeData, ulong, Task> handler, bool autoAck = true)
         {
-            await SubscribeAsync(_options.TcpExchange, _options.TcpQueue, "Tcp.city.#", handler);
+            // 确保交换机存在
+            _channel.ExchangeDeclareAsync(_options.TcpExchange, ExchangeType.Topic, true).GetAwaiter().GetResult();
+            // 创建默认的消费数据接收队列
+            _channel.QueueBindAsync(_options.TcpQueue, _options.TcpExchange, "Tcp.city.#").GetAwaiter().GetResult();
+
+            var consumer = new AsyncEventingBasicConsumer(_channel);
+            consumer.ReceivedAsync += async (model, ea) =>
+            {
+                try
+                {
+                    var body = ea.Body.ToArray();
+                    var consumeData = JsonSerializer.Deserialize<SlzrDatatransferModel.ConsumeData>(body);
+                    if (consumeData != null)
+                    {
+                        await handler(consumeData, ea.DeliveryTag);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Error handling message by Subscriber to {Exchange} with queue {Queue} and routing key {RoutingKey}", exchange, queue, routingKey);
+                    await _channel.BasicRejectAsync(ea.DeliveryTag, true);
+                }
+            };
+
+            await _channel.BasicConsumeAsync(queue: _options.TcpQueue, autoAck: false, consumer: consumer);
         }
 
         public async Task PublishConsumeDataAsync(SlzrDatatransferModel.ConsumeData consumeData) {
@@ -153,6 +185,15 @@ namespace SlzrCrossGate.Core.Services
             await PublishAsync(_options.TcpExchange, $"Tcp.city.{0000}.{consumeData.MerchantID}.{consumeData.buffer[2].ToString("X2")}", consumeData);
         }
 
+        public void Ack(ulong deliveryTag)
+        {
+            _channel.BasicAckAsync(deliveryTag, false);
+        }
+
+        public void NAck(ulong deliveryTag, bool requeue)
+        {
+            _channel.BasicRejectAsync(deliveryTag, requeue);
+        }
 
         public void Dispose()
         {

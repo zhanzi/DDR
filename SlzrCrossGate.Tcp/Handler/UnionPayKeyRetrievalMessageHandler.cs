@@ -1,5 +1,8 @@
 using Microsoft.Extensions.Logging;
+using SlzrCrossGate.Common;
+using SlzrCrossGate.Core.Service.BusinessServices;
 using SlzrCrossGate.Tcp.Protocol;
+using System.Text;
 using System.Threading.Tasks;
 
 namespace SlzrCrossGate.Tcp.Handler
@@ -8,37 +11,39 @@ namespace SlzrCrossGate.Tcp.Handler
     public class UnionPayKeyRetrievalMessageHandler : IIso8583MessageHandler
     {
         private readonly ILogger<UnionPayKeyRetrievalMessageHandler> _logger;
-        //private readonly IKeyService _keyService;
+        private readonly UnionPayTerminalKeyService _unionPayTerminalKeyService;
         private readonly Iso8583Schema _schema;
 
-        public UnionPayKeyRetrievalMessageHandler(ILogger<UnionPayKeyRetrievalMessageHandler> logger, Iso8583Schema schema)
+        public UnionPayKeyRetrievalMessageHandler(ILogger<UnionPayKeyRetrievalMessageHandler> logger, Iso8583Schema schema, UnionPayTerminalKeyService unionPayTerminalKeyService)
         {
             _logger = logger;
-            //_keyService = keyService;
             _schema = schema;
+            _unionPayTerminalKeyService = unionPayTerminalKeyService;
         }
 
         public async Task HandleMessageAsync(TcpConnectionContext context, Iso8583Message message)
         {
-            // 处理银联终端密钥获取指令
-            _logger.LogInformation("处理银联终端密钥获取指令");
 
-            // 获取终端ID
-            var terminalId = message.GetString(41); // 假设终端ID在41域
-
-            // 获取密钥
-            //var key = await _keyService.GetKeyAsync(terminalId);
-
-            // 记录密钥获取日志
-            _logger.LogInformation("终端 {TerminalId} 获取密钥", terminalId);
+            var unionKey = await _unionPayTerminalKeyService.BindUnionPayTerminalKey(message.MerchantID, message.MachineID, message.LineNO, message.DeviceNO);
 
             // 发送密钥获取响应
             var response = new Iso8583Message(_schema);
-            response.MessageType = "0410"; // 假设响应类型为0410
-            response.SetField(39, "00"); // 假设39域表示响应码，00表示成功
-            response.SetField(41, terminalId); // 终端ID
-                                               // response.SetString(62, key); // 假设62域存储密钥
+            response.MessageType = "0410"; 
+            response.SetField(39, "00"); 
+            response.SetField(41, message.MachineID);
 
+            if (unionKey is null)
+            {
+                response.SetField(62, DataConvert.HexToBytes("B001"));
+            }
+            else
+            {
+                IEnumerable<byte> content = ASCIIEncoding.ASCII.GetBytes(unionKey.UP_MerchantID)
+                    .Concat(ASCIIEncoding.ASCII.GetBytes(unionKey.UP_TerminalID))
+                    .Concat(DataConvert.HexToBytes(unionKey.UP_Key))
+                    .Concat(DataConvert.HexToBytes("9000"));
+                response.SetField(62, content.ToArray());
+            }
             var responseBytes = response.Pack();
 
             await context.Transport.Output.WriteAsync(responseBytes);

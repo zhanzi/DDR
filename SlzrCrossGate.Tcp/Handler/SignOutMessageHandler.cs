@@ -1,5 +1,9 @@
 using Microsoft.Extensions.Logging;
+using SlzrCrossGate.Core.Models;
+using SlzrCrossGate.Core.Service;
+using SlzrCrossGate.Core.Service.BusinessServices;
 using SlzrCrossGate.Tcp.Protocol;
+using System.IO;
 
 namespace SlzrCrossGate.Tcp.Handler
 {
@@ -8,35 +12,41 @@ namespace SlzrCrossGate.Tcp.Handler
     {
         private readonly ILogger<SignOutMessageHandler> _logger;
         private readonly Iso8583Schema _schema;
+        private readonly TerminalEventService _terminalEventService;
+        private readonly TcpConnectionManager _tcpConnectionManager;
 
-        public SignOutMessageHandler(ILogger<SignOutMessageHandler> logger, Iso8583Schema schema)
+        public SignOutMessageHandler(ILogger<SignOutMessageHandler> logger, Iso8583Schema schema, 
+            TerminalEventService terminalEventService, TcpConnectionManager tcpConnectionManager)
         {
             _logger = logger;
             _schema = schema;
+            _terminalEventService = terminalEventService;
+            _tcpConnectionManager = tcpConnectionManager;
         }
 
         public async Task HandleMessageAsync(TcpConnectionContext context, Iso8583Message message)
         {
-            // 处理终端签退指令
-            _logger.LogInformation("处理终端签退指令");
+            //var response = new Iso8583Message(_schema);
+            //response.MessageType = "0830"; 
+            //response.SetField(39, "00"); 
+            //response.SetField(41, message.MachineID); 
 
-            // 获取终端ID
-            var terminalId = message.GetString(41); // 假设终端ID在41域
+            //var responseBytes = response.Pack();
 
-            // 记录终端签退日志
-            _logger.LogInformation($"终端 {terminalId} 签退成功");
+            //await context.Transport.Output.WriteAsync(responseBytes);
+            //await context.Transport.Output.FlushAsync();
 
-            // 发送签退成功响应
-            var response = new Iso8583Package(_schema);
-            response.MessageType = "0830"; // 假设响应类型为0830
-            response.SetString(39, "00"); // 假设39域表示响应码，00表示成功
-            response.SetString(41, terminalId); // 终端ID
+            _tcpConnectionManager.TryRemoveConnection(message.TerimalID);
 
-            var responseBytes = response.PackSendBuffer();
+            await _terminalEventService.RecordTerminalEventAsync(
+                message.MerchantID,
+                message.TerimalID,
+                TerminalEventType.SignOut,
+                EventSeverity.Info,
+                //终端主动签退
+                $"terminal sign out"
+            );
 
-            await context.Transport.Output.WriteAsync(responseBytes);
-
-            await Task.CompletedTask;
         }
     }
 }

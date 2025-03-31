@@ -22,9 +22,32 @@ namespace SlzrCrossGate.Core.Service
             return true;
         }
 
+        //设置设备为活跃状态
+        public bool SetTerminalActive(string terminalId)
+        {
+            if (_terminals.TryGetValue(terminalId, out var terminal))
+            {
+                terminal.ActiveStatus = DeviceActiveStatus.Active;
+                terminal.LastActiveTime = DateTime.Now;
+                return true;
+            }
+            return false;
+        }
+
+        //设置设备为非活跃状态
+        public bool SetTerminalInactive(string terminalId)
+        {
+            if (_terminals.TryGetValue(terminalId, out var terminal))
+            {
+                terminal.ActiveStatus = DeviceActiveStatus.Inactive;
+                return true;
+            }
+            return false;
+        }
+
         public bool RemoveTerminal(string terminalId)
         {
-            if (_terminals.TryRemove(terminalId, out var terminal))
+            if (_terminals.TryGetValue(terminalId, out var terminal))
             {
                 terminal.ActiveStatus = DeviceActiveStatus.Inactive;
                 return true;
