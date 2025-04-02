@@ -19,20 +19,13 @@ namespace SlzrCrossGate.Tcp.Handler
             _schema = schema;
         }
 
-        public async Task HandleMessageAsync(TcpConnectionContext context, Iso8583Message message)
+        public async Task<Iso8583Message> HandleMessageAsync(TcpConnectionContext context, Iso8583Message message)
         {
-            var response = new Iso8583Message(_schema);
-            response.MessageType = "0890";
-            response.SetField(3, "805001");
-            response.SetField(39, "0000");
-            response.SetDateTime(12, DateTime.Now);
-            response.SetDateTime(13, DateTime.Now);
-            response.SetField(41, message.MachineID);
+            var response = new Iso8583Message(_schema, "0890");
+            //response.SetField(3, "805001");
+            response.Ok();
 
-            var responseBytes = response.Pack();
-
-            await context.Transport.Output.WriteAsync(responseBytes);
-            await context.Transport.Output.FlushAsync();
+            return await Task.FromResult(response);
         }
     }
 }

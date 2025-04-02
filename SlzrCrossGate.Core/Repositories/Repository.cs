@@ -1,6 +1,10 @@
 // SlzrCrossGate.Core/Repositories/Repository.cs
+using EFCore.BulkExtensions;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Query;
+using Minio.DataModel.Notification;
 using SlzrCrossGate.Core.Database;
+using SlzrCrossGate.Core.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -74,6 +78,7 @@ namespace SlzrCrossGate.Core.Repositories
             await _context.SaveChangesAsync();
         }
 
+
         public async Task UpdateAsync(T entity)
         {
             _context.Set<T>().Update(entity);
@@ -99,5 +104,144 @@ namespace SlzrCrossGate.Core.Repositories
             else
                 return await _context.Set<T>().CountAsync(predicate);
         }
+
+
+        //批量插入
+        public async Task BulkInsertAsync(IEnumerable<T> entities)
+        {
+            await _context.BulkInsertAsync(entities);
+        }
+
+        public async Task BulkUpdateAsync(IEnumerable<T> entities)
+        {
+            await _context.BulkUpdateAsync(entities);
+        }
+
+        public async Task BulkUpdateAsync(IEnumerable<T> entities, List<string> updateColumns)
+        {
+            await _context.BulkUpdateAsync(entities, options => {
+                options.PropertiesToInclude = updateColumns; // 只更新 updateColumns 字段
+            });
+            await _context.BulkUpdateAsync(entities);
+
+        }
+
+        public async Task<int> BatchUpdateAsync(Expression<Func<T, bool>> filter, Expression<Func<SetPropertyCalls<T>, SetPropertyCalls<T>>> setters)
+        {
+            return await _context.BatchUpdateAsync<T>(filter, setters);
+        }
+
+        public async Task<int> BatchUpdateInTransactionAsync(Expression<Func<T, bool>> filter, Expression<Func<SetPropertyCalls<T>, SetPropertyCalls<T>>> setters)
+        {
+            return await _context.BatchUpdateInTransactionAsync<T>(filter, setters);
+        }
+
+        public async Task<int> BatchDeleteAsync(Expression<Func<T, bool>> filter,
+            System.Data.IsolationLevel? isolationLevel = null,
+            CancellationToken ct = default)
+        {
+            return await _context.Set<T>().Where(filter)
+                    .ExecuteDeleteAsync();
+        }
+
+        public async Task<int> BatchDeleteInTransactionAsync(Expression<Func<T, bool>> filter,
+            System.Data.IsolationLevel? isolationLevel = null,
+            CancellationToken ct = default)
+        {
+            return await _context.BatchDeleteInTransactionAsync(filter, isolationLevel, ct);
+        }
+
+        public async Task BulkDeleteAsync(IEnumerable<T> entities)
+        {
+            await _context.BulkDeleteAsync<T>(entities);
+        }
+
+        public async Task BulkInsertOrUpdateAsync(IEnumerable<T> entities)
+        {
+            await _context.BulkInsertOrUpdateAsync<T>(entities);
+        }
+
     }
+
+    public static class EfCoreBatchUtils
+    {
+        // 批量更新（带返回值）
+        public static async Task<int> BatchUpdateAsync<TEntity>(
+            this DbContext dbContext,
+            Expression<Func<TEntity, bool>> filter,
+            Expression<Func<SetPropertyCalls<TEntity>, SetPropertyCalls<TEntity>>> setters,
+            int? commandTimeout = null,
+            CancellationToken ct = default)
+            where TEntity : class
+        {
+            var query = dbContext.Set<TEntity>().Where(filter);
+            if (commandTimeout != null)
+            {
+                dbContext.Database.SetCommandTimeout(commandTimeout.Value);
+            }
+            return await query.ExecuteUpdateAsync(setters, ct);
+        }
+
+        public static async Task<int> BatchUpdateInTransactionAsync<TEntity>(
+            this DbContext dbContext,
+            Expression<Func<TEntity, bool>> filter,
+            Expression<Func<SetPropertyCalls<TEntity>, SetPropertyCalls<TEntity>>> setters,
+            System.Data.IsolationLevel isolationLevel = System.Data.IsolationLevel.ReadCommitted)
+            where TEntity : class
+                {
+                    await using var transaction = await dbContext.Database
+                        .BeginTransactionAsync(isolationLevel);
+
+                    try
+                    {
+                        var affectedRows = await dbContext.Set<TEntity>()
+                            .Where(filter)
+                            .ExecuteUpdateAsync(setters);
+
+                        await transaction.CommitAsync();
+                        return affectedRows;
+                    }
+                    catch
+                    {
+                        await transaction.RollbackAsync();
+                        throw;
+                    }
+                }
+
+        // 批量删除（带事务）
+        public static async Task<int> BatchDeleteInTransactionAsync<TEntity>(
+            this DbContext dbContext,
+            Expression<Func<TEntity, bool>> filter,
+            System.Data.IsolationLevel? isolationLevel = null,
+            CancellationToken ct = default)
+            where TEntity : class
+        {
+            if (isolationLevel == null)
+            {
+                return await dbContext.Set<TEntity>()
+                    .Where(filter)
+                    .ExecuteDeleteAsync(ct);
+            }
+
+            await using var transaction = await dbContext.Database
+                .BeginTransactionAsync(isolationLevel.Value, ct);
+
+            try
+            {
+                var affectedRows = await dbContext.Set<TEntity>()
+                    .Where(filter)
+                    .ExecuteDeleteAsync(ct);
+
+                await transaction.CommitAsync(ct);
+                return affectedRows;
+            }
+            catch
+            {
+                await transaction.RollbackAsync();
+                throw;
+            }
+        }
+    }
+
+
 }

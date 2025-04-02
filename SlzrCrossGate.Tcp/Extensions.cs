@@ -43,8 +43,8 @@ namespace SlzrCrossGate.Tcp
             builder.Services.AddSingleton<Iso8583Schema>(new Iso8583Schema("schema.xml"));
 
             // 注册后台服务
-            builder.Services.AddHostedService<TcpLifecycleManagerService>();
-            builder.Services.AddHostedService<ConsumeDataSaveService>();
+            builder.Services.AddHostedService<TcpLifecycleManagerHostedService>();
+            builder.Services.AddHostedService<ConsumeDataSaveHostedService>();
 
 
             //var app = builder.Build();

@@ -22,7 +22,7 @@ namespace SlzrCrossGate.Tcp.Handler
         }
 
 
-        public async Task HandleMessageAsync(TcpConnectionContext context, Iso8583Message message)
+        public async Task<Iso8583Message> HandleMessageAsync(TcpConnectionContext context, Iso8583Message message)
         {
             var content = message.GetString(52);
 
@@ -30,18 +30,12 @@ namespace SlzrCrossGate.Tcp.Handler
 
             await _msgBoxService.MarkMessageAsRepliedAsync(msgConfirmDtos);
 
-            var response = new Iso8583Message(_schema);
-            response.MessageType = "0530";
-            response.SetField(3, "805002");
-            response.SetField(39, "0000");
-            response.SetDateTime(12, DateTime.Now);
-            response.SetDateTime(13, DateTime.Now);
-            response.SetField(41, message.MachineID);
+            var response = new Iso8583Message(_schema,"0530");
+            //response.SetField(3, "805002");
 
-            var responseBytes = response.Pack();
+            response.Ok();
 
-            await context.Transport.Output.WriteAsync(responseBytes);
-            await context.Transport.Output.FlushAsync();
+            return response;
         }
 
         

@@ -1,28 +1,21 @@
-﻿using System;
+﻿using SlzrCrossGate.Core.Models;
+using System;
 using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
-using System.Diagnostics;
+using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
 
-namespace SlzrCrossGate.Core.Models
+namespace SlzrCrossGate.Core.DTOs
 {
-    public class Terminal
+    public class TerminalShadow
     {
-        [Key]
-        [MaxLength(20)]
-        /// <summary>
-        /// 系统唯一编号
-        /// </summary>
+
         public required string ID { get; set; }
 
         [MaxLength(8)]
-        /// <summary>
-        /// 商户编号
-        /// </summary>
         public required string MerchantID { get; set; }
 
         [MaxLength(8)]
@@ -53,6 +46,10 @@ namespace SlzrCrossGate.Core.Models
             set => FileVersions = JsonSerializer.Serialize(value);
         }
 
+        //期望的文件版本信息
+        public Dictionary<string,string> ExpectFileVersions { get; set; } = [];
+
+
         [NotMapped]
         public Dictionary<string, string> PropertyMetadata
         {
@@ -69,22 +66,18 @@ namespace SlzrCrossGate.Core.Models
         public DateTime LoginOffTime { get; set; }
         public DateTime LastActiveTime { get; set; }
 
-
         //终端连接协议类型，如：MQTT、HTTP、TCP、UDP等
         [MaxLength(20)]
         public string? ConnectionProtocol { get; set; }
 
-
         //设备终结点信息
         [MaxLength(200)]
         public string? EndPoint { get; set; }
-
 
         //设备活跃状态
         public DeviceActiveStatus ActiveStatus { get; set; }
 
         //软删除
         public bool IsDeleted { get; set; } = false;
-
     }
 }

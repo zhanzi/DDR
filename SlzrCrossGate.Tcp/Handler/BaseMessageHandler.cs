@@ -18,7 +18,7 @@ namespace SlzrCrossGate.Tcp.Handler
             _schema = serviceProvider.GetRequiredService<Iso8583Schema>();
         }
 
-        public Task HandleMessageAsync(TcpConnectionContext context, Iso8583Message message)
+        public Task<Iso8583Message> HandleMessageAsync(TcpConnectionContext context, Iso8583Message message)
         {
             throw new NotImplementedException();
         }

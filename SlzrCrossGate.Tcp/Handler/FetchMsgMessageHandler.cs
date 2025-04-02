@@ -21,38 +21,33 @@ namespace SlzrCrossGate.Tcp.Handler
             _msgBoxService = msgBoxService;
         }
 
-        public async Task HandleMessageAsync(TcpConnectionContext context, Iso8583Message message)
+        public async Task<Iso8583Message> HandleMessageAsync(TcpConnectionContext context, Iso8583Message message)
         {
             var msg = await _msgBoxService.GetFirstUnreadMessagesAsync(message.TerimalID);
 
-            var response = new Iso8583Message(_schema);
-            response.MessageType = "0510";
-            response.SetField(3, "805001");
-            response.SetField(39, "0000");
-            response.SetDateTime(12, DateTime.Now);
-            response.SetDateTime(13, DateTime.Now);
-            response.SetField(41, message.MachineID);
+            var response = new Iso8583Message(_schema, "0510");
+            //response.SetField(3, "805001");
+
             if (msg == null) {
                 response.SetField(39, "0010");
-            }
-            else
+                response.Error("0010", "No message found");
+                return response;
+            } 
+
+
+            var body = msg.Content;
+            if (msg.CodeType == MessageCodeType.ASCII)
             {
-                var body = msg.Content;
-                if (msg.CodeType == MessageCodeType.ASCII)
-                {
-                    body = DataConvert.BytesToHex(Encoding.Default.GetBytes(body));
-                }
-                var msgStr = msg.MsgTypeID + msg.ID.ToString("X2").PadLeft(8, '0') + body;
-
-                response.SetField(51, msgStr);
+                body = DataConvert.BytesToHex(Encoding.Default.GetBytes(body));
             }
-            
-            var responseBytes = response.Pack();
+            var msgStr = msg.MsgTypeID + msg.ID.ToString("X2").PadLeft(8, '0') + body;
 
-            await context.Transport.Output.WriteAsync(responseBytes);
-            await context.Transport.Output.FlushAsync();
+            response.SetField(51, msgStr);
+            response.Ok();
 
             if (msg != null) await _msgBoxService.MarkMessageAsReadAsync(message.TerimalID, msg.ID);
+
+            return response;
         }
 
 

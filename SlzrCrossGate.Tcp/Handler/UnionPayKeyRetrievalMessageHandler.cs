@@ -21,16 +21,12 @@ namespace SlzrCrossGate.Tcp.Handler
             _unionPayTerminalKeyService = unionPayTerminalKeyService;
         }
 
-        public async Task HandleMessageAsync(TcpConnectionContext context, Iso8583Message message)
+        public async Task<Iso8583Message> HandleMessageAsync(TcpConnectionContext context, Iso8583Message message)
         {
 
-            var unionKey = await _unionPayTerminalKeyService.BindUnionPayTerminalKey(message.MerchantID, message.MachineID, message.LineNO, message.DeviceNO);
+            var unionKey = await _unionPayTerminalKeyService.BindUnionPayTerminalKey(message.MerchantID,message.TerimalID, message.MachineID, message.LineNO, message.DeviceNO);
 
-            // 发送密钥获取响应
-            var response = new Iso8583Message(_schema);
-            response.MessageType = "0410"; 
-            response.SetField(39, "00"); 
-            response.SetField(41, message.MachineID);
+            var response = new Iso8583Message(_schema, "0410");
 
             if (unionKey is null)
             {
@@ -44,11 +40,8 @@ namespace SlzrCrossGate.Tcp.Handler
                     .Concat(DataConvert.HexToBytes("9000"));
                 response.SetField(62, content.ToArray());
             }
-            var responseBytes = response.Pack();
-
-            await context.Transport.Output.WriteAsync(responseBytes);
-
-            await Task.CompletedTask;
+            response.Ok();
+            return response;
         }
     }
 }

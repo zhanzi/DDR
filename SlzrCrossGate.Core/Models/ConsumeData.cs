@@ -18,7 +18,7 @@ namespace SlzrCrossGate.Core.Models
         public string? PsamNO { get; set; }
 
         [MaxLength(2500)]
-        public required string Buffer { get; set; }
+        public required byte[] Buffer { get; set; }
         //接收时间
         public DateTime ReceiveTime { get; set; }
     }

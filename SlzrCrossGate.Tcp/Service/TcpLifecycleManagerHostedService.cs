@@ -10,11 +10,11 @@ namespace SlzrCrossGate.Tcp.Service
     /// <summary>
     /// TCP连接生命周期管理服务
     /// </summary>
-    public class TcpLifecycleManagerService : IHostedService
+    public class TcpLifecycleManagerHostedService : IHostedService
     {
         private readonly TcpConnectionManager _manager;
 
-        public TcpLifecycleManagerService(TcpConnectionManager manager)
+        public TcpLifecycleManagerHostedService(TcpConnectionManager manager)
         {
             _manager = manager;
         }

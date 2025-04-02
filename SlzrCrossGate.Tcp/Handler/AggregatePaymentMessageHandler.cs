@@ -18,11 +18,13 @@ namespace SlzrCrossGate.Tcp.Handler
             _schema = schema;
         }
 
-        public async Task HandleMessageAsync(TcpConnectionContext context, Iso8583Message message)
+        public async Task<Iso8583Message> HandleMessageAsync(TcpConnectionContext context, Iso8583Message message)
         {
-            // TODO：处理聚合支付指令
 
-            await Task.CompletedTask;
+            var response = new Iso8583Message(_schema,"0330");
+            response.Ok();
+
+            return await Task.FromResult(response);
         }
     }
 }

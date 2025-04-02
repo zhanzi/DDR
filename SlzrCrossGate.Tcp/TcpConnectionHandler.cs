@@ -29,14 +29,21 @@ namespace SlzrCrossGate.Tcp
         private static readonly Meter _meter = new Meter("SlzrCrossGate.Tcp");
         private static readonly Counter<long> _messageProcessedCounter;
         private static readonly Histogram<double> _messageProcessingDuration;
+
         //消息处理失败计数器
         private static readonly Counter<long> _messageFailedCounter;
+
+        //记录网络带宽进出流量
+        private static readonly Counter<long> _networkBandwidthIn;
+        private static readonly Counter<long> _networkBandwidthOut;
 
         static TcpConnectionHandler()
         {
             _messageProcessedCounter = _meter.CreateCounter<long>("tcp.messages.processed", "Messages");
             _messageProcessingDuration = _meter.CreateHistogram<double>("tcp.messages.duration", "ms");
             _messageFailedCounter = _meter.CreateCounter<long>("tcp.messages.failed", "Messages");
+            _networkBandwidthIn = _meter.CreateCounter<long>("tcp.network.bandwidthin", "Bytes");
+            _networkBandwidthOut = _meter.CreateCounter<long> ("tcp.network.bandwidthout", "Bytes");
         }
 
         public TcpConnectionHandler(
@@ -178,14 +185,19 @@ namespace SlzrCrossGate.Tcp
             var stopwatch = Stopwatch.StartNew();
             try
             {
+                _networkBandwidthIn.Add(message.GetCurBuffer().Length,
+                    new KeyValuePair<string, object?>("MessageType", message.MessageType),
+                    new KeyValuePair<string, object?>("TerminalID", context.TerminalID),
+                    new KeyValuePair<string, object?>("MerchantID", context.MerchantID));
+
                 if (_messageHandlers.TryGetValue(message.MessageType, out var handler))
                 {
                     // 记录处理开始事件
                     //activity?.AddEvent(new ActivityEvent("HandlerStarted"));
 
                     // 处理消息
-                    await handler.HandleMessageAsync(context, message);
-
+                    var response = await handler.HandleMessageAsync(context, message);
+                    await ProcessResponse(context, message, response);
                     // 记录处理结束事件
                     //activity?.AddEvent(new ActivityEvent("HandlerCompleted"));
                 }
@@ -232,6 +244,25 @@ namespace SlzrCrossGate.Tcp
                     message.MessageType, context.TerminalID, stopwatch.ElapsedMilliseconds);
             }
         }
+
+
+        //统一回复处理
+        private async Task ProcessResponse(TcpConnectionContext context, Iso8583Message request, Iso8583Message response)
+        {
+            if (request.Exist(3)) response.SetField(3, request.GetString(3));
+
+            response.SetDateTime(12, DateTime.Now);
+            response.SetDateTime(13, DateTime.Now);
+            response.SetField(41, request.MachineID);
+
+            await context.SendMessageAsync(response.Pack());
+
+            _networkBandwidthOut.Add(response.GetCurBuffer().Length,
+                new KeyValuePair<string, object?>("MessageType", response.MessageType),
+                new KeyValuePair<string, object?>("TerminalID", context.TerminalID),
+                new KeyValuePair<string, object?>("MerchantID", context.MerchantID));
+        }
+
 
         private IDictionary<string, IIso8583MessageHandler> LoadMessageHandlerTypes()
         {

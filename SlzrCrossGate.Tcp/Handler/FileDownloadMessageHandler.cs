@@ -30,14 +30,10 @@ namespace SlzrCrossGate.Tcp.Handler
             _schema = schema;
         }
 
-        public async Task HandleMessageAsync(TcpConnectionContext context, Iso8583Message message)
+        public async Task<Iso8583Message> HandleMessageAsync(TcpConnectionContext context, Iso8583Message message)
         {
-            var response = new Iso8583Message(_schema);
-            response.MessageType = "0850"; // 文件下载响应
-            response.SetField(3, "806003");
-            response.SetDateTime(12, DateTime.Now);
-            response.SetDateTime(13, DateTime.Now);
-            response.SetField(41, message.MachineID);
+            var response = new Iso8583Message(_schema, "0850");
+            //response.SetField(3, "806003");
 
             // 根据协议版本确定参数位置
             bool isNewVersion = Convert.ToInt32(message.ProtocolVer, 16) >= 0x0200;
@@ -66,8 +62,9 @@ namespace SlzrCrossGate.Tcp.Handler
                 if (filePublish == null)
                 {
                     _logger.LogWarning("filePublish is null:MerchantID={MerchantID} fileCode={FileCode}, fileVersion={FileVersion}", message.MerchantID, fileCode, fileVersion);
-                    await SendErrorResponseAsync(context, response, message, "0006", "文件不存在");
-                    return;
+
+                    response.Error("0006", "文件不存在");
+                    return response;
                 }
                 var fileLength = filePublish.FileSize;
 
@@ -75,8 +72,9 @@ namespace SlzrCrossGate.Tcp.Handler
                 if (fileOffset >= fileLength)
                 {
                     _logger.LogWarning("fileOffset >= fileLength:fileOffset={FileOffset}, fileLength={FileLength},MerchantID={MerchantID},TerminalID={TerminalID}, fileCode={FileCode}, fileVersion={FileVersion},fileID={FileID}", fileOffset, fileLength, message.MerchantID, message.TerimalID, fileCode, fileVersion, filePublish.ID);
-                    await SendErrorResponseAsync(context, response, message, "0007", "文件偏移超出范围");
-                    return;
+
+                    response.Error("0007", "文件偏移超出范围");
+                    return response;
                 }
 
                 if (fileOffset + requestLength > fileLength)
@@ -90,13 +88,12 @@ namespace SlzrCrossGate.Tcp.Handler
                 if (fileSegment == null)
                 {
                     _logger.LogWarning("fileSegment is null:filePath={FilePath}, fileOffset={FileOffset}, requestLength={RequestLength},fileID={FileID}", filePublish.FilePath, fileOffset, requestLength, filePublish.ID);
-                    await SendErrorResponseAsync(context, response, message, "0008", "文件片段不存在");
-                    return;
+
+                    response.Error("0008", "文件片段不存在");
+                    return response;
                 }
                 response.SetField(48, fileSegment);
 
-                // 设置成功响应
-                response.SetField(39, "0000");
                 // 设置文件路径信息
                 if (isNewVersion)
                 {
@@ -107,11 +104,9 @@ namespace SlzrCrossGate.Tcp.Handler
                     response.SetField(47, filePathInfo);
                 }
 
-                response.SetField(64, "00000000"); // MAC值，这里设置为零
+                // 设置成功响应
+                response.Ok();
 
-                var responseBytes = response.Pack();
-                await context.Transport.Output.WriteAsync(responseBytes);
-                await context.Transport.Output.FlushAsync();
 
                 // 如果是文件第一个片段
                 if (fileOffset == 0)
@@ -137,25 +132,17 @@ namespace SlzrCrossGate.Tcp.Handler
                         );
                 }
 
+                return response;
 
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "handle file download error:MerchantID={MerchantID},TerminalID={TerminalID}, filePathInfo={filePathInfo}", message.MerchantID, terminalId, filePathInfo);
-                await SendErrorResponseAsync(context, response, message, "0009", "内部处理错误");
+
+                response.SetField(39, "0009");
+                response.SetField(38, "内部处理错误");
+                return response;
             }
-        }
-
-        private async Task SendErrorResponseAsync(TcpConnectionContext context, Iso8583Message response, Iso8583Message request, string errorCode, string errorMessage)
-        {
-            response.SetField(39, errorCode);
-            response.SetField(38, errorMessage);
-
-            //response.SetField(64, "00000000"); // MAC值，这里设置为零
-
-            var responseBytes = response.Pack();
-            await context.Transport.Output.WriteAsync(responseBytes);
-            await context.Transport.Output.FlushAsync();
         }
     }
 }

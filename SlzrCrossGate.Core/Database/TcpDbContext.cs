@@ -56,6 +56,17 @@ namespace SlzrCrossGate.Core.Database
                 .HasIndex(e => new { e.MerchantID, e.TerminalID, e.EventTime })
                 .IsDescending([false, false, true]);
 
+            modelBuilder.Entity<Terminal>(entity =>
+            {
+                // MySQL 配置
+                if (Database.IsMySql())
+                {
+                    entity.Property(e => e.FileVersions)
+                        .HasColumnType("json");
+                    entity.Property(e => e.Properties)
+                        .HasColumnType("json");
+                }
+            });
 
 
             // 配置 TerminalEvent 的联合索引

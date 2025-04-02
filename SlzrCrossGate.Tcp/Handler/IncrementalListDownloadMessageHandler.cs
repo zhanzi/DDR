@@ -20,7 +20,7 @@ namespace SlzrCrossGate.Tcp.Handler
             _incrementContentService = incrementContentService;
         }
 
-        public async Task HandleMessageAsync(TcpConnectionContext context, Iso8583Message message)
+        public async Task<Iso8583Message> HandleMessageAsync(TcpConnectionContext context, Iso8583Message message)
         {
             var incrementContentRequest = message.GetString(55);
             var incrementType = incrementContentRequest.Substring(0, 4);
@@ -30,26 +30,14 @@ namespace SlzrCrossGate.Tcp.Handler
             var contentResponse = await _incrementContentService.GetIncrementContentAsync(message.MerchantID, incrementType, curSerialNum, count);
 
             // 发送增量名单下载响应
-            var response = new Iso8583Message(_schema);
-            response.MessageType = "0550";
-            response.SetField(39, "00");
-            response.SetField(41, message.MachineID);
+            var response = new Iso8583Message(_schema, "0550");
+
             response.SetField(56, contentResponse?? $"{incrementType}000000000000000000000000");
+            response.Ok();
 
-            var responseBytes = response.Pack();
-
-            await context.Transport.Output.WriteAsync(responseBytes);
-            await context.Transport.Output.FlushAsync();
+            return response;
         }
 
-        private byte[] ConvertListToByteArray(IEnumerable<string> list)
-        {
-            // 将名单列表转换为字节数组
-            // 这里可以根据具体的名单格式进行实现
-            // 例如，将每个名单项转换为字符串，然后将字符串转换为字节数组
-            var listString = string.Join("\n", list);
-            return System.Text.Encoding.UTF8.GetBytes(listString);
-        }
     }
 }
 

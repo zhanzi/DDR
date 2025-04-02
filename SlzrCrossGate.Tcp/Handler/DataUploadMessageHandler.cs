@@ -21,7 +21,7 @@ namespace SlzrCrossGate.Tcp.Handler
             _rabbitMQService = rabbitMQService;
         }
 
-        public async Task HandleMessageAsync(TcpConnectionContext context, Iso8583Message message)
+        public async Task<Iso8583Message> HandleMessageAsync(TcpConnectionContext context, Iso8583Message message)
         {
             // 获取上传的数据
             var data = message.GetBytes(61); 
@@ -37,17 +37,12 @@ namespace SlzrCrossGate.Tcp.Handler
             });
 
             // 发送上传成功响应
-            var response = new Iso8583Message(_schema);
-            response.MessageType = "0310"; 
-            response.SetField(39, "0000"); 
+            var response = new Iso8583Message(_schema, "0310");
             response.SetField(11, message.GetString(11));
             response.SetField(14, message.GetString(14));
-            response.SetField(41, message.MachineID);
+            response.Ok();
 
-            var responseBytes = response.Pack();
-
-            await context.Transport.Output.WriteAsync(responseBytes);
-            await context.Transport.Output.FlushAsync();
+            return response;
         }
     }
 }

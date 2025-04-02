@@ -8,6 +8,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Channels;
 using System.Threading.Tasks;
 
@@ -16,10 +17,10 @@ namespace SlzrCrossGate.Tcp.Service
     /// <summary>
     /// 消费数据保存服务(订阅MQ数据)
     /// </summary>
-    public class ConsumeDataSaveService : BackgroundService
+    public class ConsumeDataSaveHostedService : BackgroundService
     {
         private readonly RabbitMQService _rabbitMQService;
-        private readonly ILogger<ConsumeDataSaveService> _logger;
+        private readonly ILogger<ConsumeDataSaveHostedService> _logger;
         private readonly ConsumeDataService _consumeDataService;
 
         private readonly Channel<(Core.Models.ConsumeData, ulong)> _consumeDataChannel;
@@ -29,7 +30,7 @@ namespace SlzrCrossGate.Tcp.Service
         private int _currentBatchSize = 0;
         private readonly SemaphoreSlim _semaphore = new SemaphoreSlim(1, 1);
 
-        public ConsumeDataSaveService(RabbitMQService rabbitMQService, ILogger<ConsumeDataSaveService> logger,
+        public ConsumeDataSaveHostedService(RabbitMQService rabbitMQService, ILogger<ConsumeDataSaveHostedService> logger,
             ConsumeDataService consumeDataService)
         {
             _rabbitMQService = rabbitMQService;
@@ -51,11 +52,11 @@ namespace SlzrCrossGate.Tcp.Service
                     MachineNO = consumeData.MachineNO,
                     PsamNO = consumeData.PsamNO,
                     ReceiveTime = DateTime.Now,
-                    Buffer = DataConvert.BytesToHex(consumeData.buffer)
+                    Buffer = consumeData.buffer
                 };
                 await _consumeDataChannel.Writer.WriteAsync((entity, deliveryTag));
                 Interlocked.Increment(ref _currentBatchSize);
-                if (_currentBatchSize >= _batchSize)
+                if (_semaphore.CurrentCount == 1 && _currentBatchSize >= _batchSize)
                 {
                     await ProcessQueueAsync();
                 }

@@ -11,12 +11,12 @@ namespace SlzrCrossGate.Tcp.Service
     /// <summary>
     /// 定时发布连接统计信息的后台服务
     /// </summary>
-    public class ConnectionMonitorService : BackgroundService
+    public class ConnectionMonitorHostedService : BackgroundService
     {
         private readonly TcpConnectionManager _connectionManager;
-        private readonly ILogger<ConnectionMonitorService> _logger;
+        private readonly ILogger<ConnectionMonitorHostedService> _logger;
 
-        public ConnectionMonitorService(TcpConnectionManager connectionManager, ILogger<ConnectionMonitorService> logger)
+        public ConnectionMonitorHostedService(TcpConnectionManager connectionManager, ILogger<ConnectionMonitorHostedService> logger)
         {
             _connectionManager = connectionManager;
             _logger = logger;

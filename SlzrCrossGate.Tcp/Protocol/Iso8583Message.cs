@@ -20,6 +20,12 @@ namespace SlzrCrossGate.Tcp.Protocol
             _iso8583Package = new Iso8583Package(schema);
         }
 
+        public Iso8583Message(Iso8583Schema schema, string messageType)
+        {
+            _iso8583Package = new Iso8583Package(schema);
+            _iso8583Package.MessageType = messageType;
+        }
+
         public static Iso8583Message Create(IServiceProvider serviceProvider)
         {
             return new Iso8583Message(serviceProvider.GetRequiredService<Iso8583Schema>());
@@ -70,5 +76,15 @@ namespace SlzrCrossGate.Tcp.Protocol
 
         public string ProtocolVer { get; private set; } = "";
         public string TerminalType { get; private set; } = "";
+
+        public void Ok()
+        {
+            SetField(39, "0000");
+        }
+        public void Error(string code,string message)
+        {
+            SetField(39, code);
+            SetField(38 , message);
+        }
     }
 }

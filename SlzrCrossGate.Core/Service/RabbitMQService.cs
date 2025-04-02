@@ -172,7 +172,7 @@ namespace SlzrCrossGate.Core.Services
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex, "Error handling message by Subscriber to {Exchange} with queue {Queue} and routing key {RoutingKey}", exchange, queue, routingKey);
+                    _logger.LogError(ex, "Error handling message by Subscriber to {Exchange} with queue {Queue} and routing key {RoutingKey}", _options.TcpExchange, _options.TcpQueue, "Tcp.city.#");
                     await _channel.BasicRejectAsync(ea.DeliveryTag, true);
                 }
             };
@@ -185,14 +185,15 @@ namespace SlzrCrossGate.Core.Services
             await PublishAsync(_options.TcpExchange, $"Tcp.city.{0000}.{consumeData.MerchantID}.{consumeData.buffer[2].ToString("X2")}", consumeData);
         }
 
-        public void Ack(ulong deliveryTag)
+
+        public async Task Ack(ulong deliveryTag)
         {
-            _channel.BasicAckAsync(deliveryTag, false);
+            await _channel.BasicAckAsync(deliveryTag, false);
         }
 
-        public void NAck(ulong deliveryTag, bool requeue)
+        public async Task NAck(ulong deliveryTag, bool requeue)
         {
-            _channel.BasicRejectAsync(deliveryTag, requeue);
+            await _channel.BasicRejectAsync(deliveryTag, requeue);
         }
 
         public void Dispose()
