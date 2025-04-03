@@ -36,7 +36,13 @@
 
 
 ## 当前在做的事情
+### 20250402
 1. 调整handler的处理逻辑，IIso8583MessageHandler 中不再直接回复，而是返回一个response对象，由handler的调用者进行回复
 2. 增加流量统计功能，统计每个终端的流量消耗情况
 3. 修改数据库中保存的原始交易信息，采用BLOB存储，而不是TEXT，以节约空间
 4. 仓储增加批量插入、更新、删除等方法
+
+### 20250403
+1. 调整Terminal中属性和版本为JSON字段，自动序列化
+2. 拆分Terminal为Terminal和TerminalVersion两个表
+3. 实现TerminalManager中的终端信息对比

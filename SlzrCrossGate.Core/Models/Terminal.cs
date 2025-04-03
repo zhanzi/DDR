@@ -40,51 +40,14 @@ namespace SlzrCrossGate.Core.Models
         [MaxLength(8)]
         public required string LineNO { get; set; }
 
-        [MaxLength(2000)]
-        public string FileVersions { get; set; } = "";
-
-        [MaxLength(2000)]
-        public string Properties { get; set; } = "";
-
-        [NotMapped]
-        public Dictionary<string, string> FileVersionMetadata
-        {
-            get => JsonSerializer.Deserialize<Dictionary<string, string>>(FileVersions) ?? [];
-            set => FileVersions = JsonSerializer.Serialize(value);
-        }
-
-        [NotMapped]
-        public Dictionary<string, string> PropertyMetadata
-        {
-            get => JsonSerializer.Deserialize<Dictionary<string, string>>(Properties) ?? [];
-            set => Properties = JsonSerializer.Serialize(value);
-        }
 
         public DateTime CreateTime { get; set; }
-
-        public DateTime LoginInTime { get; set; }
-
-        [MaxLength(200)]
-        public string? Token { get; set; }
-        public DateTime LoginOffTime { get; set; }
-        public DateTime LastActiveTime { get; set; }
-
-
-        //终端连接协议类型，如：MQTT、HTTP、TCP、UDP等
-        [MaxLength(20)]
-        public string? ConnectionProtocol { get; set; }
-
-
-        //设备终结点信息
-        [MaxLength(200)]
-        public string? EndPoint { get; set; }
-
-
-        //设备活跃状态
-        public DeviceActiveStatus ActiveStatus { get; set; }
 
         //软删除
         public bool IsDeleted { get; set; } = false;
 
+        //导航属性到TerminalStatus
+        public virtual TerminalStatus? Status { get; set; }
+        public DateTime StatusUpdateTime { get; set; }
     }
 }

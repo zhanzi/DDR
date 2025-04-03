@@ -118,7 +118,7 @@ namespace SlzrCrossGate.Core
         }
     }
 
-    public class FileServiceOptions
+    public record FileServiceOptions
     {
         public string DefaultStorageType { get; set; }
         public string LocalFilePath { get; set; }

@@ -64,8 +64,11 @@ namespace SlzrCrossGate.Core.Models
         //文件版本已更新
         FileVersionUpdated = 5,
         //属性已变更
-        AttributeChanged = 6,
+        PropertyChanged = 6,
         //银联密钥已绑定
-        UnionPayKeyBound = 7
+        UnionPayKeyBound = 7,
+        MerchantIDChanged = 8,
+        LineNOChanged = 9,
+        DeviceNOChanged = 10,
     }
 }

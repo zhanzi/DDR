@@ -46,6 +46,7 @@ namespace SlzrCrossGate.WebAdmin.Controllers
 
             //    return Ok(new { Token = new JwtSecurityTokenHandler().WriteToken(token) });
             //}
+            await Task.CompletedTask;
 
             return Unauthorized();
         }

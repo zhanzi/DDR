@@ -67,24 +67,30 @@ namespace SlzrCrossGate.Tcp
             var added = _connections.TryAdd(terminalId, context);
             if (added)
             {
-                var terminal = new Terminal
+                TerminalStatus terminalStatus = new TerminalStatus
                 {
                     ID = terminalId,
                     EndPoint = context.RemoteEndPoint?.ToString() ?? "",
                     ActiveStatus = DeviceActiveStatus.Active,
                     ConnectionProtocol = "TCP",
+                    LastActiveTime = DateTime.Now,
+                    FileVersions = "",
+                    Properties = "",
+                    LoginInTime = DateTime.Now,
+                    LoginOffTime = DateTime.Now,
+                    Token = ""
+                };
+                var terminal = new Terminal
+                {
+                    ID = terminalId,
                     LineNO = "",
                     MachineID = "",
                     DeviceNO = "",
                     MerchantID = "",
                     CreateTime = DateTime.Now,
-                    LastActiveTime = DateTime.Now,
-                    FileVerInfo = "",
-                    PropertyInfo = "",
                     IsDeleted = false,
-                     LoginInTime = DateTime.Now,
-                    LoginOffTime = DateTime.Now,
-                    Token = ""
+                    Status = terminalStatus,
+                    StatusUpdateTime = DateTime.Now
                 };
                 _terminalManager.AddOrUpdateTerminal(terminal);
             }

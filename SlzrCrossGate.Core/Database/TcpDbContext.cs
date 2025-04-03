@@ -23,6 +23,7 @@ namespace SlzrCrossGate.Core.Database
         public DbSet<MsgBox> MsgBoxes { get; set; }
         public DbSet<Terminal> Terminals { get; set; }
         public DbSet<TerminalEvent> TerminalEvents { get; set; }
+        public DbSet<TerminalStatus> TerminalStatuses { get; set; }
         public DbSet<UploadFile> UploadFiles { get; set; }
         public DbSet<ConsumeData> ConsumeDatas { get; set; }
         public DbSet<UnionPayTerminalKey> UnionPayTerminalKeys { get; set; }
@@ -56,7 +57,7 @@ namespace SlzrCrossGate.Core.Database
                 .HasIndex(e => new { e.MerchantID, e.TerminalID, e.EventTime })
                 .IsDescending([false, false, true]);
 
-            modelBuilder.Entity<Terminal>(entity =>
+            modelBuilder.Entity<TerminalStatus>(entity =>
             {
                 // MySQL ≈‰÷√
                 if (Database.IsMySql())
