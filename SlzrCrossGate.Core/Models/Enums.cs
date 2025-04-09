@@ -52,7 +52,9 @@ namespace SlzrCrossGate.Core.Models
     /// 终端事件类型
     /// </summary>
     public enum TerminalEventType
-    {
+    {   
+        //终端被注册到系统
+        Created = 0,
         //签到事件
         SignIn = 1,
         //签退事件
@@ -67,8 +69,11 @@ namespace SlzrCrossGate.Core.Models
         PropertyChanged = 6,
         //银联密钥已绑定
         UnionPayKeyBound = 7,
+        //商户号已变更
         MerchantIDChanged = 8,
+        //线路号已变更
         LineNOChanged = 9,
+        //设备号已变更
         DeviceNOChanged = 10,
     }
 }

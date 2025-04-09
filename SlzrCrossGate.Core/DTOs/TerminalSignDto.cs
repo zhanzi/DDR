@@ -29,5 +29,9 @@ namespace SlzrCrossGate.Core.DTOs
         public string Properties { get; set; } = "";
         public Dictionary<string, string> PropertiesMetaData { get; set; } = [];
 
+
+        public string? ConnectionProtocol { get; set; }
+
+        public string? EndPoint { get; set; }
     }
 }

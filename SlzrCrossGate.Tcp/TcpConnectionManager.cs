@@ -65,36 +65,21 @@ namespace SlzrCrossGate.Tcp
                 oldContext.Abort(); // 强制关闭旧连接
             }
             var added = _connections.TryAdd(terminalId, context);
-            if (added)
-            {
-                TerminalStatus terminalStatus = new TerminalStatus
-                {
-                    ID = terminalId,
-                    EndPoint = context.RemoteEndPoint?.ToString() ?? "",
-                    ActiveStatus = DeviceActiveStatus.Active,
-                    ConnectionProtocol = "TCP",
-                    LastActiveTime = DateTime.Now,
-                    FileVersions = "",
-                    Properties = "",
-                    LoginInTime = DateTime.Now,
-                    LoginOffTime = DateTime.Now,
-                    Token = ""
-                };
-                var terminal = new Terminal
-                {
-                    ID = terminalId,
-                    LineNO = "",
-                    MachineID = "",
-                    DeviceNO = "",
-                    MerchantID = "",
-                    CreateTime = DateTime.Now,
-                    IsDeleted = false,
-                    Status = terminalStatus,
-                    StatusUpdateTime = DateTime.Now
-                };
-                _terminalManager.AddOrUpdateTerminal(terminal);
-            }
             return added;
+        }
+
+        /// <summary>
+        /// 签到/第一次连接时，尝试添加终端
+        /// </summary>
+        /// <param name="terminal"></param>
+        /// <returns></returns>
+        public async Task AddTerminal(Terminal terminal)
+        {
+            await _terminalManager.AddOrUpdateTerminal(terminal);
+        }
+
+        public void SetTerminalActive(string terminalId) { 
+            _terminalManager.SetTerminalActive(terminalId);
         }
 
         public bool TryRemoveConnection(string terminalId)

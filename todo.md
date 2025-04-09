@@ -44,5 +44,9 @@
 
 ### 20250403
 1. 调整Terminal中属性和版本为JSON字段，自动序列化
-2. 拆分Terminal为Terminal和TerminalVersion两个表
+2. 拆分Terminal为Terminal和TerminalStatus两个表
 3. 实现TerminalManager中的终端信息对比
+
+### 20250409
+1. 实现完整的签到逻辑，包括版本比对
+2. 增加文件发布事件订阅处理

@@ -44,6 +44,11 @@ namespace SlzrCrossGate.Core.Models
         [MaxLength(32)]
         public required string UploadFileID { get; set; }
 
+        public int FileSize { get; set; }
+
+        [MaxLength(8)]
+        public required string Crc { get; set; }
+
 
         //操作人员
         [MaxLength(32)]
