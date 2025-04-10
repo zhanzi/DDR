@@ -50,12 +50,12 @@ namespace SlzrCrossGate.Core.Models
     public class VersionOptions
     {
         /// <summary>
-        /// 当前版本
+        /// 设备当前版本
         /// </summary>
         public string Current { get; set; }
 
         /// <summary>
-        /// 预期版本
+        /// 预期版本（如果为空，则表明没有相应版本发布）
         /// </summary>
         public string Expected { get; set; }
         public int ExpectedFileSize { get; set; }
@@ -63,7 +63,7 @@ namespace SlzrCrossGate.Core.Models
         public PublishTypeOption PublishType { get; set; }
 
         /// <summary>
-        /// 期望版本是否过期(已过期的期望版本不作数，需要重新确认)
+        /// 期望版本是否过期(已过期的期望版本不作数，需要重新查询来确认)
         /// </summary>
         public bool IsExpired { get; set; } = true;
     }
