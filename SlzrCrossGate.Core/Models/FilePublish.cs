@@ -37,8 +37,18 @@ namespace SlzrCrossGate.Core.Models
         [StringLength(4)]
         public required string Ver { get; set; }
 
+        public int FileSize { get; set; }
+
+        [MaxLength(8)]
+        public required string Crc { get; set; }
+
         public DateTime CreateTime { get; set; }
         public DateTime UpdateTime { get; set; }
+
+        /// <summary>
+        /// 文件信息ID
+        /// </summary>
+        public int FileVerID { get; set; }
 
         //操作人员
         [MaxLength(20)]

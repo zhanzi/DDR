@@ -7,6 +7,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <None Remove="Models\FileVer.cs~RF302875ff.TMP" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="EFCore.BulkExtensions.MySql" Version="8.1.3" />
     <PackageReference Include="EFCore.BulkExtensions.SqlServer" Version="8.1.3" />
     <PackageReference Include="Microsoft.AspNetCore.Http" Version="2.3.0" />

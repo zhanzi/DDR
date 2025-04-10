@@ -14,6 +14,7 @@ using Microsoft.Extensions.DependencyInjection;
 using CommunityToolkit.HighPerformance.Helpers;
 using System.Diagnostics;
 using System.Diagnostics.Metrics;
+using SlzrCrossGate.Core.Models;
 
 namespace SlzrCrossGate.Tcp
 {
@@ -95,8 +96,37 @@ namespace SlzrCrossGate.Tcp
                             // 已注册到连接管理器，取消此连接的专用超时
                             connectionTimeoutCts.Cancel();
                             readToken = tcpContext.ConnectionClosed;
+
+                            if (message.MessageType != "0800") {
+                                //不是签到消息，尝试添加终端
+                                var terminal = new Core.Models.Terminal
+                                {
+                                    ID = message.TerimalID,
+                                    LineNO = message.LineNO,
+                                    MachineID = message.MachineID,
+                                    DeviceNO = message.DeviceNO,
+                                    MerchantID = message.MerchantID,
+                                    CreateTime = DateTime.Now,
+                                    IsDeleted = false,
+                                    Status = new TerminalStatus
+                                    {
+                                        ID = message.TerimalID,
+                                        EndPoint = remoteEndPoint?.ToString() ?? "",
+                                        ActiveStatus = DeviceActiveStatus.Active,
+                                        ConnectionProtocol = "TCP",
+                                        LastActiveTime = DateTime.Now,
+                                        FileVersionMetadata = [],
+                                        PropertyMetadata = [],
+                                        LoginInTime = DateTime.Now,
+                                        LoginOffTime = DateTime.Now,
+                                        Token = ""
+                                    },
+                                    StatusUpdateTime = DateTime.Now
+                                };
+                                await _connectionManager.AddTerminal(terminal);
+                            }
                         }
-                        tcpContext.UpdateLastActivityTime();
+                        _connectionManager.SetTerminalActive(message.TerimalID);
                         await HandleMessageAsync(tcpContext, message);
                     }
 
@@ -118,7 +148,7 @@ namespace SlzrCrossGate.Tcp
             finally
             {
                 _logger.LogInformation("Connection closed, IP:{0}", remoteEndPoint);
-                _connectionManager.TryRemoveConnection(tcpContext.TerminalID);
+                //_connectionManager.TryRemoveConnection(tcpContext.TerminalID);
                 //await context.DisposeAsync();
             }
         }
