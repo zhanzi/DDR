@@ -16,8 +16,8 @@ namespace SlzrCrossGate.Core.Services
         public string UserName { get; set; } = "guest";
         public string Password { get; set; } = "guest";
         public int Port { get; set; } = 5672;
-        public string TcpExchange { get; set; } = "SlzrDatatransferModel.ConsumeData:SlzrDatatransferModel";
-        public string TcpQueue { get; set; } = "SlzrDatatransferModel.ConsumeData:TcpServer";
+        public string TcpExchange { get; set; } = "SlzrCrossGate.Data";
+        public string TcpQueue { get; set; } = "SlzrCrossGate.Data.Queue.ConsumeData";
     }
 
     public class RabbitMQService : IRabbitMQService, IDisposable
@@ -44,7 +44,6 @@ namespace SlzrCrossGate.Core.Services
                     Password = _options.Password,
                     Port = _options.Port
                 };
-
 
                 _connection = factory.CreateConnectionAsync().GetAwaiter().GetResult();
                 _channel = _connection.CreateChannelAsync().GetAwaiter().GetResult();
@@ -183,6 +182,13 @@ namespace SlzrCrossGate.Core.Services
         public async Task PublishConsumeDataAsync(SlzrDatatransferModel.ConsumeData consumeData) {
             //SlzrBus.SignleInstance().Publish<ConsumeData>(consumedata, $"Tcp.city.{CloudMers[busmercode]}.{consumedata.MerchantID}.{consumedata.buffer[2].ToString("X2")}");
             await PublishAsync(_options.TcpExchange, $"Tcp.city.{0000}.{consumeData.MerchantID}.{consumeData.buffer[2].ToString("X2")}", consumeData);
+        }
+
+
+        //清空指定队列的数据
+        public async Task PurgeQueue(string queue)
+        {
+            await _channel.QueuePurgeAsync(queue);
         }
 
 

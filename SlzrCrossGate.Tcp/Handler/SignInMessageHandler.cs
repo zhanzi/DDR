@@ -8,7 +8,7 @@ using System.Text;
 
 namespace SlzrCrossGate.Tcp.Handler
 {
-    [MessageType("0800")]
+    [MessageType(Iso8583MessageType.SignInRequest)]
     public class SignInMessageHandler : IIso8583MessageHandler
     {
         private readonly ILogger<SignInMessageHandler> _logger;
@@ -39,7 +39,7 @@ namespace SlzrCrossGate.Tcp.Handler
             };
 
             // 签到成功响应
-            var response = new Iso8583Message(_schema, "0810");
+            var response = new Iso8583Message(_schema, Iso8583MessageType.SignInResponse);
 
             //检查终端是否存在，不存在则添加
             if (_terminalSignService.CheckTerminalExists(message.TerimalID))

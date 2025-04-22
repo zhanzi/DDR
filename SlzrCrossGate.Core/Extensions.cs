@@ -35,8 +35,10 @@ namespace SlzrCrossGate.Core
             builder.Services.AddScoped<MsgBoxService>();
             builder.Services.AddScoped<PublishFileSerice>();
 
+
             builder.Services.AddSingleton<TerminalEventService>();
             builder.Services.AddSingleton<FilePublishEventService>();
+            builder.Services.AddSingleton<MsgboxEventService>();
 
             //注册rabbitmqservice
             builder.Services.Configure<RabbitMQOptions>(builder.Configuration.GetSection("RabbitMQ"));

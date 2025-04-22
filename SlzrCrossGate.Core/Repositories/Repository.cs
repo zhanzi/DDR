@@ -22,47 +22,75 @@ namespace SlzrCrossGate.Core.Repositories
             return await _context.Set<T>().FindAsync(id);
         }
 
-        public async Task<IEnumerable<T>> GetAllAsync()
+        public async Task<IEnumerable<T>> GetAllAsync(bool asNoTracking = false)
         {
+            if (asNoTracking)
+            {
+                return await _context.Set<T>().AsNoTracking().ToListAsync();
+            }
             return await _context.Set<T>().ToListAsync();
         }
 
-        public async Task<IEnumerable<T>> FindAsync(Expression<Func<T, bool>> predicate)
+        public async Task<IEnumerable<T>> FindAsync(Expression<Func<T, bool>> predicate, bool asNoTracking = false)
         {
+            if (asNoTracking)
+            {
+                return await _context.Set<T>().AsNoTracking().Where(predicate).ToListAsync();
+            }
             return await _context.Set<T>().Where(predicate).ToListAsync();
         }
 
         //查询第一个符合条件的实体
-        public async Task<T?> FirstOrDefaultAsync(Expression<Func<T, bool>> predicate)
+        public async Task<T?> FirstOrDefaultAsync(Expression<Func<T, bool>> predicate, bool asNoTracking = false)
         {
+            if (asNoTracking)
+            {
+                return await _context.Set<T>().AsNoTracking().FirstOrDefaultAsync(predicate);
+            }
             return await _context.Set<T>().FirstOrDefaultAsync(predicate);
         }
 
         //查询第一个符合条件的实体带排序
-        public async Task<T?> FirstOrDefaultAsync(Expression<Func<T, bool>> predicate, Expression<Func<T, object>> order, bool isAsc)
+        public async Task<T?> FirstOrDefaultAsync(Expression<Func<T, bool>> predicate, Expression<Func<T, object>> order, bool isAsc, bool asNoTracking = false)
         {
             var query = _context.Set<T>().Where(predicate);
+            if (asNoTracking)
+            {
+                query = query.AsNoTracking();
+            }
             query = isAsc ? query.OrderBy(order) : query.OrderByDescending(order);
             return await query.FirstOrDefaultAsync();
         }
 
         //分页查询
-        public async Task<IEnumerable<T>> FindPagedAsync(Expression<Func<T, bool>> predicate, int pageIndex, int pageSize)
+        public async Task<IEnumerable<T>> FindPagedAsync(Expression<Func<T, bool>> predicate, int pageIndex, int pageSize, bool asNoTracking = false)
         {
+            if (asNoTracking)
+            {
+                return await _context.Set<T>().AsNoTracking().Where(predicate).Skip((pageIndex - 1) * pageSize).Take(pageSize).ToListAsync();
+            }
             return await _context.Set<T>().Where(predicate).Skip((pageIndex - 1) * pageSize).Take(pageSize).ToListAsync();
         }
 
         //分页查询带排序
-        public async Task<IEnumerable<T>> FindPagedAsync(Expression<Func<T, bool>> predicate, Expression<Func<T, object>> order, bool isAsc, int pageIndex, int pageSize)
+        public async Task<IEnumerable<T>> FindPagedAsync(Expression<Func<T, bool>> predicate, Expression<Func<T, object>> order, bool isAsc, int pageIndex, int pageSize, bool asNoTracking = false)
         {
             var query = _context.Set<T>().Where(predicate);
+            if (asNoTracking)
+            {
+                query = query.AsNoTracking();
+            }
             query = isAsc ? query.OrderBy(order) : query.OrderByDescending(order);
             return await query.Skip((pageIndex - 1) * pageSize).Take(pageSize).ToListAsync();
         }
 
 
-        public async Task<T?> SingleOrDefaultAsync(Expression<Func<T, bool>> predicate)
+        public async Task<T?> SingleOrDefaultAsync(Expression<Func<T, bool>> predicate, bool asNoTracking = false)
         {
+            if (asNoTracking)
+            {
+                return await _context.Set<T>().AsNoTracking().SingleOrDefaultAsync(predicate);
+            }
             return await _context.Set<T>().SingleOrDefaultAsync(predicate);
         }
 

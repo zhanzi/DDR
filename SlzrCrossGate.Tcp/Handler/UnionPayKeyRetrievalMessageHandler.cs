@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace SlzrCrossGate.Tcp.Handler
 {
-    [MessageType("0400")]
+    [MessageType(Iso8583MessageType.UnionPay_TerminalKeysRequest)]
     public class UnionPayKeyRetrievalMessageHandler : IIso8583MessageHandler
     {
         private readonly ILogger<UnionPayKeyRetrievalMessageHandler> _logger;
@@ -26,7 +26,7 @@ namespace SlzrCrossGate.Tcp.Handler
 
             var unionKey = await _unionPayTerminalKeyService.BindUnionPayTerminalKey(message.MerchantID,message.TerimalID, message.MachineID, message.LineNO, message.DeviceNO);
 
-            var response = new Iso8583Message(_schema, "0410");
+            var response = new Iso8583Message(_schema, Iso8583MessageType.UnionPay_TerminalKeysResponse);
 
             if (unionKey is null)
             {

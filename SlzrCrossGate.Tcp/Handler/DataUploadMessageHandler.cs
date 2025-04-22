@@ -5,7 +5,7 @@ using SlzrCrossGate.Tcp.Protocol;
 
 namespace SlzrCrossGate.Tcp.Handler
 {
-    [MessageType("0300")]
+    [MessageType(Iso8583MessageType.DataTransferRequest)]
     public class DataUploadMessageHandler : IIso8583MessageHandler
     {
         private readonly ILogger<DataUploadMessageHandler> _logger;
@@ -37,7 +37,7 @@ namespace SlzrCrossGate.Tcp.Handler
             });
 
             // 发送上传成功响应
-            var response = new Iso8583Message(_schema, "0310");
+            var response = new Iso8583Message(_schema, Iso8583MessageType.DataTransferResponse);
             response.SetField(11, message.GetString(11));
             response.SetField(14, message.GetString(14));
             response.Ok();

@@ -6,7 +6,7 @@ using SlzrCrossGate.Core.Service.BusinessServices;
 
 namespace SlzrCrossGate.Tcp.Handler
 {
-    [MessageType("0540")]
+    [MessageType(Iso8583MessageType.IncrementRequest)]
     public class IncrementalListDownloadMessageHandler : IIso8583MessageHandler
     {
         private readonly ILogger<IncrementalListDownloadMessageHandler> _logger;
@@ -30,7 +30,7 @@ namespace SlzrCrossGate.Tcp.Handler
             var contentResponse = await _incrementContentService.GetIncrementContentAsync(message.MerchantID, incrementType, curSerialNum, count);
 
             // 发送增量名单下载响应
-            var response = new Iso8583Message(_schema, "0550");
+            var response = new Iso8583Message(_schema, Iso8583MessageType.IncrementResponse);
 
             response.SetField(56, contentResponse?? $"{incrementType}000000000000000000000000");
             response.Ok();

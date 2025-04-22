@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using SlzrCrossGate.Core.DTOs;
+using SlzrCrossGate.Core.Service;
 
 namespace SlzrCrossGate.Core.Repositories
 {
@@ -60,6 +61,13 @@ namespace SlzrCrossGate.Core.Repositories
             }
 
             await _context.SaveChangesAsync();
+        }
+
+        public List<KeyValuePair<string, int>> GetTerminalUnreadCount() {
+            var terminalMsgCount = context.MsgBoxes.Where(p => p.Status != MessageStatus.Replied).GroupBy(p => p.TerminalID)
+                .Select(g => new KeyValuePair<string, int>(g.Key, g.Count()))
+                .ToList();
+            return terminalMsgCount;
         }
     }
 }

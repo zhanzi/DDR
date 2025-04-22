@@ -11,5 +11,7 @@ namespace SlzrCrossGate.Core.Services
         Task SubscribeConsumeDataAsync(Func<SlzrDatatransferModel.ConsumeData, ulong, Task> handler, bool autoAck);
         Task Ack(ulong deliveryTag);
         Task NAck(ulong deliveryTag, bool requeue);
+
+        Task PurgeQueue(string queue);
     }
 }

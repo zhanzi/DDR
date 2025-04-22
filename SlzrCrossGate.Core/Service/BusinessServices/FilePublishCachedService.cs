@@ -37,12 +37,13 @@ namespace SlzrCrossGate.Core.Service.BusinessServices
             {
                 return;
             }
-            var publishs = await _filePublishRepository.FindAsync(p => p.MerchantID == merchantid);
+            var publishs = await _filePublishRepository.FindAsync(p => p.MerchantID == merchantid, true);
             foreach (var publish in publishs)
             {
                 _filePublishCache.TryAdd(GetKey(publish.MerchantID, publish.FileFullType, publish.PublishType, publish.PublishTarget)
                     , publish);
             }
+            _cachedMerchantIds.Add(merchantid);
         }
 
         public string GetKey(string merchantId, string fileCode, PublishTypeOption publishType, string target)

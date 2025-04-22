@@ -37,16 +37,10 @@ namespace SlzrCrossGate.Core.Database
         {
             base.OnModelCreating(modelBuilder);
 
-            // 配置 ID 作为聚集索引
-            modelBuilder.Entity<ConsumeData>()
-                .HasKey(c => c.Id)
-                .IsClustered();
-
-            // 配置 ReceiveTime 作为非聚集索引
+            // 配置ConsumeData的 ReceiveTime 作为非聚集索引
             modelBuilder.Entity<ConsumeData>()
                 .HasIndex(c => c.ReceiveTime)
                 .IncludeProperties(c => new { c.MerchantID,c.MachineID });
-
 
             // 配置TerminalEvent的联合索引（e.MerchantID, e.TerminalID, e.EventType, e.EventTime）,并按EventTime倒序排列
             modelBuilder.Entity<TerminalEvent>()
@@ -57,6 +51,7 @@ namespace SlzrCrossGate.Core.Database
                 .HasIndex(e => new { e.MerchantID, e.TerminalID, e.EventTime })
                 .IsDescending([false, false, true]);
 
+            //json字段配置
             modelBuilder.Entity<TerminalStatus>(entity =>
             {
                 // MySQL 配置
@@ -68,7 +63,6 @@ namespace SlzrCrossGate.Core.Database
                         .HasColumnType("json");
                 }
             });
-
 
             // 配置 TerminalEvent 的联合索引
             modelBuilder.Entity<TerminalEvent>()
@@ -84,6 +78,17 @@ namespace SlzrCrossGate.Core.Database
             modelBuilder.Entity<IncrementContent>()
                 .HasKey(e => new { e.MerchantID, e.IncrementType, e.SerialNum })
                 .IsClustered();
+
+            //配置filepublish的唯一索引
+            modelBuilder.Entity<FilePublish>()
+                .HasIndex(e => new { e.MerchantID, e.FileFullType, e.PublishType, e.PublishTarget })
+                .IsUnique();
+
+            //配置MsgBox的联合索引
+            modelBuilder.Entity<MsgBox>()
+                .HasIndex(e => new { e.Status, e.TerminalID, e.SendTime })
+                .IsDescending([false, false, false]);
+
 
             // 配置租户隔离
             foreach (var entityType in modelBuilder.Model.GetEntityTypes())

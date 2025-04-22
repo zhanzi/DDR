@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace SlzrCrossGate.Tcp.Handler
 {
-    [MessageType("0880")]
+    [MessageType(Iso8583MessageType.HeartRequest)]
     public class HeartbeatMessageHandler : IIso8583MessageHandler
     {
         private readonly ILogger<HeartbeatMessageHandler> _logger;
@@ -21,7 +21,7 @@ namespace SlzrCrossGate.Tcp.Handler
 
         public async Task<Iso8583Message> HandleMessageAsync(TcpConnectionContext context, Iso8583Message message)
         {
-            var response = new Iso8583Message(_schema, "0890");
+            var response = new Iso8583Message(_schema, Iso8583MessageType.HeartResponse);
             //response.SetField(3, "805001");
             response.Ok();
 

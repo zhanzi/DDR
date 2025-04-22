@@ -7,7 +7,7 @@ using System.Text;
 
 namespace SlzrCrossGate.Tcp.Handler
 {
-    [MessageType("0500")]
+    [MessageType(Iso8583MessageType.MsgRequest)]
     public class FetchMsgMessageHandler : IIso8583MessageHandler
     {
         private readonly ILogger<FetchMsgMessageHandler> _logger;
@@ -25,7 +25,7 @@ namespace SlzrCrossGate.Tcp.Handler
         {
             var msg = await _msgBoxService.GetFirstUnreadMessagesAsync(message.TerimalID);
 
-            var response = new Iso8583Message(_schema, "0510");
+            var response = new Iso8583Message(_schema, Iso8583MessageType.MsgResponse);
             //response.SetField(3, "805001");
 
             if (msg == null) {
@@ -35,10 +35,13 @@ namespace SlzrCrossGate.Tcp.Handler
             } 
 
 
-            var body = msg.Content;
+            var body = string.Empty;
             if (msg.CodeType == MessageCodeType.ASCII)
             {
                 body = DataConvert.BytesToHex(Encoding.Default.GetBytes(body));
+            }
+            else {
+                body = msg.Content;
             }
             var msgStr = msg.MsgTypeID + msg.ID.ToString("X2").PadLeft(8, '0') + body;
 

@@ -4,7 +4,7 @@ using System.Threading.Tasks;
 
 namespace SlzrCrossGate.Tcp.Handler
 {
-    [MessageType("0320")]
+    [MessageType(Iso8583MessageType.RealTimeTradeRequest)]
     public class AggregatePaymentMessageHandler : IIso8583MessageHandler
     {
         private readonly ILogger<AggregatePaymentMessageHandler> _logger;
@@ -21,7 +21,7 @@ namespace SlzrCrossGate.Tcp.Handler
         public async Task<Iso8583Message> HandleMessageAsync(TcpConnectionContext context, Iso8583Message message)
         {
 
-            var response = new Iso8583Message(_schema,"0330");
+            var response = new Iso8583Message(_schema, Iso8583MessageType.RealTimeTradeResponse);
             response.Ok();
 
             return await Task.FromResult(response);

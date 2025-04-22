@@ -4,7 +4,7 @@ using System.Threading.Tasks;
 
 namespace SlzrCrossGate.Tcp.Handler
 {
-    [MessageType("0340")]
+    [MessageType(Iso8583MessageType.LoadRequest)]
     public class ICCardBusinessMessageHandler : IIso8583MessageHandler
     {
         private readonly ILogger<ICCardBusinessMessageHandler> _logger;
@@ -24,7 +24,7 @@ namespace SlzrCrossGate.Tcp.Handler
             _logger.LogInformation("TODO:处理IC卡业务指令");
 
             // 发送IC卡业务响应
-            var response = new Iso8583Message(_schema, "0350");
+            var response = new Iso8583Message(_schema, Iso8583MessageType.LoadResponse);
             response.Ok();
 
             return await Task.FromResult(response);

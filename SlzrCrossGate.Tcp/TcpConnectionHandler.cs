@@ -15,6 +15,7 @@ using CommunityToolkit.HighPerformance.Helpers;
 using System.Diagnostics;
 using System.Diagnostics.Metrics;
 using SlzrCrossGate.Core.Models;
+using SlzrCrossGate.Core.Service;
 
 namespace SlzrCrossGate.Tcp
 {
@@ -25,6 +26,7 @@ namespace SlzrCrossGate.Tcp
         private readonly ILogger<TcpConnectionHandler> _logger;
         private readonly IServiceProvider _serviceProvider;
         private readonly IDictionary<string, IIso8583MessageHandler> _messageHandlers;
+        private readonly TerminalManager _terminalManager;
 
         //private static readonly ActivitySource _activitySource = new ActivitySource("SlzrCrossGate.Tcp");
         private static readonly Meter _meter = new Meter("SlzrCrossGate.Tcp");
@@ -50,12 +52,13 @@ namespace SlzrCrossGate.Tcp
         public TcpConnectionHandler(
             TcpConnectionManager connectionManager,
             ILogger<TcpConnectionHandler> logger,
-            IServiceProvider serviceProvider)
+            IServiceProvider serviceProvider,TerminalManager terminalManager)
         {
             _connectionManager = connectionManager;
             _logger = logger;
             _serviceProvider = serviceProvider;
             _messageHandlers = LoadMessageHandlerTypes();
+            _terminalManager= terminalManager;
         }
 
         public override async Task OnConnectedAsync(ConnectionContext context)
@@ -279,13 +282,42 @@ namespace SlzrCrossGate.Tcp
         //统一回复处理
         private async Task ProcessResponse(TcpConnectionContext context, Iso8583Message request, Iso8583Message response)
         {
+            if (response == null) return;
+
             if (request.Exist(3)) response.SetField(3, request.GetString(3));
 
             response.SetDateTime(12, DateTime.Now);
             response.SetDateTime(13, DateTime.Now);
             response.SetField(41, request.MachineID);
 
-            await context.SendMessageAsync(response.Pack());
+            var needSign = false;
+            var msgcount = 0;
+            if (request.MessageType == Iso8583MessageType.SignInRequest)
+            {
+                //一旦签到，则清除终端的待签状态
+                _terminalManager.ClearTerminalNeedSign(request.TerimalID);
+            }
+            else
+            {
+                //根据是否有期望版本，判断是否需要重新登录
+                needSign = _terminalManager.CheckTerminalNeedSign(request.TerimalID);
+            }
+
+            if (!needSign && request.MessageType != Iso8583MessageType.MsgRequest && request.MessageType != Iso8583MessageType.MsgConfirmResquest)
+            {
+                //如果不是签到消息或消息处理相关指令，检查是否有未读消息
+                msgcount = _terminalManager.GetUnReadMessageCount(request.TerimalID);
+            }
+
+            if (request.MessageType == Iso8583MessageType.MsgRequest) { 
+                if(response.GetField<string>(39) == "0010")
+                {
+                    //未取得消息，清空消息
+                    _terminalManager.ClearUnreadMessageCount(request.TerimalID);
+                }
+            }
+
+            await context.SendMessageAsync(response.Pack(needSign, msgcount));
 
             _networkBandwidthOut.Add(response.GetCurBuffer().Length,
                 new KeyValuePair<string, object?>("MessageType", response.MessageType),

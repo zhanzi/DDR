@@ -6,7 +6,8 @@ public class FilePublishEventMessage
     /// <summary>
     /// "Publish" or "Cancel"
     /// </summary>
-    public string ActionType { get; set; } // "Publish" or "Cancel"
+    public FilePublishEventActionType ActionType { get; set; } // "Publish" or "Cancel"
+    public DateTime ActionTime { get; set; } = DateTime.Now;
 
     public int FilePublishID { get; set; }
     public string MerchantID { get; set; }
@@ -26,4 +27,10 @@ public class FilePublishEventMessage
     public PublishTypeOption PublishType { get; set; }//1:商户 2:线路 3:终端 
 
     public required string PublishTarget { get; set; }
+}
+
+public enum FilePublishEventActionType
+{
+    Publish,
+    Cancel
 }

@@ -87,7 +87,7 @@ namespace SlzrCrossGate.Tcp
             var removed = _connections.TryRemove(terminalId, out TcpConnectionContext? context);
             if (removed && context != null)
             {
-                _terminalManager.RemoveTerminal(terminalId);
+                _terminalManager.SetTerminalInactive(terminalId);
                 _ = context.DisposeAsync().AsTask();
             }
             return removed;

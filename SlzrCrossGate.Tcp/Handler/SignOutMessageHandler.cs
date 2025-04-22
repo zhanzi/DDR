@@ -7,7 +7,7 @@ using System.IO;
 
 namespace SlzrCrossGate.Tcp.Handler
 {
-    [MessageType("0820")]
+    [MessageType(Iso8583MessageType.SignOffRequest)]
     public class SignOutMessageHandler : IIso8583MessageHandler
     {
         private readonly ILogger<SignOutMessageHandler> _logger;
@@ -36,7 +36,7 @@ namespace SlzrCrossGate.Tcp.Handler
             );
 
             // 发送签到成功响应
-            var response = new Iso8583Message(_schema, "0830");
+            var response = new Iso8583Message(_schema, Iso8583MessageType.SignOffResponse);
             response.Ok();
             return response;
         }

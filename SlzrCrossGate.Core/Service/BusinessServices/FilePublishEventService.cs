@@ -18,9 +18,9 @@ namespace SlzrCrossGate.Core.Service.BusinessServices
         private readonly ILogger<FilePublishEventService> _logger;
         private readonly RabbitMQService _rabbitMQService;
 
-        private readonly string EXCHANGE_NAME = "SlzrDatatransferModel.ConsumeData:SlzrDatatransferModel";
-        private readonly string QUEUE_NAME = "SlzrDatatransferModel.ConsumeData:TcpServer";
-        private readonly string ROUTING_KEY = "Tcp.city.#";
+        private readonly string EXCHANGE_NAME = "SlzrCrossGate.Event";
+        private readonly string QUEUE_NAME = "SlzrCrossGate.Event.Queue.FilePublishEvent";
+        private readonly string ROUTING_KEY = "Event.FilePublishEvent";
 
         public FilePublishEventService(
             ILogger<FilePublishEventService> logger,RabbitMQService rabbitMQService)
@@ -36,8 +36,5 @@ namespace SlzrCrossGate.Core.Service.BusinessServices
         public async Task Publish(FilePublishEventMessage filePublishEventMessage) { 
             await _rabbitMQService.PublishAsync(EXCHANGE_NAME, ROUTING_KEY, filePublishEventMessage);
         }
-
     }
-
-
 }

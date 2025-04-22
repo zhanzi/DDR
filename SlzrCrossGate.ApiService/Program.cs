@@ -95,7 +95,8 @@ using (var scope = app.Services.CreateScope())
     await SeedData.InitializeUser(services);
 
     var terminalManager = services.GetRequiredService<TerminalManager>();
-    terminalManager.LoadTerminals(TerminalManager.FetchTerminalsFromDatabase(dbContext));
+    terminalManager.InitTerminalsFromDatabase();
+    terminalManager.RefreshTerminalMessageCount();
 }
 
 

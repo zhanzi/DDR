@@ -8,7 +8,7 @@ using SlzrCrossGate.Tcp.Protocol;
 
 namespace SlzrCrossGate.Tcp.Handler
 {
-    [MessageType("0840")]
+    [MessageType(Iso8583MessageType.FileUpdateRequest)]
     public class FileDownloadMessageHandler : IIso8583MessageHandler
     {
         private readonly ILogger<FileDownloadMessageHandler> _logger;
@@ -32,7 +32,7 @@ namespace SlzrCrossGate.Tcp.Handler
 
         public async Task<Iso8583Message> HandleMessageAsync(TcpConnectionContext context, Iso8583Message message)
         {
-            var response = new Iso8583Message(_schema, "0850");
+            var response = new Iso8583Message(_schema, Iso8583MessageType.FileUpdateResponse);
             //response.SetField(3, "806003");
 
             // 根据协议版本确定参数位置

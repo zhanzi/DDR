@@ -1,5 +1,6 @@
 ﻿using Microsoft.Extensions.Logging;
 using SlzrCrossGate.Core.DTOs;
+using SlzrCrossGate.Core.Service.BusinessServices;
 using SlzrCrossGate.Core.Services.BusinessServices;
 using SlzrCrossGate.Tcp.Protocol;
 using System.Globalization;
@@ -7,18 +8,20 @@ using System.Globalization;
 namespace SlzrCrossGate.Tcp.Handler
 {
 
-    [MessageType("0520")]
+    [MessageType(Iso8583MessageType.MsgConfirmResquest)]
     public class ConfirmMsgMessageHandler : IIso8583MessageHandler
     {
         private readonly ILogger<ConfirmMsgMessageHandler> _logger;
         private readonly Iso8583Schema _schema;
         private readonly MsgBoxService _msgBoxService;
+        private readonly MsgboxEventService _msgboxEventService;
 
-        public ConfirmMsgMessageHandler(ILogger<ConfirmMsgMessageHandler> logger, Iso8583Schema schema, MsgBoxService msgBoxService)
+        public ConfirmMsgMessageHandler(ILogger<ConfirmMsgMessageHandler> logger, Iso8583Schema schema, MsgBoxService msgBoxService,MsgboxEventService msgboxEventService)
         {
             _logger = logger;
             _schema = schema;
             _msgBoxService = msgBoxService;
+            _msgboxEventService = msgboxEventService;
         }
 
 
@@ -30,12 +33,19 @@ namespace SlzrCrossGate.Tcp.Handler
 
             await _msgBoxService.MarkMessageAsRepliedAsync(msgConfirmDtos);
 
-            var response = new Iso8583Message(_schema,"0530");
-            //response.SetField(3, "805002");
+            foreach(var msgConfirmDto in msgConfirmDtos)
+            {
+                await _msgboxEventService.Publish(new MsgboxEventMessage
+                {
+                    ID = msgConfirmDto.ID,
+                    ActionType = MsgboxEventActionType.Reply,
+                    MerchantID = message.MerchantID,
+                    TerminalID = message.TerimalID,
+                    ActionTime = DateTime.Now
+                });
+            }
 
-            response.Ok();
-
-            return response;
+            return null;
         }
 
         
