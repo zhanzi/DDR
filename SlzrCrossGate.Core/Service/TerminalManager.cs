@@ -16,6 +16,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.IO.Pipelines;
 using System.Threading.Tasks;
+using static System.Formats.Asn1.AsnWriter;
 
 namespace SlzrCrossGate.Core.Service
 {
@@ -23,15 +24,8 @@ namespace SlzrCrossGate.Core.Service
     {
         private readonly ConcurrentDictionary<string, Terminal> _terminals = new();
         private readonly TerminalEventService _terminalEventService;
-        private readonly Repository<Models.Terminal> _terminalRepository;
-        private readonly Repository<Models.TerminalStatus> _terminalStatusRepository;
-        private readonly Repository<Models.FilePublish> _filePublishRepository;
-        private readonly MsgBoxRepository _msgBoxRepository;
-        private readonly RabbitMQService _rabbitMQService;
-        private readonly FilePublishEventService _filePublishEventService;
         private readonly MsgboxEventService _msgboxEventService;
-        //DI容器对象获取器
-        private readonly IServiceProvider _serviceProvider;
+        private readonly IServiceScopeFactory _scopeFactory;
 
         //缓存终端的未读消息数量
         private readonly ConcurrentDictionary<string, MessageCount> _unreadMessageCount = new();
@@ -48,30 +42,21 @@ namespace SlzrCrossGate.Core.Service
         private readonly Timer _updateExpiredVersionTimer;
 
 
-        public TerminalManager(TerminalEventService terminalEventService,
-            Repository<Models.Terminal> terminalRepository,
-            Repository<TerminalStatus> terminalStatusRepository,
-            RabbitMQService rabbitMQService,
-            FilePublishEventService filePublishEventService,
-            Repository<FilePublish> filePublishRepository,
-            IServiceProvider serviceProvider,
-            MsgBoxRepository msgBoxRepository,
-            MsgboxEventService msgboxEventService)
+        public TerminalManager(
+            IRabbitMQService rabbitMQService,
+            IServiceScopeFactory scopeFactory,
+            TerminalEventService terminalEventService,
+            MsgboxEventService msgboxEventService
+            )
         {
+            _scopeFactory = scopeFactory;
             _terminalEventService = terminalEventService;
-            _terminalRepository = terminalRepository;
-            _terminalStatusRepository = terminalStatusRepository;
-            _rabbitMQService = rabbitMQService;
-            _filePublishEventService = filePublishEventService;
-            _filePublishRepository = filePublishRepository;
-            _serviceProvider = serviceProvider;
+            _msgboxEventService = msgboxEventService;
 
             //定时器，定时检查终端的文件版本是否与期望版本一致，并提醒更新. 每分钟检查一次
             _checkFileVersionTimer = new Timer(new TimerCallback( _ =>  CheckTerminalFileVersion()), null, TimeSpan.FromSeconds(59), TimeSpan.FromSeconds(59));
             //定时器，定期对期望版本过期的终端进行更新. 5分钟检查一次
             _updateExpiredVersionTimer = new Timer(new TimerCallback(async _ => await UpdateExpiredTerminalVersion()), null, TimeSpan.FromSeconds(293), TimeSpan.FromSeconds(293));
-            _msgBoxRepository = msgBoxRepository;
-            _msgboxEventService = msgboxEventService;
 
 
             Task.Run(() => SubscribeToFileEventsQueue());
@@ -107,24 +92,35 @@ namespace SlzrCrossGate.Core.Service
 
             if (isNewTerminal)
             {
-                //终端不存在，添加新终端
-                terminal.CreateTime = DateTime.Now;
-                terminal.IsDeleted = false;
-                await _terminalRepository.AddAsync(terminal);
-                await _terminalStatusRepository.AddAsync(terminal.Status);
 
-                //终端第一次连接，记录事件
-                _ = _terminalEventService.RecordTerminalEventAsync(
-                    terminal.MerchantID,
-                    terminal.ID,
-                    TerminalEventType.Created,
-                    EventSeverity.Info,
-                    $"Terminal Created."
-                );
+                using (var scope = _scopeFactory.CreateScope())
+                {
+                    var terminalRepository = scope.ServiceProvider.GetRequiredService<Repository<Terminal>>();
+                    var terminalStatusRepository = scope.ServiceProvider.GetRequiredService<Repository<TerminalStatus>>();
+                    //终端不存在，添加新终端
+                    terminal.CreateTime = DateTime.Now;
+                    terminal.IsDeleted = false;
+                    await terminalRepository.AddAsync(terminal);
+                    await terminalStatusRepository.AddAsync(terminal.Status);
+                }
 
+                
+                RecordTerminalEvent(new TerminalEvent {
+                    MerchantID=terminal.MerchantID,
+                    TerminalID = terminal.ID,
+                    EventType = TerminalEventType.Created,
+                    Severity = EventSeverity.Info,
+                    Remark = $"Terminal Created.",
+                    Operator = ""
+                });
             }
 
             return true;
+        }
+
+        private void RecordTerminalEvent(TerminalEvent terminalEvent)
+        {
+            _ = _terminalEventService.RecordTerminalEventAsync(terminalEvent);
         }
 
         //设置设备为活跃状态
@@ -170,11 +166,14 @@ namespace SlzrCrossGate.Core.Service
 
         public void RefreshTerminalMessageCount() {
             _unreadMessageCount.Clear();
-            _msgBoxRepository.GetTerminalUnreadCount()
-                .ForEach(item =>
-                {
-                    _unreadMessageCount.TryAdd(item.Key, new MessageCount(item.Value, DateTime.Now));
-                });
+            //从数据库加载终端的未读消息数量
+            using var scope = _scopeFactory.CreateScope();
+            var msgBoxRepository = scope.ServiceProvider.GetRequiredService<MsgBoxRepository>();
+            msgBoxRepository.GetTerminalUnreadCount()
+            .ForEach(item =>
+            {
+                _unreadMessageCount.TryAdd(item.Key, new MessageCount(item.Value, DateTime.Now));
+            });
         }
 
         //未读消息量减1
@@ -220,7 +219,8 @@ namespace SlzrCrossGate.Core.Service
         // 从数据库加载终端信息
         public void InitTerminalsFromDatabase()
         {
-            var dbContext = _serviceProvider.GetRequiredService<TcpDbContext>();
+            using var scope = _scopeFactory.CreateScope();
+            var dbContext = scope.ServiceProvider.GetRequiredService<TcpDbContext>();
 
             var terminals = dbContext.Terminals
                 .Include(t => t.Status)
@@ -261,35 +261,42 @@ namespace SlzrCrossGate.Core.Service
 
             if (terminal.MerchantID != dto.MerchantID)
             {
-                _ = _terminalEventService.RecordTerminalEventAsync(
-                       terminal.MerchantID,
-                       terminal.ID,
-                       TerminalEventType.MerchantIDChanged,
-                        EventSeverity.Info,
-                       $"Merchant from {terminal.MerchantID} changed to {dto.MerchantID}."
-                       );
+                RecordTerminalEvent(new TerminalEvent
+                {
+                    MerchantID = terminal.MerchantID,
+                    TerminalID = terminal.ID,
+                    EventType = TerminalEventType.MerchantIDChanged,
+                    Severity = EventSeverity.Info,
+                    Remark = $"Merchant from {terminal.MerchantID} changed to {dto.MerchantID}.",
+                    Operator = ""
+                });
+
             }
 
             if (terminal.LineNO != dto.LineNO)
             {
-                _ = _terminalEventService.RecordTerminalEventAsync(
-                       terminal.MerchantID,
-                       terminal.ID,
-                       TerminalEventType.LineNOChanged,
-                        EventSeverity.Info,
-                       $"LineNO from {terminal.LineNO} changed to {dto.LineNO}."
-                       );
+                RecordTerminalEvent(new TerminalEvent
+                {
+                    MerchantID = terminal.MerchantID,
+                    TerminalID = terminal.ID,
+                    EventType = TerminalEventType.LineNOChanged,
+                    Severity = EventSeverity.Info,
+                    Remark = $"LineNO from {terminal.LineNO} changed to {dto.LineNO}.",
+                    Operator = ""
+                });
             }
 
             if (terminal.DeviceNO != dto.DeviceNO)
             {
-                _ = _terminalEventService.RecordTerminalEventAsync(
-                       terminal.MerchantID,
-                       terminal.ID,
-                       TerminalEventType.DeviceNOChanged,
-                        EventSeverity.Info,
-                       $"DeviceNO from {terminal.DeviceNO} changed to {dto.DeviceNO}."
-                       );
+                RecordTerminalEvent(new TerminalEvent
+                {
+                    MerchantID = terminal.MerchantID,
+                    TerminalID = terminal.ID,
+                    EventType = TerminalEventType.DeviceNOChanged,
+                    Severity = EventSeverity.Info,
+                    Remark = $"DeviceNO from {terminal.DeviceNO} changed to {dto.DeviceNO}.",
+                    Operator = ""
+                });
             }
 
             terminal.MerchantID = dto.MerchantID;
@@ -305,8 +312,9 @@ namespace SlzrCrossGate.Core.Service
                 }
             }
 
-            //更新
-            await _terminalRepository.UpdateAsync(terminal);
+            using var scope = _scopeFactory.CreateScope();
+            var terminalRepository = scope.ServiceProvider.GetRequiredService<Repository<Terminal>>();
+            await terminalRepository.UpdateAsync(terminal);
 
             return true;
         }
@@ -330,7 +338,12 @@ namespace SlzrCrossGate.Core.Service
                     PropertyMetadata = signDto.PropertiesMetaData
                 };
                 //补充逻辑，当status信息被人工删除后可以自动重建
-                await _terminalStatusRepository.AddAsync(terminal.Status);
+                using (var scope = _scopeFactory.CreateScope())
+                {
+                    var terminalStatusRepository = scope.ServiceProvider.GetRequiredService<Repository<TerminalStatus>>();
+                    await terminalStatusRepository.AddAsync(terminal.Status);
+                }
+
                 return false;
             }
             bool result = false;
@@ -340,13 +353,16 @@ namespace SlzrCrossGate.Core.Service
                 {
                     if (item.Value != version.Current)
                     {
-                        _ = _terminalEventService.RecordTerminalEventAsync(
-                               terminal.MerchantID,
-                               terminal.ID,
-                               TerminalEventType.FileVersionUpdated,
-                                EventSeverity.Info,
-                               $"File {item.Key} , Version from {version.Current} changed to {item.Value}."
-                               );
+                        RecordTerminalEvent(new TerminalEvent
+                        {
+                            MerchantID = terminal.MerchantID,
+                            TerminalID = terminal.ID,
+                            EventType = TerminalEventType.FileVersionUpdated,
+                            Severity = EventSeverity.Info,
+                            Remark = $"File {item.Key} , Version from {version.Current} changed to {item.Value}.",
+                            Operator = ""
+                        });
+
                         version.Current = item.Value;
                         result = true;
                     }
@@ -365,7 +381,9 @@ namespace SlzrCrossGate.Core.Service
 
             if (result)
             {
-                await _terminalStatusRepository.UpdateAsync(terminal.Status);
+                using var scope = _scopeFactory.CreateScope();
+                var terminalStatusRepository = scope.ServiceProvider.GetRequiredService<Repository<TerminalStatus>>();
+                await terminalStatusRepository.UpdateAsync(terminal.Status);
             }
 
             return result;
@@ -394,7 +412,9 @@ namespace SlzrCrossGate.Core.Service
         //实现一个方法，监听一个RabbitMQ的队列，处理文件发布和取消的事件
         public async Task SubscribeToFileEventsQueue()
         {
-            await _filePublishEventService.Subscribe(HandleFilePublishEvent);
+            using var scope = _scopeFactory.CreateScope();
+            var filePublishEventService = scope.ServiceProvider.GetRequiredService<FilePublishEventService>();
+            await filePublishEventService.Subscribe(HandleFilePublishEvent);
         }
         private async Task HandleFilePublishEvent(FilePublishEventMessage fileEvent)
         {
@@ -489,7 +509,9 @@ namespace SlzrCrossGate.Core.Service
             else
             {
                 //对于取消发布事件，可能导致一些终端的期望版本过期，需要重新查询数据库版本信息并更新
-                var published = await _filePublishRepository.FindAsync(p => p.MerchantID == fileEvent.MerchantID
+                using var scope = _scopeFactory.CreateScope();
+                var filePublishRepository = scope.ServiceProvider.GetRequiredService<Repository<FilePublish>>();
+                var published = await filePublishRepository.FindAsync(p => p.MerchantID == fileEvent.MerchantID
                     && p.FileFullType == fileEvent.FileFullType
                     && p.PublishType < fileEvent.PublishType);
 
@@ -520,31 +542,33 @@ namespace SlzrCrossGate.Core.Service
                     }
                 }
                 //批量更新数据库
-                await _terminalStatusRepository.BulkUpdateAsync(terminalStatuses, ["FileVersions"]);
+                //using var scope = _scopeFactory.CreateScope();
+                var terminalStatusRepository = scope.ServiceProvider.GetRequiredService<Repository<TerminalStatus>>();
+                await terminalStatusRepository.BulkUpdateAsync(terminalStatuses, ["FileVersions"]);
             }
         }
 
         //对终端期望版本过期的进行批量更新
         public async Task<bool> UpdateExpiredTerminalVersion()
         {
-            using var filepublish = _serviceProvider.GetService<FilePublishCachedService>();
-
-            if (filepublish == null) return false;
-
             var expiredTerminals = _terminals
                 .Where(p => p.Value.Status != null
                     && p.Value.Status.FileVersionMetadata.Any(v => v.Value.IsExpired == true))
                 .Select(p => p.Value).ToList();
+
+            using var scope = _scopeFactory.CreateScope();
+            var filePublishCachedService = scope.ServiceProvider.GetRequiredService<FilePublishCachedService>();
+
             foreach (var terminal in expiredTerminals)
             {
                 if (terminal.Status == null) continue;
 
-                await filepublish.LoadMerchantPublish(terminal.MerchantID);
+                await filePublishCachedService.LoadMerchantPublish(terminal.MerchantID);
 
                 foreach (var item in terminal.Status.FileVersionMetadata)
                 {
                     FilePublish publish;
-                    if (filepublish.TryGetValue(filepublish.GetKey(terminal.MerchantID, item.Key, PublishTypeOption.Terminal, terminal.ID), out publish))
+                    if (filePublishCachedService.TryGetValue(filePublishCachedService.GetKey(terminal.MerchantID, item.Key, PublishTypeOption.Terminal, terminal.ID), out publish))
                     {
                         item.Value.Expected = publish.Ver;
                         item.Value.ExpectedFileCrc = publish.Crc;
@@ -552,7 +576,7 @@ namespace SlzrCrossGate.Core.Service
                         item.Value.IsExpired = false;
                         continue;
                     }
-                    if (filepublish.TryGetValue(filepublish.GetKey(terminal.MerchantID, item.Key, PublishTypeOption.Line, terminal.LineNO), out publish))
+                    if (filePublishCachedService.TryGetValue(filePublishCachedService.GetKey(terminal.MerchantID, item.Key, PublishTypeOption.Line, terminal.LineNO), out publish))
                     {
                         item.Value.Expected = publish.Ver;
                         item.Value.ExpectedFileCrc = publish.Crc;
@@ -560,7 +584,7 @@ namespace SlzrCrossGate.Core.Service
                         item.Value.IsExpired = false;
                         continue;
                     }
-                    if (filepublish.TryGetValue(filepublish.GetKey(terminal.MerchantID, item.Key, PublishTypeOption.Merchant, terminal.MerchantID), out publish))
+                    if (filePublishCachedService.TryGetValue(filePublishCachedService.GetKey(terminal.MerchantID, item.Key, PublishTypeOption.Merchant, terminal.MerchantID), out publish))
                     {
                         item.Value.Expected = publish.Ver;
                         item.Value.ExpectedFileCrc = publish.Crc;

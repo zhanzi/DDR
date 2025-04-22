@@ -1,7 +1,10 @@
-﻿using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using SlzrCrossGate.Common;
+using SlzrCrossGate.Core.Models;
+using SlzrCrossGate.Core.Repositories;
 using SlzrCrossGate.Core.Service.BusinessServices;
 using SlzrCrossGate.Core.Services;
 using System;
@@ -19,9 +22,9 @@ namespace SlzrCrossGate.Tcp.Service
     /// </summary>
     public class ConsumeDataSaveHostedService : BackgroundService
     {
-        private readonly RabbitMQService _rabbitMQService;
+        private readonly IRabbitMQService _rabbitMQService;
         private readonly ILogger<ConsumeDataSaveHostedService> _logger;
-        private readonly ConsumeDataService _consumeDataService;
+        private readonly IServiceScopeFactory _scopeFactory;
 
         private readonly Channel<(Core.Models.ConsumeData, ulong)> _consumeDataChannel;
         private readonly TimeSpan _batchInterval = TimeSpan.FromSeconds(5); // 批量插入间隔时间
@@ -30,12 +33,12 @@ namespace SlzrCrossGate.Tcp.Service
         private int _currentBatchSize = 0;
         private readonly SemaphoreSlim _semaphore = new SemaphoreSlim(1, 1);
 
-        public ConsumeDataSaveHostedService(RabbitMQService rabbitMQService, ILogger<ConsumeDataSaveHostedService> logger,
-            ConsumeDataService consumeDataService)
+        public ConsumeDataSaveHostedService(IRabbitMQService rabbitMQService, ILogger<ConsumeDataSaveHostedService> logger,
+            IServiceScopeFactory scopeFactory)
         {
             _rabbitMQService = rabbitMQService;
             _logger = logger;
-            _consumeDataService = consumeDataService;
+            _scopeFactory = scopeFactory;
             _consumeDataChannel = Channel.CreateUnbounded<(Core.Models.ConsumeData, ulong)>();
         }
 
@@ -81,13 +84,15 @@ namespace SlzrCrossGate.Tcp.Service
                 {
                     try
                     {
-                        await _consumeDataService.BatchInsert(batch);
+                        using var scope = _scopeFactory.CreateScope();
+                        var consumeDataService = scope.ServiceProvider.GetRequiredService<ConsumeDataService>();
+                        await consumeDataService.BatchInsert(batch);
                         _logger.LogInformation($"Batch inserted {batch.Count} consume data records.");
 
                         // 确认消息
                         foreach (var deliveryTag in deliveryTags)
                         {
-                            _rabbitMQService.Ack(deliveryTag);
+                            _ = _rabbitMQService.Ack(deliveryTag);
                         }
                     }
                     catch (Exception ex)
@@ -97,7 +102,7 @@ namespace SlzrCrossGate.Tcp.Service
                         // 消息重新入队
                         foreach (var deliveryTag in deliveryTags)
                         {
-                            _rabbitMQService.NAck(deliveryTag, true);
+                            _ = _rabbitMQService.NAck(deliveryTag, true);
                         }
                     }
                     finally

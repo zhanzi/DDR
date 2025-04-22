@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using SlzrCrossGate.Core.Models;
 using SlzrCrossGate.Core.Repositories;
@@ -16,14 +16,14 @@ namespace SlzrCrossGate.Core.Service.BusinessServices
     public class FilePublishEventService
     {
         private readonly ILogger<FilePublishEventService> _logger;
-        private readonly RabbitMQService _rabbitMQService;
+        private readonly IRabbitMQService _rabbitMQService;
 
         private readonly string EXCHANGE_NAME = "SlzrCrossGate.Event";
         private readonly string QUEUE_NAME = "SlzrCrossGate.Event.Queue.FilePublishEvent";
         private readonly string ROUTING_KEY = "Event.FilePublishEvent";
 
         public FilePublishEventService(
-            ILogger<FilePublishEventService> logger,RabbitMQService rabbitMQService)
+            ILogger<FilePublishEventService> logger, IRabbitMQService rabbitMQService)
         {
             _logger = logger;
             _rabbitMQService = rabbitMQService;

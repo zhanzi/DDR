@@ -4,28 +4,18 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SlzrCrossGate.Core.Database;
 using SlzrCrossGate.Core.Models;
-using System.Security.Claims;
+
 
 namespace SlzrCrossGate.WebAdmin.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
     [Authorize]
-    public class MerchantsController : ControllerBase
+    public class MerchantsController(TcpDbContext dbContext, UserManager<ApplicationUser> userManager, ILogger<MerchantsController> logger) : ControllerBase
     {
-        private readonly TcpDbContext _dbContext;
-        private readonly UserManager<ApplicationUser> _userManager;
-        private readonly ILogger<MerchantsController> _logger;
-
-        public MerchantsController(
-            TcpDbContext dbContext,
-            UserManager<ApplicationUser> userManager,
-            ILogger<MerchantsController> logger)
-        {
-            _dbContext = dbContext;
-            _userManager = userManager;
-            _logger = logger;
-        }
+        private readonly TcpDbContext _dbContext = dbContext;
+        private readonly UserManager<ApplicationUser> _userManager = userManager;
+        private readonly ILogger<MerchantsController> _logger = logger;
 
         // GET: api/merchants
         [HttpGet]
@@ -60,10 +50,9 @@ namespace SlzrCrossGate.WebAdmin.Controllers
                 {
                     query = query.Where(m =>
                         m.MerchantID.Contains(search) ||
-                        m.Name.Contains(search) ||
-                        m.ContactName.Contains(search) ||
-                        m.ContactPhone.Contains(search) ||
-                        m.ContactEmail.Contains(search));
+                        (m.Name != null && m.Name.Contains(search)) ||
+                        (m.ContactPerson != null && m.ContactPerson.Contains(search)) ||
+                        (m.ContactInfo != null && m.ContactInfo.Contains(search)));
                 }
 
                 // 计算总数
@@ -81,13 +70,13 @@ namespace SlzrCrossGate.WebAdmin.Controllers
                 {
                     MerchantID = m.MerchantID,
                     Name = m.Name,
-                    ContactName = m.ContactName,
-                    ContactPhone = m.ContactPhone,
-                    ContactEmail = m.ContactEmail,
-                    Address = m.Address,
-                    IsActive = m.IsActive,
-                    CreatedTime = m.CreatedTime,
-                    UpdatedTime = m.UpdatedTime
+                    CompanyName = m.CompanyName,
+                    ContactPerson = m.ContactPerson,
+                    ContactInfo = m.ContactInfo,
+                    Remark = m.Remark,
+                    Operator = m.Operator,
+                    AutoRegister = m.AutoRegister,
+                    IsDelete = m.IsDelete
                 }).ToList();
 
                 // 返回结果
@@ -141,13 +130,13 @@ namespace SlzrCrossGate.WebAdmin.Controllers
                 {
                     MerchantID = merchant.MerchantID,
                     Name = merchant.Name,
-                    ContactName = merchant.ContactName,
-                    ContactPhone = merchant.ContactPhone,
-                    ContactEmail = merchant.ContactEmail,
-                    Address = merchant.Address,
-                    IsActive = merchant.IsActive,
-                    CreatedTime = merchant.CreatedTime,
-                    UpdatedTime = merchant.UpdatedTime
+                    CompanyName = merchant.CompanyName,
+                    ContactPerson = merchant.ContactPerson,
+                    ContactInfo = merchant.ContactInfo,
+                    Remark = merchant.Remark,
+                    Operator = merchant.Operator,
+                    AutoRegister = merchant.AutoRegister,
+                    IsDelete = merchant.IsDelete
                 });
             }
             catch (Exception ex)
@@ -176,13 +165,13 @@ namespace SlzrCrossGate.WebAdmin.Controllers
                 {
                     MerchantID = createMerchantDto.MerchantID,
                     Name = createMerchantDto.Name,
-                    ContactName = createMerchantDto.ContactName,
-                    ContactPhone = createMerchantDto.ContactPhone,
-                    ContactEmail = createMerchantDto.ContactEmail,
-                    Address = createMerchantDto.Address,
-                    IsActive = createMerchantDto.IsActive,
-                    CreatedTime = DateTime.UtcNow,
-                    UpdatedTime = DateTime.UtcNow
+                    CompanyName = createMerchantDto.CompanyName,
+                    ContactPerson = createMerchantDto.ContactPerson,
+                    ContactInfo = createMerchantDto.ContactInfo,
+                    Remark = createMerchantDto.Remark,
+                    Operator = createMerchantDto.Operator,
+                    AutoRegister = createMerchantDto.AutoRegister,
+                    IsDelete = createMerchantDto.IsDelete
                 };
 
                 _dbContext.Merchants.Add(merchant);
@@ -193,13 +182,13 @@ namespace SlzrCrossGate.WebAdmin.Controllers
                 {
                     MerchantID = merchant.MerchantID,
                     Name = merchant.Name,
-                    ContactName = merchant.ContactName,
-                    ContactPhone = merchant.ContactPhone,
-                    ContactEmail = merchant.ContactEmail,
-                    Address = merchant.Address,
-                    IsActive = merchant.IsActive,
-                    CreatedTime = merchant.CreatedTime,
-                    UpdatedTime = merchant.UpdatedTime
+                    CompanyName = merchant.CompanyName,
+                    ContactPerson = merchant.ContactPerson,
+                    ContactInfo = merchant.ContactInfo,
+                    Remark = merchant.Remark,
+                    Operator = merchant.Operator,
+                    AutoRegister = merchant.AutoRegister,
+                    IsDelete = merchant.IsDelete
                 });
             }
             catch (Exception ex)
@@ -225,12 +214,13 @@ namespace SlzrCrossGate.WebAdmin.Controllers
 
                 // 更新商户信息
                 merchant.Name = updateMerchantDto.Name;
-                merchant.ContactName = updateMerchantDto.ContactName;
-                merchant.ContactPhone = updateMerchantDto.ContactPhone;
-                merchant.ContactEmail = updateMerchantDto.ContactEmail;
-                merchant.Address = updateMerchantDto.Address;
-                merchant.IsActive = updateMerchantDto.IsActive;
-                merchant.UpdatedTime = DateTime.UtcNow;
+                merchant.CompanyName = updateMerchantDto.CompanyName;
+                merchant.ContactPerson = updateMerchantDto.ContactPerson;
+                merchant.ContactInfo = updateMerchantDto.ContactInfo;
+                merchant.Remark = updateMerchantDto.Remark;
+                merchant.Operator = updateMerchantDto.Operator;
+                merchant.AutoRegister = updateMerchantDto.AutoRegister;
+                merchant.IsDelete = updateMerchantDto.IsDelete;
 
                 await _dbContext.SaveChangesAsync();
 
@@ -286,7 +276,7 @@ namespace SlzrCrossGate.WebAdmin.Controllers
 
         // GET: api/merchants/{id}/terminals
         [HttpGet("{id}/terminals")]
-        public async Task<ActionResult<IEnumerable<TerminalDto>>> GetMerchantTerminals(
+        public async Task<ActionResult<IEnumerable<MerchantTerminalDto>>> GetMerchantTerminals(
             string id,
             [FromQuery] string? search,
             [FromQuery] int page = 1,
@@ -324,10 +314,10 @@ namespace SlzrCrossGate.WebAdmin.Controllers
                 if (!string.IsNullOrEmpty(search))
                 {
                     query = query.Where(t =>
-                        t.TerminalID.Contains(search) ||
-                        t.DeviceID.Contains(search) ||
-                        t.DeviceNo.Contains(search) ||
-                        t.LineNo.Contains(search));
+                        t.ID.Contains(search) ||
+                        t.MachineID.Contains(search) ||
+                        t.DeviceNO.Contains(search) ||
+                        t.LineNO.Contains(search));
                 }
 
                 // 计算总数
@@ -335,23 +325,23 @@ namespace SlzrCrossGate.WebAdmin.Controllers
 
                 // 分页
                 var terminals = await query
-                    .OrderBy(t => t.TerminalID)
+                    .OrderBy(t => t.ID)
                     .Skip((page - 1) * pageSize)
                     .Take(pageSize)
                     .ToListAsync();
 
                 // 转换为DTO
-                var terminalDtos = terminals.Select(t => new TerminalDto
+                var terminalDtos = terminals.Select(t => new MerchantTerminalDto
                 {
-                    TerminalID = t.TerminalID,
+                    TerminalID = t.ID,
                     MerchantID = t.MerchantID,
-                    DeviceID = t.DeviceID,
-                    DeviceNo = t.DeviceNo,
-                    LineNo = t.LineNo,
-                    TerminalTypeID = t.TerminalTypeID,
-                    IsActive = t.IsActive,
-                    CreatedTime = t.CreatedTime,
-                    UpdatedTime = t.UpdatedTime
+                    DeviceID = t.MachineID,
+                    DeviceNo = t.DeviceNO,
+                    LineNo = t.LineNO,
+                    TerminalTypeID = t.TerminalType,
+                    IsActive = !t.IsDeleted,
+                    CreatedTime = t.CreateTime,
+                    UpdatedTime = t.StatusUpdateTime
                 }).ToList();
 
                 // 返回结果
@@ -412,9 +402,9 @@ namespace SlzrCrossGate.WebAdmin.Controllers
                 if (!string.IsNullOrEmpty(search))
                 {
                     query = query.Where(u =>
-                        u.UserName.Contains(search) ||
-                        u.Email.Contains(search) ||
-                        u.RealName.Contains(search));
+                        (u.UserName != null && u.UserName.Contains(search)) ||
+                        (u.Email != null && u.Email.Contains(search)) ||
+                        (u.RealName != null && u.RealName.Contains(search)));
                 }
 
                 // 计算总数
@@ -428,18 +418,18 @@ namespace SlzrCrossGate.WebAdmin.Controllers
                     .ToListAsync();
 
                 // 转换为DTO
-                var userDtos = new List<UserDto>();
+                var userDtos = new List<MerchantUserDto>();
                 foreach (var user in users)
                 {
                     var roles = await _userManager.GetRolesAsync(user);
-                    userDtos.Add(new UserDto
+                    userDtos.Add(new MerchantUserDto
                     {
                         Id = user.Id,
-                        UserName = user.UserName,
-                        Email = user.Email,
-                        RealName = user.RealName,
-                        MerchantId = user.MerchantID,
-                        Roles = roles.ToList(),
+                        UserName = user.UserName ?? string.Empty,
+                        Email = user.Email ?? string.Empty,
+                        RealName = user.RealName ?? string.Empty,
+                        MerchantId = user.MerchantID ?? string.Empty,
+                        Roles = roles.ToList(),  // 这里使用 ToList() 是必要的，因为 roles 是 IList<string> 类型
                         EmailConfirmed = user.EmailConfirmed,
                         LockoutEnd = user.LockoutEnd
                     });
@@ -477,8 +467,7 @@ namespace SlzrCrossGate.WebAdmin.Controllers
                 }
 
                 // 激活商户
-                merchant.IsActive = true;
-                merchant.UpdatedTime = DateTime.UtcNow;
+                merchant.IsDelete = false;
 
                 await _dbContext.SaveChangesAsync();
 
@@ -506,8 +495,7 @@ namespace SlzrCrossGate.WebAdmin.Controllers
                 }
 
                 // 停用商户
-                merchant.IsActive = false;
-                merchant.UpdatedTime = DateTime.UtcNow;
+                merchant.IsDelete = true;
 
                 await _dbContext.SaveChangesAsync();
 
@@ -524,59 +512,63 @@ namespace SlzrCrossGate.WebAdmin.Controllers
     // DTO 类
     public class MerchantDto
     {
-        public string MerchantID { get; set; }
-        public string Name { get; set; }
-        public string ContactName { get; set; }
-        public string ContactPhone { get; set; }
-        public string ContactEmail { get; set; }
-        public string Address { get; set; }
-        public bool IsActive { get; set; }
-        public DateTime CreatedTime { get; set; }
-        public DateTime UpdatedTime { get; set; }
+        public required string MerchantID { get; set; }
+        public string? Name { get; set; }
+        public string? CompanyName { get; set; }
+        public string? ContactPerson { get; set; }
+        public string? ContactInfo { get; set; }
+        public string? Remark { get; set; }
+        public string? Operator { get; set; }
+        public bool AutoRegister { get; set; }
+        public bool IsDelete { get; set; }
     }
 
     public class CreateMerchantDto
     {
-        public string MerchantID { get; set; }
-        public string Name { get; set; }
-        public string ContactName { get; set; }
-        public string ContactPhone { get; set; }
-        public string ContactEmail { get; set; }
-        public string Address { get; set; }
-        public bool IsActive { get; set; } = true;
+        public required string MerchantID { get; set; }
+        public string? Name { get; set; }
+        public string? CompanyName { get; set; }
+        public string? ContactPerson { get; set; }
+        public string? ContactInfo { get; set; }
+        public string? Remark { get; set; }
+        public string? Operator { get; set; }
+        public bool AutoRegister { get; set; } = false;
+        public bool IsDelete { get; set; } = false;
     }
 
     public class UpdateMerchantDto
     {
-        public string Name { get; set; }
-        public string ContactName { get; set; }
-        public string ContactPhone { get; set; }
-        public string ContactEmail { get; set; }
-        public string Address { get; set; }
-        public bool IsActive { get; set; }
+        public string? Name { get; set; }
+        public string? CompanyName { get; set; }
+        public string? ContactPerson { get; set; }
+        public string? ContactInfo { get; set; }
+        public string? Remark { get; set; }
+        public string? Operator { get; set; }
+        public bool AutoRegister { get; set; }
+        public bool IsDelete { get; set; }
     }
 
-    public class TerminalDto
+    public class MerchantTerminalDto
     {
-        public string TerminalID { get; set; }
-        public string MerchantID { get; set; }
-        public string DeviceID { get; set; }
-        public string DeviceNo { get; set; }
-        public string LineNo { get; set; }
-        public string TerminalTypeID { get; set; }
+        public required string TerminalID { get; set; }
+        public required string MerchantID { get; set; }
+        public required string DeviceID { get; set; }
+        public required string DeviceNo { get; set; }
+        public required string LineNo { get; set; }
+        public required string TerminalTypeID { get; set; }
         public bool IsActive { get; set; }
         public DateTime CreatedTime { get; set; }
         public DateTime UpdatedTime { get; set; }
     }
 
-    public class UserDto
+    public class MerchantUserDto
     {
-        public string Id { get; set; }
-        public string UserName { get; set; }
-        public string Email { get; set; }
-        public string RealName { get; set; }
-        public string MerchantId { get; set; }
-        public List<string> Roles { get; set; }
+        public required string Id { get; set; }
+        public required string UserName { get; set; }
+        public required string Email { get; set; }
+        public required string RealName { get; set; }
+        public required string MerchantId { get; set; }
+        public required List<string> Roles { get; set; }
         public bool EmailConfirmed { get; set; }
         public DateTimeOffset? LockoutEnd { get; set; }
     }

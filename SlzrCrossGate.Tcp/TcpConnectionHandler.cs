@@ -25,7 +25,10 @@ namespace SlzrCrossGate.Tcp
         private readonly TcpConnectionManager _connectionManager;
         private readonly ILogger<TcpConnectionHandler> _logger;
         private readonly IServiceProvider _serviceProvider;
-        private readonly IDictionary<string, IIso8583MessageHandler> _messageHandlers;
+        // 使用静态的 Lazy<T> 来存储 handler 类型映射
+        private static readonly Lazy<IDictionary<string, Type>> _messageHandlerTypes = 
+        new Lazy<IDictionary<string, Type>>(() => LoadMessageHandlerTypes());
+        
         private readonly TerminalManager _terminalManager;
 
         //private static readonly ActivitySource _activitySource = new ActivitySource("SlzrCrossGate.Tcp");
@@ -57,7 +60,6 @@ namespace SlzrCrossGate.Tcp
             _connectionManager = connectionManager;
             _logger = logger;
             _serviceProvider = serviceProvider;
-            _messageHandlers = LoadMessageHandlerTypes();
             _terminalManager= terminalManager;
         }
 
@@ -224,16 +226,17 @@ namespace SlzrCrossGate.Tcp
                     new KeyValuePair<string, object?>("TerminalID", context.TerminalID),
                     new KeyValuePair<string, object?>("MerchantID", context.MerchantID));
 
-                if (_messageHandlers.TryGetValue(message.MessageType, out var handler))
+                if (_messageHandlerTypes.Value.TryGetValue(message.MessageType, out var handlerType))
                 {
-                    // 记录处理开始事件
-                    //activity?.AddEvent(new ActivityEvent("HandlerStarted"));
-
-                    // 处理消息
-                    var response = await handler.HandleMessageAsync(context, message);
-                    await ProcessResponse(context, message, response);
-                    // 记录处理结束事件
-                    //activity?.AddEvent(new ActivityEvent("HandlerCompleted"));
+                    using (var scope = _serviceProvider.CreateScope())
+                    {// 记录处理开始事件
+                        //activity?.AddEvent(new ActivityEvent("HandlerStarted"));
+                        var handler = (IIso8583MessageHandler)scope.ServiceProvider.GetRequiredService(handlerType);
+                        var response = await handler.HandleMessageAsync(context, message);
+                        await ProcessResponse(context, message, response);
+                        // 记录处理结束事件
+                        //activity?.AddEvent(new ActivityEvent("HandlerCompleted"));
+                    }
                 }
                 else
                 {
@@ -327,9 +330,10 @@ namespace SlzrCrossGate.Tcp
         }
 
 
-        private IDictionary<string, IIso8583MessageHandler> LoadMessageHandlerTypes()
+            // 改为私有静态方法
+        private static IDictionary<string, Type> LoadMessageHandlerTypes()
         {
-            var handlerTypes = new Dictionary<string, IIso8583MessageHandler>();
+            var handlerTypes = new Dictionary<string, Type>();
             var assembly = Assembly.GetExecutingAssembly();
             var handlerInterfaceType = typeof(IIso8583MessageHandler);
 
@@ -340,8 +344,7 @@ namespace SlzrCrossGate.Tcp
                     var attribute = type.GetCustomAttribute<MessageTypeAttribute>();
                     if (attribute != null)
                     {
-                        var handler = (IIso8583MessageHandler)_serviceProvider.GetRequiredService(type);
-                        handlerTypes[attribute.MessageType] = handler;
+                        handlerTypes[attribute.MessageType] = type;
                     }
                 }
             }

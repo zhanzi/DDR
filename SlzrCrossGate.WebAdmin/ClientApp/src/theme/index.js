@@ -1,69 +1,93 @@
 import { createTheme } from '@mui/material/styles';
 
-// 颜色配置 - 更现代化的配色方案
+// 颜色配置 - 玻璃拟态+微立体感风格
 const PRIMARY = {
-  lighter: '#E6F7FF',
-  light: '#69C0FF',
-  main: '#1890FF',  // 蓝色主题 - 更现代的科技蓝
-  dark: '#0C53B7',
-  darker: '#04297A',
+  lighter: '#F3E8FF',
+  light: '#C084FC',
+  main: '#7E22CE',  // 紫色主题 - 根据要求使用 #7E22CE
+  dark: '#6B21A8',
+  darker: '#581C87',
 };
 
+// 辅助色按Material You算法生成
 const SECONDARY = {
-  lighter: '#F5F5FF',
-  light: '#B39DDB',
-  main: '#673AB7',  // 紫色次要色 - 科技感
-  dark: '#4527A0',
-  darker: '#311B92',
+  lighter: '#FDF4FF',
+  light: '#E879F9',
+  main: '#D946EF',  // 粉紫色辅助色
+  dark: '#A21CAF',
+  darker: '#701A75',
 };
 
 const INFO = {
-  lighter: '#E3F2FD',
-  light: '#4FC3F7',
-  main: '#03A9F4',  // 浅蓝色 - 信息色
-  dark: '#0288D1',
-  darker: '#01579B',
+  lighter: '#EFF6FF',
+  light: '#93C5FD',
+  main: '#3B82F6',  // 蓝色 - 信息色
+  dark: '#1D4ED8',
+  darker: '#1E3A8A',
 };
 
 const SUCCESS = {
-  lighter: '#E8F5E9',
-  light: '#81C784',
-  main: '#4CAF50',  // 绿色 - 成功色
-  dark: '#388E3C',
-  darker: '#1B5E20',
+  lighter: '#ECFDF5',
+  light: '#6EE7B7',
+  main: '#10B981',  // 绿色 - 成功色
+  dark: '#059669',
+  darker: '#065F46',
 };
 
 const WARNING = {
-  lighter: '#FFF8E1',
-  light: '#FFD54F',
-  main: '#FFC107',  // 黄色 - 警告色
-  dark: '#FFA000',
-  darker: '#FF6F00',
+  lighter: '#FFFBEB',
+  light: '#FCD34D',
+  main: '#F59E0B',  // 黄色 - 警告色
+  dark: '#D97706',
+  darker: '#92400E',
 };
 
 const ERROR = {
-  lighter: '#FFEBEE',
-  light: '#EF9A9A',
-  main: '#F44336',  // 红色 - 错误色
-  dark: '#D32F2F',
-  darker: '#B71C1C',
+  lighter: '#FEF2F2',
+  light: '#FCA5A5',
+  main: '#EF4444',  // 红色 - 错误色
+  dark: '#DC2626',
+  darker: '#991B1B',
 };
 
 const GREY = {
   0: '#FFFFFF',
   50: '#FAFAFA',
   100: '#F5F5F5',
-  200: '#EEEEEE',
-  300: '#E0E0E0',
-  400: '#BDBDBD',
-  500: '#9E9E9E',
-  600: '#757575',
-  700: '#616161',
-  800: '#424242',
-  900: '#212121',
+  200: '#E5E7EB',
+  300: '#D1D5DB',
+  400: '#9CA3AF',
+  500: '#6B7280',
+  600: '#4B5563',
+  700: '#374151',
+  800: '#1F2937',
+  900: '#111827',
+  950: '#030712',
 };
 
-// 创建亮色主题 - 更现代化的设计
+// 添加噪点纹理生成函数
+const createNoiseTexture = (opacity = 0.05) => {
+  return {
+    position: 'relative',
+    overflow: 'hidden',
+    '&::before': {
+      content: '""',
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      width: '100%',
+      height: '100%',
+      opacity: opacity,
+      pointerEvents: 'none',
+      backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`,
+      backgroundRepeat: 'repeat',
+      backgroundSize: '100px 100px',
+      zIndex: 0,
+    }
+  };
+};
+
+// 创建亮色主题 - 玻璃拟态+微立体感设计
 export const lightTheme = createTheme({
   palette: {
     mode: 'light',
@@ -75,15 +99,15 @@ export const lightTheme = createTheme({
     error: ERROR,
     grey: GREY,
     background: {
-      default: '#F8FAFF', // 更浅的背景色，带有一点蓝色调
-      paper: '#FFFFFF',
+      default: '#F5F3FF', // 浅紫色背景，与主题色相匹配
+      paper: 'rgba(255, 255, 255, 0.85)', // 半透明纸张背景，实现玻璃拟态
     },
     text: {
       primary: GREY[800],
       secondary: GREY[600],
       disabled: GREY[500],
     },
-    divider: GREY[200], // 更浅的分隔线
+    divider: 'rgba(0, 0, 0, 0.08)', // 半透明分隔线
   },
   typography: {
     fontFamily: '"Inter", "Roboto", "Helvetica", "Arial", sans-serif',
@@ -191,7 +215,12 @@ export const lightTheme = createTheme({
           flex: '1 1 auto',
           flexDirection: 'column',
           minHeight: '100%',
-          width: '100%'
+          width: '100%',
+          backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`,
+          backgroundRepeat: 'repeat',
+          backgroundSize: '100px 100px',
+          backgroundBlendMode: 'overlay',
+          backgroundAttachment: 'fixed',
         },
         '#root': {
           display: 'flex',
@@ -202,6 +231,16 @@ export const lightTheme = createTheme({
         }
       }
     },
+    MuiAppBar: {
+      styleOverrides: {
+        root: {
+          backdropFilter: 'blur(8px)',
+          backgroundColor: 'rgba(255, 255, 255, 0.9)',
+          borderBottom: '1px solid rgba(0, 0, 0, 0.08)',
+          boxShadow: 'none',
+        }
+      }
+    },
     MuiButton: {
       styleOverrides: {
         root: {
@@ -209,23 +248,29 @@ export const lightTheme = createTheme({
           boxShadow: 'none',
           fontWeight: 600,
           '&:hover': {
-            boxShadow: '0px 4px 8px rgba(0, 0, 0, 0.1)',
-            transform: 'translateY(-1px)',
+            boxShadow: '0px 4px 8px rgba(0, 0, 0, 0.15)',
+            transform: 'translateY(-2px)',
           },
-          transition: 'all 0.2s ease-in-out',
+          '&:active': {
+            transform: 'scale(0.98)',
+          },
+          transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
         },
         sizeLarge: {
           height: 48,
         },
         containedPrimary: {
+          background: `linear-gradient(135deg, ${PRIMARY.main} 0%, ${PRIMARY.dark} 100%)`,
           '&:hover': {
-            backgroundColor: PRIMARY.dark,
+            background: `linear-gradient(135deg, ${PRIMARY.light} 0%, ${PRIMARY.main} 100%)`,
           },
+          boxShadow: `0 4px 14px 0 ${PRIMARY.main}40`,
         },
         outlinedPrimary: {
           border: `1px solid ${PRIMARY.main}`,
           '&:hover': {
             backgroundColor: `${PRIMARY.lighter}`,
+            boxShadow: `0 4px 14px 0 ${PRIMARY.main}30`,
           },
         },
       },
@@ -233,13 +278,25 @@ export const lightTheme = createTheme({
     MuiCard: {
       styleOverrides: {
         root: {
-          boxShadow: '0px 4px 20px rgba(0, 0, 0, 0.08)',
           borderRadius: 16,
-          transition: 'transform 0.3s, box-shadow 0.3s',
+          backdropFilter: 'blur(10px)',
+          backgroundColor: 'rgba(255, 255, 255, 0.85)',
+          boxShadow: `
+            0px 4px 16px rgba(0, 0, 0, 0.08),
+            0px 1px 4px rgba(0, 0, 0, 0.04),
+            inset 0px 0px 0px 1px rgba(255, 255, 255, 0.5)
+          `,
+          transition: 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
           '&:hover': {
-            boxShadow: '0px 8px 30px rgba(0, 0, 0, 0.12)',
+            boxShadow: `
+              0px 8px 30px rgba(0, 0, 0, 0.12),
+              0px 2px 8px rgba(0, 0, 0, 0.06),
+              inset 0px 0px 0px 1.5px rgba(255, 255, 255, 0.6)
+            `,
+            transform: 'translateY(-4px)',
           },
-          overflow: 'visible'
+          overflow: 'visible',
+          border: '1px solid rgba(255, 255, 255, 0.18)',
         },
       },
     },
@@ -247,10 +304,12 @@ export const lightTheme = createTheme({
       styleOverrides: {
         root: {
           padding: '24px',
+          borderBottom: '1px solid rgba(0, 0, 0, 0.05)',
         },
         title: {
           fontSize: '1.125rem',
           fontWeight: 600,
+          color: PRIMARY.dark,
         },
       },
     },
@@ -265,22 +324,28 @@ export const lightTheme = createTheme({
       styleOverrides: {
         root: {
           backgroundImage: 'none',
+          backdropFilter: 'blur(10px)',
+          backgroundColor: 'rgba(255, 255, 255, 0.85)',
+          borderRadius: 12,
         },
         elevation1: {
-          boxShadow: '0px 4px 20px rgba(0, 0, 0, 0.05)',
+          boxShadow: `
+            0px 4px 20px rgba(0, 0, 0, 0.05),
+            inset 0px 0px 0px 1px rgba(255, 255, 255, 0.5)
+          `,
         },
       },
     },
     MuiTableCell: {
       styleOverrides: {
         root: {
-          borderBottom: `1px solid ${GREY[200]}`,
+          borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
           padding: '16px 24px',
         },
         head: {
           color: GREY[700],
           fontWeight: 600,
-          backgroundColor: GREY[50],
+          backgroundColor: 'rgba(0, 0, 0, 0.02)',
         },
       },
     },
@@ -291,7 +356,10 @@ export const lightTheme = createTheme({
             borderBottom: 0,
           },
           '&:hover': {
-            backgroundColor: GREY[50],
+            backgroundColor: 'rgba(0, 0, 0, 0.02)',
+          },
+          '&:nth-of-type(even)': {
+            backgroundColor: 'rgba(0, 0, 0, 0.01)', // 斑马纹
           },
         },
       },
@@ -301,6 +369,10 @@ export const lightTheme = createTheme({
         root: {
           borderRadius: 12,
           overflow: 'hidden',
+          boxShadow: `
+            0px 4px 20px rgba(0, 0, 0, 0.05),
+            inset 0px 0px 0px 1px rgba(255, 255, 255, 0.5)
+          `,
         },
       },
     },
@@ -309,6 +381,37 @@ export const lightTheme = createTheme({
         root: {
           borderRadius: 8,
           fontWeight: 500,
+          backdropFilter: 'blur(8px)',
+          '&.MuiChip-colorPrimary': {
+            backgroundColor: `${PRIMARY.main}20`,
+            color: PRIMARY.dark,
+            border: `1px solid ${PRIMARY.main}40`,
+          },
+          '&.MuiChip-colorSecondary': {
+            backgroundColor: `${SECONDARY.main}20`,
+            color: SECONDARY.dark,
+            border: `1px solid ${SECONDARY.main}40`,
+          },
+          '&.MuiChip-colorSuccess': {
+            backgroundColor: `${SUCCESS.main}20`,
+            color: SUCCESS.dark,
+            border: `1px solid ${SUCCESS.main}40`,
+          },
+          '&.MuiChip-colorError': {
+            backgroundColor: `${ERROR.main}20`,
+            color: ERROR.dark,
+            border: `1px solid ${ERROR.main}40`,
+          },
+          '&.MuiChip-colorWarning': {
+            backgroundColor: `${WARNING.main}20`,
+            color: WARNING.dark,
+            border: `1px solid ${WARNING.main}40`,
+          },
+          '&.MuiChip-colorInfo': {
+            backgroundColor: `${INFO.main}20`,
+            color: INFO.dark,
+            border: `1px solid ${INFO.main}40`,
+          },
         },
       },
     },
@@ -316,6 +419,8 @@ export const lightTheme = createTheme({
       styleOverrides: {
         root: {
           borderRadius: 10,
+          backdropFilter: 'blur(8px)',
+          border: '1px solid rgba(255, 255, 255, 0.18)',
         },
       },
     },
@@ -324,53 +429,134 @@ export const lightTheme = createTheme({
         root: {
           backgroundColor: PRIMARY.main,
           color: '#FFFFFF',
+          boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.15)',
         },
       },
     },
     MuiTooltip: {
       styleOverrides: {
         tooltip: {
-          backgroundColor: GREY[800],
+          backgroundColor: 'rgba(0, 0, 0, 0.75)',
+          backdropFilter: 'blur(8px)',
           borderRadius: 8,
           fontSize: '0.75rem',
           padding: '8px 16px',
+          border: '1px solid rgba(255, 255, 255, 0.08)',
+          boxShadow: '0px 4px 16px rgba(0, 0, 0, 0.2)',
+        },
+      },
+    },
+    MuiDrawer: {
+      styleOverrides: {
+        paper: {
+          backdropFilter: 'blur(10px)',
+          backgroundColor: 'rgba(255, 255, 255, 0.85)',
+          borderRight: '1px solid rgba(0, 0, 0, 0.08)',
+        },
+      },
+    },
+    MuiDialog: {
+      styleOverrides: {
+        paper: {
+          backdropFilter: 'blur(10px)',
+          backgroundColor: 'rgba(255, 255, 255, 0.9)',
+          borderRadius: 16,
+          boxShadow: `
+            0px 8px 32px rgba(0, 0, 0, 0.08),
+            0px 2px 8px rgba(0, 0, 0, 0.04),
+            inset 0px 0px 0px 1px rgba(255, 255, 255, 0.5)
+          `,
+          border: '1px solid rgba(255, 255, 255, 0.18)',
+        },
+      },
+    },
+    MuiDataGrid: {
+      styleOverrides: {
+        root: {
+          border: 'none',
+          borderRadius: 12,
+          overflow: 'hidden',
+          backgroundColor: 'rgba(255, 255, 255, 0.7)',
+          backdropFilter: 'blur(10px)',
+          '& .MuiDataGrid-columnHeaders': {
+            backgroundColor: 'rgba(0, 0, 0, 0.02)',
+            borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
+          },
+          '& .MuiDataGrid-cell': {
+            borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
+          },
+          '& .MuiDataGrid-row': {
+            '&:nth-of-type(even)': {
+              backgroundColor: 'rgba(0, 0, 0, 0.01)', // 斑马纹
+            },
+            '&:hover': {
+              backgroundColor: 'rgba(0, 0, 0, 0.04)',
+            },
+          },
+          '& .MuiDataGrid-columnHeader:focus, & .MuiDataGrid-cell:focus': {
+            outline: 'none',
+          },
+          '& .MuiDataGrid-columnHeader:focus-within, & .MuiDataGrid-cell:focus-within': {
+            outline: 'none',
+          },
+        },
+      },
+    },
+    MuiTextField: {
+      styleOverrides: {
+        root: {
+          '& .MuiOutlinedInput-root': {
+            borderRadius: 10,
+            backdropFilter: 'blur(8px)',
+            backgroundColor: 'rgba(255, 255, 255, 0.7)',
+            transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+            '&:hover': {
+              backgroundColor: 'rgba(255, 255, 255, 0.9)',
+            },
+            '&.Mui-focused': {
+              boxShadow: `0 0 0 2px ${PRIMARY.main}40`,
+            },
+            '& fieldset': {
+              borderColor: 'rgba(0, 0, 0, 0.1)',
+            },
+          },
         },
       },
     },
   },
 });
 
-// 创建暗色主题 - 更现代化的设计
+// 创建暗色主题 - 玻璃拟态+微立体感设计
 export const darkTheme = createTheme({
   palette: {
     mode: 'dark',
     primary: {
       ...PRIMARY,
-      main: '#4DABF5', // 更亮的蓝色，适合暗色模式
+      main: '#C084FC', // 更亮的紫色，适合暗色模式
     },
     secondary: {
       ...SECONDARY,
-      main: '#9C7CF6', // 更亮的紫色
+      main: '#E879F9', // 更亮的粉紫色
     },
     info: {
       ...INFO,
-      main: '#64B6F7', // 更亮的浅蓝色
+      main: '#93C5FD', // 更亮的浅蓝色
     },
     success: {
       ...SUCCESS,
-      main: '#76D275', // 更亮的绿色
+      main: '#6EE7B7', // 更亮的绿色
     },
     warning: {
       ...WARNING,
-      main: '#FFD54F', // 更亮的黄色
+      main: '#FCD34D', // 更亮的黄色
     },
     error: {
       ...ERROR,
-      main: '#FF6B6B', // 更亮的红色
+      main: '#FCA5A5', // 更亮的红色
     },
     background: {
-      default: '#121212', // 深色背景
-      paper: '#1E1E1E', // 深色纸张
+      default: '#0F172A', // 深色背景，带有一点蓝色调
+      paper: 'rgba(30, 41, 59, 0.85)', // 半透明纸张背景，实现玻璃拟态
     },
     text: {
       primary: '#FFFFFF',
@@ -442,7 +628,12 @@ export const darkTheme = createTheme({
           flex: '1 1 auto',
           flexDirection: 'column',
           minHeight: '100%',
-          width: '100%'
+          width: '100%',
+          backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`,
+          backgroundRepeat: 'repeat',
+          backgroundSize: '100px 100px',
+          backgroundBlendMode: 'overlay',
+          backgroundAttachment: 'fixed',
         },
         '#root': {
           display: 'flex',
@@ -450,6 +641,16 @@ export const darkTheme = createTheme({
           flexDirection: 'column',
           height: '100%',
           width: '100%'
+        }
+      }
+    },
+    MuiAppBar: {
+      styleOverrides: {
+        root: {
+          backdropFilter: 'blur(8px)',
+          backgroundColor: 'rgba(15, 23, 42, 0.9)',
+          borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
+          boxShadow: 'none',
         }
       }
     },
@@ -461,16 +662,28 @@ export const darkTheme = createTheme({
           fontWeight: 600,
           '&:hover': {
             boxShadow: '0px 4px 8px rgba(0, 0, 0, 0.3)',
-            transform: 'translateY(-1px)',
+            transform: 'translateY(-2px)',
           },
-          transition: 'all 0.2s ease-in-out',
+          '&:active': {
+            transform: 'scale(0.98)',
+          },
+          transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
         },
         sizeLarge: {
           height: 48,
         },
         containedPrimary: {
+          background: `linear-gradient(135deg, ${PRIMARY.light} 0%, ${PRIMARY.main} 100%)`,
           '&:hover': {
-            backgroundColor: '#5CBBFF', // 更亮的蓝色
+            background: `linear-gradient(135deg, ${PRIMARY.lighter} 0%, ${PRIMARY.light} 100%)`,
+          },
+          boxShadow: `0 4px 14px 0 ${PRIMARY.main}40`,
+        },
+        outlinedPrimary: {
+          border: `1px solid ${PRIMARY.light}`,
+          '&:hover': {
+            backgroundColor: `${PRIMARY.main}20`,
+            boxShadow: `0 4px 14px 0 ${PRIMARY.main}30`,
           },
         },
       },
@@ -478,14 +691,25 @@ export const darkTheme = createTheme({
     MuiCard: {
       styleOverrides: {
         root: {
-          backgroundImage: 'none',
-          boxShadow: '0px 4px 20px rgba(0, 0, 0, 0.4)',
           borderRadius: 16,
-          border: '1px solid rgba(255, 255, 255, 0.12)',
-          transition: 'transform 0.3s, box-shadow 0.3s',
+          backdropFilter: 'blur(10px)',
+          backgroundColor: 'rgba(30, 41, 59, 0.85)',
+          boxShadow: `
+            0px 4px 16px rgba(0, 0, 0, 0.4),
+            0px 1px 4px rgba(0, 0, 0, 0.2),
+            inset 0px 0px 0px 1px rgba(255, 255, 255, 0.1)
+          `,
+          transition: 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
           '&:hover': {
-            boxShadow: '0px 8px 30px rgba(0, 0, 0, 0.6)',
+            boxShadow: `
+              0px 8px 30px rgba(0, 0, 0, 0.6),
+              0px 2px 8px rgba(0, 0, 0, 0.4),
+              inset 0px 0px 0px 1.5px rgba(255, 255, 255, 0.15)
+            `,
+            transform: 'translateY(-4px)',
           },
+          overflow: 'visible',
+          border: '1px solid rgba(255, 255, 255, 0.08)',
         },
       },
     },
@@ -493,10 +717,12 @@ export const darkTheme = createTheme({
       styleOverrides: {
         root: {
           padding: '24px',
+          borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
         },
         title: {
           fontSize: '1.125rem',
           fontWeight: 600,
+          color: PRIMARY.light,
         },
       },
     },
@@ -511,17 +737,22 @@ export const darkTheme = createTheme({
       styleOverrides: {
         root: {
           backgroundImage: 'none',
-          backgroundColor: '#1E1E1E',
+          backdropFilter: 'blur(10px)',
+          backgroundColor: 'rgba(30, 41, 59, 0.85)',
+          borderRadius: 12,
         },
         elevation1: {
-          boxShadow: '0px 4px 20px rgba(0, 0, 0, 0.4)',
+          boxShadow: `
+            0px 4px 20px rgba(0, 0, 0, 0.4),
+            inset 0px 0px 0px 1px rgba(255, 255, 255, 0.1)
+          `,
         },
       },
     },
     MuiTableCell: {
       styleOverrides: {
         root: {
-          borderBottom: '1px solid rgba(255, 255, 255, 0.12)',
+          borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
           padding: '16px 24px',
         },
         head: {
@@ -540,6 +771,9 @@ export const darkTheme = createTheme({
           '&:hover': {
             backgroundColor: 'rgba(255, 255, 255, 0.04)',
           },
+          '&:nth-of-type(even)': {
+            backgroundColor: 'rgba(255, 255, 255, 0.02)', // 斑马纹
+          },
         },
       },
     },
@@ -548,6 +782,10 @@ export const darkTheme = createTheme({
         root: {
           borderRadius: 12,
           overflow: 'hidden',
+          boxShadow: `
+            0px 4px 20px rgba(0, 0, 0, 0.4),
+            inset 0px 0px 0px 1px rgba(255, 255, 255, 0.1)
+          `,
         },
       },
     },
@@ -556,6 +794,37 @@ export const darkTheme = createTheme({
         root: {
           borderRadius: 8,
           fontWeight: 500,
+          backdropFilter: 'blur(8px)',
+          '&.MuiChip-colorPrimary': {
+            backgroundColor: `${PRIMARY.main}30`,
+            color: PRIMARY.lighter,
+            border: `1px solid ${PRIMARY.main}60`,
+          },
+          '&.MuiChip-colorSecondary': {
+            backgroundColor: `${SECONDARY.main}30`,
+            color: SECONDARY.lighter,
+            border: `1px solid ${SECONDARY.main}60`,
+          },
+          '&.MuiChip-colorSuccess': {
+            backgroundColor: `${SUCCESS.main}30`,
+            color: SUCCESS.lighter,
+            border: `1px solid ${SUCCESS.main}60`,
+          },
+          '&.MuiChip-colorError': {
+            backgroundColor: `${ERROR.main}30`,
+            color: ERROR.lighter,
+            border: `1px solid ${ERROR.main}60`,
+          },
+          '&.MuiChip-colorWarning': {
+            backgroundColor: `${WARNING.main}30`,
+            color: WARNING.lighter,
+            border: `1px solid ${WARNING.main}60`,
+          },
+          '&.MuiChip-colorInfo': {
+            backgroundColor: `${INFO.main}30`,
+            color: INFO.lighter,
+            border: `1px solid ${INFO.main}60`,
+          },
         },
       },
     },
@@ -563,6 +832,8 @@ export const darkTheme = createTheme({
       styleOverrides: {
         root: {
           borderRadius: 10,
+          backdropFilter: 'blur(8px)',
+          border: '1px solid rgba(255, 255, 255, 0.12)',
         },
       },
     },
@@ -571,6 +842,7 @@ export const darkTheme = createTheme({
         root: {
           backgroundColor: PRIMARY.main,
           color: '#FFFFFF',
+          boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.4)',
         },
       },
     },
@@ -579,10 +851,89 @@ export const darkTheme = createTheme({
         tooltip: {
           backgroundColor: 'rgba(255, 255, 255, 0.9)',
           color: '#121212',
+          backdropFilter: 'blur(8px)',
           borderRadius: 8,
           fontSize: '0.75rem',
           padding: '8px 16px',
-          boxShadow: '0px 4px 20px rgba(0, 0, 0, 0.2)',
+          border: '1px solid rgba(255, 255, 255, 0.2)',
+          boxShadow: '0px 4px 16px rgba(0, 0, 0, 0.4)',
+        },
+      },
+    },
+    MuiDrawer: {
+      styleOverrides: {
+        paper: {
+          backdropFilter: 'blur(10px)',
+          backgroundColor: 'rgba(15, 23, 42, 0.9)',
+          borderRight: '1px solid rgba(255, 255, 255, 0.08)',
+        },
+      },
+    },
+    MuiDialog: {
+      styleOverrides: {
+        paper: {
+          backdropFilter: 'blur(10px)',
+          backgroundColor: 'rgba(30, 41, 59, 0.9)',
+          borderRadius: 16,
+          boxShadow: `
+            0px 8px 32px rgba(0, 0, 0, 0.4),
+            0px 2px 8px rgba(0, 0, 0, 0.2),
+            inset 0px 0px 0px 1px rgba(255, 255, 255, 0.1)
+          `,
+          border: '1px solid rgba(255, 255, 255, 0.08)',
+        },
+      },
+    },
+    MuiDataGrid: {
+      styleOverrides: {
+        root: {
+          border: 'none',
+          borderRadius: 12,
+          overflow: 'hidden',
+          backgroundColor: 'rgba(30, 41, 59, 0.7)',
+          backdropFilter: 'blur(10px)',
+          '& .MuiDataGrid-columnHeaders': {
+            backgroundColor: 'rgba(255, 255, 255, 0.05)',
+            borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
+          },
+          '& .MuiDataGrid-cell': {
+            borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
+          },
+          '& .MuiDataGrid-row': {
+            '&:nth-of-type(even)': {
+              backgroundColor: 'rgba(255, 255, 255, 0.02)', // 斑马纹
+            },
+            '&:hover': {
+              backgroundColor: 'rgba(255, 255, 255, 0.04)',
+            },
+          },
+          '& .MuiDataGrid-columnHeader:focus, & .MuiDataGrid-cell:focus': {
+            outline: 'none',
+          },
+          '& .MuiDataGrid-columnHeader:focus-within, & .MuiDataGrid-cell:focus-within': {
+            outline: 'none',
+          },
+        },
+      },
+    },
+    MuiTextField: {
+      styleOverrides: {
+        root: {
+          '& .MuiOutlinedInput-root': {
+            borderRadius: 10,
+            backdropFilter: 'blur(8px)',
+            backgroundColor: 'rgba(30, 41, 59, 0.7)',
+            transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+            '&:hover': {
+              backgroundColor: 'rgba(30, 41, 59, 0.9)',
+            },
+            '&.Mui-focused': {
+              boxShadow: `0 0 0 2px ${PRIMARY.main}40`,
+            },
+            '& fieldset': {
+              borderColor: 'rgba(255, 255, 255, 0.15)',
+            },
+          },
         },
       },
     },

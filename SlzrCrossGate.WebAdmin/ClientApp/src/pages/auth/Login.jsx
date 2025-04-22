@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link as RouterLink } from 'react-router-dom';
+import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
 import {
@@ -21,10 +21,12 @@ import {
 import { Visibility, VisibilityOff } from '@mui/icons-material';
 import { useAuth } from '../../contexts/AuthContext';
 import { useSnackbar } from 'notistack';
+import WechatIcon from '../../components/icons/WechatIcon';
 
 const Login = () => {
   const { login } = useAuth();
   const { enqueueSnackbar } = useSnackbar();
+  const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -48,7 +50,21 @@ const Login = () => {
         const result = await login(values.username, values.password);
 
         if (result.success) {
+          // 如果需要双因素验证
+          if (result.requireTwoFactor) {
+            navigate('/two-factor-verify');
+            return;
+          }
+
+          // 如果需要设置双因素验证
+          if (result.setupTwoFactor) {
+            navigate('/two-factor-setup');
+            return;
+          }
+
+          // 正常登录成功
           enqueueSnackbar('登录成功', { variant: 'success' });
+          navigate('/app/dashboard');
         } else {
           setError(result.message || '登录失败，请检查用户名和密码');
         }
@@ -170,11 +186,11 @@ const Login = () => {
               <Button
                 fullWidth
                 variant="outlined"
-                color="primary"
-                component={RouterLink}
-                to="/verify-code"
+                color="success"
+                startIcon={<WechatIcon />}
+                onClick={() => navigate('/wechat-login')}
               >
-                使用动态口令登录
+                微信扫码登录
               </Button>
             </Grid>
           </Grid>

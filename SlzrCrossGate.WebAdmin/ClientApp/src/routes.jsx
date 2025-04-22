@@ -6,6 +6,9 @@ import DashboardLayout from './layouts/DashboardLayout';
 import LoginView from './pages/auth/Login';
 import RegisterView from './pages/auth/Register';
 import ForgotPasswordView from './pages/auth/ForgotPassword';
+import TwoFactorVerifyView from './pages/auth/TwoFactorVerify';
+import TwoFactorSetupView from './pages/auth/TwoFactorSetup';
+import WechatLoginView from './pages/auth/WechatLogin';
 import NotFoundView from './pages/errors/NotFoundView';
 import DashboardView from './pages/dashboard/DashboardView';
 import UserListView from './pages/users/UserListView';
@@ -60,6 +63,9 @@ const routes = [
       { path: 'login', element: <LoginView /> },
       { path: 'register', element: <RegisterView /> },
       { path: 'forgot-password', element: <ForgotPasswordView /> },
+      { path: 'two-factor-verify', element: <TwoFactorVerifyView /> },
+      { path: 'two-factor-setup', element: <TwoFactorSetupView /> },
+      { path: 'wechat-login', element: <WechatLoginView /> },
       { path: '/', element: <Navigate to="/app/dashboard" /> },
       { path: '*', element: <Navigate to="/app/404" /> }
     ]

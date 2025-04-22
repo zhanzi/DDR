@@ -1,15 +1,13 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { Link as RouterLink, useLocation } from 'react-router-dom';
 import PropTypes from 'prop-types';
 import {
   Avatar,
   Box,
-  Button,
   Divider,
   Drawer,
   List,
   Typography,
-  Tooltip,
   useMediaQuery,
   useTheme as useMuiTheme
 } from '@mui/material';
@@ -81,17 +79,38 @@ const items = [
   }
 ];
 
-const DashboardSidebar = ({ onMobileClose, openMobile, isCollapsed }) => {
+const DashboardSidebar = ({
+  onMobileClose = () => {},
+  openMobile = false,
+  isCollapsed = false
+}) => {
   const location = useLocation();
   const muiTheme = useMuiTheme();
-  const { mode } = useTheme();
+  const { mode, theme } = useTheme();
   const isMobile = useMediaQuery(muiTheme.breakpoints.down('lg'));
 
+  // 创建一个 ref 来跟踪是否是首次渲染
+  const isFirstRender = useRef(true);
+  // 记录上一次的路径
+  const prevPathRef = useRef(location.pathname);
+
+  // 只在路由变化时关闭移动端侧边栏，而不是在openMobile变化时
   useEffect(() => {
-    if (openMobile && onMobileClose) {
-      onMobileClose();
+    // 路由变化时关闭侧边栏，但不在组件首次挂载时执行
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      prevPathRef.current = location.pathname;
+      return;
     }
-  }, [location.pathname, onMobileClose, openMobile]);
+
+    // 只有当路径变化时才关闭侧边栏
+    if (prevPathRef.current !== location.pathname) {
+      prevPathRef.current = location.pathname;
+      if (openMobile && onMobileClose) {
+        onMobileClose();
+      }
+    }
+  }, [location.pathname, onMobileClose]);
 
   const content = (
     <Box
@@ -112,7 +131,8 @@ const DashboardSidebar = ({ onMobileClose, openMobile, isCollapsed }) => {
           alignItems: 'center',
           display: 'flex',
           flexDirection: 'column',
-          p: isCollapsed && !isMobile ? 1 : 2
+          p: isCollapsed && !isMobile ? 1 : 2,
+          mb: 1,
         }}
       >
         <Avatar
@@ -122,9 +142,20 @@ const DashboardSidebar = ({ onMobileClose, openMobile, isCollapsed }) => {
             cursor: 'pointer',
             width: isCollapsed && !isMobile ? 40 : 64,
             height: isCollapsed && !isMobile ? 40 : 64,
-            transition: muiTheme.transitions.create(['width', 'height'], {
+            transition: muiTheme.transitions.create(['width', 'height', 'box-shadow', 'transform'], {
               duration: muiTheme.transitions.duration.shorter,
+              easing: muiTheme.transitions.easing.easeInOut,
             }),
+            boxShadow: mode === 'dark'
+              ? '0 0 15px rgba(192, 132, 252, 0.5)'
+              : '0 0 15px rgba(126, 34, 206, 0.3)',
+            border: `2px solid ${mode === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(255, 255, 255, 0.8)'}`,
+            '&:hover': {
+              transform: 'scale(1.05)',
+              boxShadow: mode === 'dark'
+                ? '0 0 20px rgba(192, 132, 252, 0.7)'
+                : '0 0 20px rgba(126, 34, 206, 0.5)',
+            }
           }}
           to="/app/account"
         />
@@ -133,13 +164,30 @@ const DashboardSidebar = ({ onMobileClose, openMobile, isCollapsed }) => {
             <Typography
               color="textPrimary"
               variant="h5"
-              sx={{ mt: 1 }}
+              sx={{
+                mt: 1,
+                fontWeight: 600,
+                textAlign: 'center',
+                background: mode === 'dark'
+                  ? `linear-gradient(45deg, ${theme.palette.primary.light} 30%, ${theme.palette.secondary.light} 90%)`
+                  : `linear-gradient(45deg, ${theme.palette.primary.main} 30%, ${theme.palette.secondary.main} 90%)`,
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                textShadow: mode === 'dark'
+                  ? '0 0 10px rgba(192, 132, 252, 0.3)'
+                  : '0 0 10px rgba(126, 34, 206, 0.1)',
+              }}
             >
               {user.name}
             </Typography>
             <Typography
               color="textSecondary"
               variant="body2"
+              sx={{
+                textAlign: 'center',
+                fontWeight: 500,
+                opacity: 0.8,
+              }}
             >
               {user.jobTitle}
             </Typography>
@@ -161,46 +209,6 @@ const DashboardSidebar = ({ onMobileClose, openMobile, isCollapsed }) => {
         </List>
       </Box>
       <Box sx={{ flexGrow: 1 }} />
-      {(!isCollapsed || isMobile) && (
-        <Box
-          sx={{
-            backgroundColor: 'background.default',
-            m: 2,
-            p: 2
-          }}
-        >
-          <Typography
-            align="center"
-            gutterBottom
-            variant="h6"
-          >
-            需要帮助?
-          </Typography>
-          <Typography
-            align="center"
-            variant="body2"
-          >
-            查看系统文档
-          </Typography>
-          <Box
-            sx={{
-              display: 'flex',
-              justifyContent: 'center',
-              pt: 2
-            }}
-          >
-            <Button
-              color="primary"
-              component="a"
-              href="https://material-ui.com/store/items/devias-kit-pro"
-              variant="contained"
-              size="small"
-            >
-              查看文档
-            </Button>
-          </Box>
-        </Box>
-      )}
     </Box>
   );
 
@@ -209,12 +217,31 @@ const DashboardSidebar = ({ onMobileClose, openMobile, isCollapsed }) => {
       {isMobile ? (
         <Drawer
           anchor="left"
-          onClose={onMobileClose}
+          onClose={(e) => {
+            e.stopPropagation(); // 阻止事件冒泡
+            onMobileClose();
+          }}
           open={openMobile}
           variant="temporary"
+          ModalProps={{
+            keepMounted: true, // 改善移动端性能
+            disableScrollLock: false, // 防止背景滚动
+            disablePortal: false, // 使用传送门渲染
+            disableAutoFocus: false, // 允许自动聚焦
+            disableEnforceFocus: false, // 强制聚焦
+          }}
           PaperProps={{
             sx: {
-              width: 280
+              width: 280,
+              backdropFilter: 'blur(10px)',
+              backgroundColor: mode === 'dark'
+                ? 'rgba(15, 23, 42, 0.9)'
+                : 'rgba(255, 255, 255, 0.9)',
+              borderRight: `1px solid ${mode === 'dark' ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.08)'}`,
+              boxShadow: mode === 'dark'
+                ? '0px 8px 24px rgba(0, 0, 0, 0.4)'
+                : '0px 8px 24px rgba(0, 0, 0, 0.1)',
+              zIndex: muiTheme.zIndex.drawer + 2, // 确保在移动端上正确显示
             }
           }}
         >
@@ -231,11 +258,18 @@ const DashboardSidebar = ({ onMobileClose, openMobile, isCollapsed }) => {
               top: 64,
               height: 'calc(100% - 64px)',
               transition: muiTheme.transitions.create(['width'], {
-                easing: muiTheme.transitions.easing.sharp,
-                duration: muiTheme.transitions.duration.enteringScreen,
+                easing: muiTheme.transitions.easing.easeInOut,
+                duration: muiTheme.transitions.duration.standard,
               }),
               overflowX: 'hidden',
-              boxShadow: mode === 'dark' ? 'none' : '0px 2px 8px rgba(0, 0, 0, 0.05)'
+              backdropFilter: 'blur(10px)',
+              backgroundColor: mode === 'dark'
+                ? 'rgba(15, 23, 42, 0.9)'
+                : 'rgba(255, 255, 255, 0.9)',
+              borderRight: `1px solid ${mode === 'dark' ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.08)'}`,
+              boxShadow: mode === 'dark'
+                ? 'none'
+                : '0px 2px 8px rgba(0, 0, 0, 0.05)',
             }
           }}
         >
@@ -252,10 +286,6 @@ DashboardSidebar.propTypes = {
   isCollapsed: PropTypes.bool
 };
 
-DashboardSidebar.defaultProps = {
-  onMobileClose: () => { },
-  openMobile: false,
-  isCollapsed: false
-};
+// 使用 JavaScript 默认参数代替 defaultProps
 
 export default DashboardSidebar;

@@ -13,13 +13,11 @@ namespace SlzrCrossGate.Core.Models
     public class FileType : ITenantEntity
     {
         [StringLength(3)]
-        [Key]
         /// <summary>
         /// 文件代码
         /// </summary>
         public required string ID { get; set; }
 
-        [Key]
         [MaxLength(8)]
         public required string MerchantID { get; set; }
 

@@ -6,6 +6,8 @@ using SlzrCrossGate.Core.Models;
 using SlzrCrossGate.Core.Service;
 using SlzrCrossGate.Core.Service.BusinessServices;
 using SlzrCrossGate.WebAdmin.DTOs;
+
+
 using SlzrCrossGate.WebAdmin.Services;
 using System.Security.Claims;
 
@@ -110,11 +112,11 @@ namespace SlzrCrossGate.WebAdmin.Controllers
                 // 对于MySQL，可以使用JSON_EXTRACT函数
                 // 但由于EF Core的限制，这里我们先获取所有符合其他条件的终端，然后在内存中筛选
                 var terminals = await query.ToListAsync();
-                var filteredTerminals = terminals.Where(t => 
-                    t.Status != null && 
-                    t.Status.FileVersionMetadata.TryGetValue(fileType, out var version) && 
+                var filteredTerminals = terminals.Where(t =>
+                    t.Status != null &&
+                    t.Status.FileVersionMetadata.TryGetValue(fileType, out var version) &&
                     version.Current == fileVersion).ToList();
-                
+
                 var totalCount = filteredTerminals.Count;
                 var pagedTerminals = filteredTerminals
                     .Skip((page - 1) * pageSize)
@@ -138,7 +140,17 @@ namespace SlzrCrossGate.WebAdmin.Controllers
                         EndPoint = t.Status.EndPoint,
                         FileVersionMetadata = t.Status.FileVersionMetadata,
                         PropertyMetadata = t.Status.PropertyMetadata
-                    } : null
+                    } : null,
+
+                    // 兼容属性
+                    TerminalID = t.ID,
+                    DeviceID = t.MachineID,
+                    DeviceNo = t.DeviceNO,
+                    LineNo = t.LineNO,
+                    TerminalTypeID = t.TerminalType,
+                    IsActive = t.Status?.ActiveStatus == DeviceActiveStatus.Active,
+                    CreatedTime = t.CreateTime,
+                    UpdatedTime = t.CreateTime
                 }).ToList();
 
                 return new PaginatedResult<TerminalDto>
@@ -177,7 +189,17 @@ namespace SlzrCrossGate.WebAdmin.Controllers
                     EndPoint = t.Status.EndPoint,
                     FileVersionMetadata = t.Status.FileVersionMetadata,
                     PropertyMetadata = t.Status.PropertyMetadata
-                } : null
+                } : null,
+
+                // 兼容属性
+                TerminalID = t.ID,
+                DeviceID = t.MachineID,
+                DeviceNo = t.DeviceNO,
+                LineNo = t.LineNO,
+                TerminalTypeID = t.TerminalType,
+                IsActive = t.Status?.ActiveStatus == DeviceActiveStatus.Active,
+                CreatedTime = t.CreateTime,
+                UpdatedTime = t.CreateTime
             }).ToList();
 
             return new PaginatedResult<TerminalDto>
@@ -229,7 +251,17 @@ namespace SlzrCrossGate.WebAdmin.Controllers
                     EndPoint = terminal.Status.EndPoint,
                     FileVersionMetadata = terminal.Status.FileVersionMetadata,
                     PropertyMetadata = terminal.Status.PropertyMetadata
-                } : null
+                } : null,
+
+                // 兼容属性
+                TerminalID = terminal.ID,
+                DeviceID = terminal.MachineID,
+                DeviceNo = terminal.DeviceNO,
+                LineNo = terminal.LineNO,
+                TerminalTypeID = terminal.TerminalType,
+                IsActive = terminal.Status?.ActiveStatus == DeviceActiveStatus.Active,
+                CreatedTime = terminal.CreateTime,
+                UpdatedTime = terminal.CreateTime
             };
         }
 
@@ -385,7 +417,7 @@ namespace SlzrCrossGate.WebAdmin.Controllers
             }
 
             // 验证消息类型
-            var msgType = await _dbContext.MsgTypes.FirstOrDefaultAsync(m => m.Code == model.MsgTypeCode);
+            var msgType = await _dbContext.MsgTypes.FirstOrDefaultAsync(m => m.ID == model.MsgTypeCode);
             if (msgType == null)
             {
                 return BadRequest("Invalid message type");
@@ -410,8 +442,8 @@ namespace SlzrCrossGate.WebAdmin.Controllers
                 MerchantID = t.MerchantID,
                 TerminalID = t.ID,
                 MsgContentID = msgContent.ID,
-                CreateTime = DateTime.Now,
-                IsRead = false,
+                SendTime = DateTime.Now,
+                Status = MessageStatus.Unread,
                 ReadTime = null
             }).ToList();
 
@@ -421,13 +453,16 @@ namespace SlzrCrossGate.WebAdmin.Controllers
             // 记录事件
             foreach (var terminal in terminals)
             {
-                await _terminalEventService.RecordTerminalEventAsync(
-                    terminal.MerchantID,
-                    terminal.ID,
-                    TerminalEventType.MessageSent,
-                    EventSeverity.Info,
-                    $"Message sent: Type={model.MsgTypeCode}, Content={model.Content}"
-                );
+                await _terminalEventService.RecordTerminalEventAsync(new TerminalEvent
+                {
+                    MerchantID = terminal.MerchantID,
+                    TerminalID = terminal.ID,
+                    EventType = TerminalEventType.MessageSent,
+                    Severity = EventSeverity.Info,
+                    Remark = $"Message sent: Type={model.MsgTypeCode}, Content={model.Content}",
+                    Operator = ""
+                });
+                
             }
 
             return Ok(new { MessageId = msgContent.ID, TerminalCount = terminals.Count });
@@ -475,7 +510,7 @@ namespace SlzrCrossGate.WebAdmin.Controllers
                 Ver = fileVer.Ver,
                 FileSize = fileVer.FileSize,
                 Crc = fileVer.Crc,
-                UploadFileID = fileVer.UploadFileID,
+                FileVerID = fileVer.ID,
                 PublishType = PublishTypeOption.Terminal,
                 PublishTarget = string.Join(",", model.TerminalIds),
                 CreateTime = DateTime.Now,
@@ -489,17 +524,13 @@ namespace SlzrCrossGate.WebAdmin.Controllers
             var filePublishHistory = new FilePublishHistory
             {
                 MerchantID = terminals.First().MerchantID,
-                FilePublishID = filePublish.ID,
                 FileTypeID = fileVer.FileTypeID,
                 FilePara = fileVer.FilePara,
                 FileFullType = fileVer.FileFullType,
                 Ver = fileVer.Ver,
-                FileSize = fileVer.FileSize,
-                Crc = fileVer.Crc,
-                UploadFileID = fileVer.UploadFileID,
                 PublishType = PublishTypeOption.Terminal,
                 PublishTarget = string.Join(",", model.TerminalIds),
-                CreateTime = DateTime.Now,
+                PublishTime = DateTime.Now,
                 Operator = username
             };
 
@@ -509,13 +540,16 @@ namespace SlzrCrossGate.WebAdmin.Controllers
             // 记录事件
             foreach (var terminal in terminals)
             {
-                await _terminalEventService.RecordTerminalEventAsync(
-                    terminal.MerchantID,
-                    terminal.ID,
-                    TerminalEventType.FilePublished,
-                    EventSeverity.Info,
-                    $"File published: Type={fileVer.FileFullType}, Version={fileVer.Ver}"
-                );
+                await _terminalEventService.RecordTerminalEventAsync(new TerminalEvent
+                {
+                    MerchantID = terminal.MerchantID,
+                    TerminalID = terminal.ID,
+                    EventType = TerminalEventType.FilePublished,
+                    Severity = EventSeverity.Info,
+                    Remark = $"File published: Type={fileVer.FileFullType}, Version={fileVer.Ver}",
+                    Operator = ""
+                });
+                
             }
 
             return Ok(new { PublishId = filePublish.ID, TerminalCount = terminals.Count });

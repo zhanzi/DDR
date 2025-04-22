@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using SlzrCrossGate.Core.Models;
 using SlzrCrossGate.Core.Repositories;
@@ -11,16 +11,16 @@ using System.Threading.Tasks;
 
 namespace SlzrCrossGate.Core.Service.BusinessServices
 {
-    public class PublishFileSerice
+    public class PublishFileService
     {
-        private readonly ILogger<PublishFileSerice> _logger;
+        private readonly ILogger<PublishFileService> _logger;
         private readonly Repository<UploadFile> _uploadfileRepository;
         private readonly Repository<FileVer> _fileverRepository;
 
-        public PublishFileSerice(
+        public PublishFileService(
             Repository<UploadFile> uploadfileRepository,
             Repository<FileVer> fileverRepository,
-            ILogger<PublishFileSerice> logger)
+            ILogger<PublishFileService> logger)
         {
             _uploadfileRepository = uploadfileRepository;
             _fileverRepository = fileverRepository;

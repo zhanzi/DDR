@@ -12,21 +12,10 @@ namespace SlzrCrossGate.WebAdmin.Controllers
     [Route("api/[controller]")]
     [ApiController]
     [Authorize]
-    public class FileTypesController : ControllerBase
+    public class FileTypesController(TcpDbContext dbContext, UserService userService) : ControllerBase
     {
-        private readonly TcpDbContext _dbContext;
-        private readonly UserService _userService;
-        private readonly ILogger<FileTypesController> _logger;
-
-        public FileTypesController(
-            TcpDbContext dbContext,
-            UserService userService,
-            ILogger<FileTypesController> logger)
-        {
-            _dbContext = dbContext;
-            _userService = userService;
-            _logger = logger;
-        }
+        private readonly TcpDbContext _dbContext = dbContext;
+        private readonly UserService _userService = userService;
 
         // GET: api/FileTypes
         [HttpGet]
@@ -64,7 +53,7 @@ namespace SlzrCrossGate.WebAdmin.Controllers
 
             if (!string.IsNullOrEmpty(code))
             {
-                query = query.Where(t => t.Code.Contains(code));
+                query = query.Where(t => t.ID.Contains(code));
             }
 
             if (!string.IsNullOrEmpty(name))
@@ -84,10 +73,10 @@ namespace SlzrCrossGate.WebAdmin.Controllers
             // 转换为DTO
             var fileTypeDtos = fileTypes.Select(t => new FileTypeDto
             {
-                Code = t.Code,
+                Code = t.ID,
                 MerchantID = t.MerchantID,
                 Name = t.Name,
-                Remark = t.Remark
+                Remark = t.Description ?? string.Empty
             }).ToList();
 
             return new PaginatedResult<FileTypeDto>
@@ -114,7 +103,7 @@ namespace SlzrCrossGate.WebAdmin.Controllers
             }
 
             var fileType = await _dbContext.FileTypes
-                .FirstOrDefaultAsync(t => t.Code == code && t.MerchantID == merchantId);
+                .FirstOrDefaultAsync(t => t.ID == code && t.MerchantID == merchantId);
 
             if (fileType == null)
             {
@@ -123,10 +112,10 @@ namespace SlzrCrossGate.WebAdmin.Controllers
 
             return new FileTypeDto
             {
-                Code = fileType.Code,
+                Code = fileType.ID,
                 MerchantID = fileType.MerchantID,
                 Name = fileType.Name,
-                Remark = fileType.Remark
+                Remark = fileType.Description ?? string.Empty
             };
         }
 
@@ -147,7 +136,7 @@ namespace SlzrCrossGate.WebAdmin.Controllers
 
             // 检查文件类型是否已存在
             var existingFileType = await _dbContext.FileTypes
-                .FirstOrDefaultAsync(t => t.Code == model.Code && t.MerchantID == model.MerchantID);
+                .FirstOrDefaultAsync(t => t.ID == model.Code && t.MerchantID == model.MerchantID);
 
             if (existingFileType != null)
             {
@@ -157,21 +146,21 @@ namespace SlzrCrossGate.WebAdmin.Controllers
             // 创建新文件类型
             var fileType = new FileType
             {
-                Code = model.Code,
+                ID = model.Code,
                 MerchantID = model.MerchantID,
-                Name = model.Name,
-                Remark = model.Remark
+                Name = model.Name ?? string.Empty,
+                Description = model.Remark
             };
 
             _dbContext.FileTypes.Add(fileType);
             await _dbContext.SaveChangesAsync();
 
-            return CreatedAtAction(nameof(GetFileType), new { code = fileType.Code, merchantId = fileType.MerchantID }, new FileTypeDto
+            return CreatedAtAction(nameof(GetFileType), new { code = fileType.ID, merchantId = fileType.MerchantID }, new FileTypeDto
             {
-                Code = fileType.Code,
+                Code = fileType.ID,
                 MerchantID = fileType.MerchantID,
                 Name = fileType.Name,
-                Remark = fileType.Remark
+                Remark = fileType.Description ?? string.Empty
             });
         }
 
@@ -192,7 +181,7 @@ namespace SlzrCrossGate.WebAdmin.Controllers
 
             // 检查文件类型是否存在
             var fileType = await _dbContext.FileTypes
-                .FirstOrDefaultAsync(t => t.Code == code && t.MerchantID == merchantId);
+                .FirstOrDefaultAsync(t => t.ID == code && t.MerchantID == merchantId);
 
             if (fileType == null)
             {
@@ -200,8 +189,8 @@ namespace SlzrCrossGate.WebAdmin.Controllers
             }
 
             // 更新文件类型
-            fileType.Name = model.Name;
-            fileType.Remark = model.Remark;
+            fileType.Name = model.Name ?? string.Empty;
+            fileType.Description = model.Remark;
 
             await _dbContext.SaveChangesAsync();
 
@@ -225,7 +214,7 @@ namespace SlzrCrossGate.WebAdmin.Controllers
 
             // 检查文件类型是否存在
             var fileType = await _dbContext.FileTypes
-                .FirstOrDefaultAsync(t => t.Code == code && t.MerchantID == merchantId);
+                .FirstOrDefaultAsync(t => t.ID == code && t.MerchantID == merchantId);
 
             if (fileType == null)
             {

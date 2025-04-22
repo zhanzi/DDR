@@ -56,8 +56,14 @@ app.UseDefaultFiles();
 app.UseStaticFiles();
 app.UseRouting();
 
-
-app.UseCors();
+//开发环境允许跨域
+app.UseCors(builder =>
+{
+    builder.WithOrigins("http://localhost:3000")
+            .AllowAnyHeader()
+            .AllowAnyMethod()
+            .AllowCredentials();
+});
 
 app.UseHttpsRedirection();
 

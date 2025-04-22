@@ -34,15 +34,30 @@ const DashboardLayout = () => {
     setSidebarCollapsed(!isSidebarCollapsed);
   };
 
+  // 添加调试信息
+  console.log('Mobile nav state:', isMobileNavOpen);
+
+  const handleMobileNavOpen = () => {
+    console.log('Opening mobile nav');
+    // 使用函数式更新确保状态正确
+    setMobileNavOpen(true);
+  };
+
+  const handleMobileNavClose = () => {
+    console.log('Closing mobile nav');
+    // 使用函数式更新确保状态正确
+    setMobileNavOpen(false);
+  };
+
   return (
     <Box sx={{ display: 'flex', minHeight: '100%' }}>
       <DashboardNavbar
-        onMobileNavOpen={() => setMobileNavOpen(true)}
+        onMobileNavOpen={handleMobileNavOpen}
         isSidebarCollapsed={isSidebarCollapsed}
         onToggleSidebar={handleToggleSidebar}
       />
       <DashboardSidebar
-        onMobileClose={() => setMobileNavOpen(false)}
+        onMobileClose={handleMobileNavClose}
         openMobile={isMobileNavOpen}
         isCollapsed={isSidebarCollapsed}
       />

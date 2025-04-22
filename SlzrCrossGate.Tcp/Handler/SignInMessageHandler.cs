@@ -58,12 +58,15 @@ namespace SlzrCrossGate.Tcp.Handler
             response.Ok();
 
             await _terminalEventService.RecordTerminalEventAsync(
-                message.MerchantID,
-                message.TerimalID,
-                TerminalEventType.SignIn,
-                EventSeverity.Info,
-                $"sign in success"
-                );
+                new TerminalEvent
+                {
+                    MerchantID = message.MerchantID,
+                    TerminalID = message.TerimalID,
+                    EventType = TerminalEventType.SignIn,
+                    Severity = EventSeverity.Info,
+                    Remark = $"Sign in success",
+                    Operator = ""
+                });
 
             return response;
         }

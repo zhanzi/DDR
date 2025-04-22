@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using SlzrCrossGate.Tcp.Handler;
 using SlzrCrossGate.Tcp.Protocol;
 using SlzrCrossGate.Tcp.Service;
 
@@ -24,7 +25,7 @@ namespace SlzrCrossGate.Tcp
             {
                 if (handlerInterfaceType.IsAssignableFrom(type) && !type.IsInterface && !type.IsAbstract)
                 {
-                    services.AddSingleton(type);
+                    services.AddScoped(type);
                 }
             }
 
@@ -40,11 +41,16 @@ namespace SlzrCrossGate.Tcp
             builder.Services.AddSingleton<ITcpSendService, TcpSendService>();
             builder.Services.AddConnections();
 
+
             builder.Services.AddSingleton<Iso8583Schema>(new Iso8583Schema("schema.xml"));
 
             // 注册后台服务
             builder.Services.AddHostedService<TcpLifecycleManagerHostedService>();
             builder.Services.AddHostedService<ConsumeDataSaveHostedService>();
+
+
+
+
 
 
             //var app = builder.Build();

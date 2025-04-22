@@ -51,6 +51,26 @@ ClientApp/
 
 ## 样式风格指南
 
+### 设计风格
+
+项目采用玻璃拟态+微立体感风格，主要特点如下：
+
+1. **基础风格**
+   - 以深色模式为基础
+   - 主色使用 #7E22CE（紫色）
+   - 所有组件需有动画效果
+
+2. **组件规范**
+   - DataGrid: 带有半透明背景、圆角边框和阴影
+   - AppBar: 半透明模糊背景，带有细微的边框
+   - 按钮: 带有悬停和点击动画效果
+   - 卡片: 半透明背景，带有模糊效果和细微阴影
+
+3. **禁止事项**
+   - 禁止使用纯色背景卡片
+   - 禁止使用直角边框
+   - 禁止使用线性渐变
+
 ### 布局
 
 1. **主应用布局 (DashboardLayout)**
@@ -65,7 +85,7 @@ ClientApp/
 
 ### 颜色
 
-- 主色: Material UI 默认蓝色 (#1976d2)
+- 主色: 紫色 (#7E22CE)
 - 次要色: Material UI 默认紫色 (#9c27b0)
 - 错误色: Material UI 默认红色 (#d32f2f)
 - 成功色: Material UI 默认绿色 (#2e7d32)
@@ -151,7 +171,7 @@ ClientApp/
 
 **解决方案**:
 - 避免使用导航属性，改用显式的联结查询
-- 例如，将 `query.Include(m => m.MsgContent).ThenInclude(c => c.MsgType)` 
+- 例如，将 `query.Include(m => m.MsgContent).ThenInclude(c => c.MsgType)`
   改为 LINQ 联结查询:
   ```csharp
   var query = from msgBox in _dbContext.MsgBoxes
@@ -228,6 +248,117 @@ ClientApp/
 
 4. 对于 API 路径，确保在生产环境中使用正确的基础 URL
 
+## 登录系统与双因素验证
+
+### 登录流程
+
+1. **用户名密码登录**
+   - 用户输入用户名和密码
+   - 后端验证成功后，根据用户配置返回不同的响应：
+     - 如果用户已启用双因素验证，返回 `requireTwoFactor: true` 和临时令牌 `tempToken`
+     - 如果是新用户首次登录需要设置双因素验证，返回 `setupTwoFactor: true` 和临时令牌 `tempToken`
+     - 如果不需要双因素验证，直接返回完整的 `token`
+
+2. **双因素验证**
+   - 用户输入动态口令（6位数字）
+   - 后端验证成功后，返回完整的 `token`
+   - 验证页面路径：`/two-factor-verify`
+
+3. **双因素验证设置**
+   - 新用户首次登录时，引导设置双因素验证
+   - 设置流程包括三个步骤：下载验证器应用、扫描二维码、验证设置
+   - 设置页面路径：`/two-factor-setup`
+
+4. **微信扫码登录**
+   - 用户选择微信扫码登录选项
+   - 显示微信登录二维码
+   - 用户扫码后，前端定期检查登录状态
+   - 登录成功后，直接获取完整的 `token`，无需双因素验证
+   - 微信登录页面路径：`/wechat-login`
+
+### 相关组件和文件
+
+1. **认证上下文**
+   - 文件路径：`src/contexts/AuthContext.jsx`
+   - 主要状态：
+     - `isAuthenticated`: 用户是否已认证
+     - `user`: 当前用户信息
+     - `token`: JWT 令牌
+     - `needTwoFactor`: 是否需要双因素验证
+     - `isTwoFactorEnabled`: 用户是否已启用双因素验证
+     - `tempToken`: 临时令牌（用于双因素验证过程）
+   - 主要方法：
+     - `login`: 用户名密码登录
+     - `verifyTwoFactor`: 验证动态口令
+     - `setupTwoFactor`: 获取双因素验证设置信息
+     - `confirmTwoFactorSetup`: 确认双因素验证设置
+     - `loginWithWechat`: 获取微信登录二维码
+     - `checkWechatLoginStatus`: 检查微信登录状态
+
+2. **认证页面**
+   - 登录页面：`src/pages/auth/Login.jsx`
+   - 双因素验证页面：`src/pages/auth/TwoFactorVerify.jsx`
+   - 双因素验证设置页面：`src/pages/auth/TwoFactorSetup.jsx`
+   - 微信登录页面：`src/pages/auth/WechatLogin.jsx`
+
+### 后端 API 需求
+
+1. `/api/auth/login`
+   - 方法：POST
+   - 参数：`username`, `password`
+   - 返回：
+     - 正常登录：`{ token: "...", isTwoFactorEnabled: false }`
+     - 需要双因素验证：`{ requireTwoFactor: true, tempToken: "..." }`
+     - 需要设置双因素验证：`{ setupTwoFactor: true, tempToken: "..." }`
+
+2. `/api/auth/verify-two-factor`
+   - 方法：POST
+   - 参数：`code`, `tempToken`
+   - 返回：`{ token: "...", isTwoFactorEnabled: true }`
+
+3. `/api/auth/setup-two-factor`
+   - 方法：POST
+   - 参数：`tempToken`
+   - 返回：`{ qrCode: "data:image/png;base64,...", secret: "ABCDEF123456" }`
+
+4. `/api/auth/confirm-two-factor`
+   - 方法：POST
+   - 参数：`code`, `tempToken`
+   - 返回：`{ token: "..." }`
+
+5. `/api/auth/wechat-login`
+   - 方法：GET
+   - 返回：`{ qrCodeUrl: "data:image/png;base64,...", loginId: "unique-id" }`
+
+6. `/api/auth/wechat-login-status`
+   - 方法：GET
+   - 参数：`loginId`
+   - 返回：
+     - 等待扫码：`{ status: "waiting" }`
+     - 已扫码未确认：`{ status: "scanned" }`
+     - 登录成功：`{ status: "success", token: "..." }`
+     - 二维码过期：`{ status: "expired" }`
+
+## 移动端适配
+
+### 侧边栏导航
+
+1. **移动端侧边栏实现**
+   - 使用 Material UI 的 Drawer 组件，设置 `variant="temporary"`
+   - 通过 `openMobile` 状态控制侧边栏的显示和隐藏
+   - 点击菜单按钮打开侧边栏，点击外部区域或关闭按钮关闭侧边栏
+
+2. **关键文件**
+   - `src/layouts/DashboardLayout.jsx`: 管理侧边栏状态
+   - `src/layouts/DashboardSidebar.jsx`: 侧边栏组件
+   - `src/layouts/DashboardNavbar.jsx`: 顶部导航栏，包含菜单按钮
+
+3. **注意事项**
+   - 使用 `useRef` 跟踪路由变化，避免在组件挂载时关闭侧边栏
+   - 在路由变化时关闭侧边栏，但不在 `openMobile` 状态变化时触发关闭
+   - 使用 `e.stopPropagation()` 阻止事件冒泡，避免意外关闭
+   - 设置适当的 `zIndex` 确保侧边栏在正确的层级显示
+
 ## 未来改进计划
 
 1. 添加更多的单元测试和集成测试
@@ -235,3 +366,6 @@ ClientApp/
 3. 优化应用性能，减少不必要的重新渲染
 4. 增强安全性，实现更完善的认证和授权机制
 5. 改进用户体验，添加更多的交互反馈和动画效果
+6. 完善用户管理、角色管理和商户管理功能
+7. 实现文件管理模块的上传、预览和版本控制功能
+8. 优化移动端体验，提高响应式设计的适配性

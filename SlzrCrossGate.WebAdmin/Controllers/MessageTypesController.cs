@@ -12,21 +12,10 @@ namespace SlzrCrossGate.WebAdmin.Controllers
     [Route("api/[controller]")]
     [ApiController]
     [Authorize]
-    public class MessageTypesController : ControllerBase
+    public class MessageTypesController(TcpDbContext dbContext, UserService userService) : ControllerBase
     {
-        private readonly TcpDbContext _dbContext;
-        private readonly UserService _userService;
-        private readonly ILogger<MessageTypesController> _logger;
-
-        public MessageTypesController(
-            TcpDbContext dbContext,
-            UserService userService,
-            ILogger<MessageTypesController> logger)
-        {
-            _dbContext = dbContext;
-            _userService = userService;
-            _logger = logger;
-        }
+        private readonly TcpDbContext _dbContext = dbContext;
+        private readonly UserService _userService = userService;
 
         // GET: api/MessageTypes
         [HttpGet]
@@ -64,7 +53,7 @@ namespace SlzrCrossGate.WebAdmin.Controllers
 
             if (!string.IsNullOrEmpty(code))
             {
-                query = query.Where(t => t.Code.Contains(code));
+                query = query.Where(t => t.ID.Contains(code));
             }
 
             if (!string.IsNullOrEmpty(name))
@@ -84,10 +73,10 @@ namespace SlzrCrossGate.WebAdmin.Controllers
             // 转换为DTO
             var messageTypeDtos = messageTypes.Select(t => new MessageTypeDto
             {
-                Code = t.Code,
+                Code = t.ID,
                 MerchantID = t.MerchantID,
                 Name = t.Name,
-                Remark = t.Remark
+                Remark = t.Description
             }).ToList();
 
             return new PaginatedResult<MessageTypeDto>
@@ -114,7 +103,7 @@ namespace SlzrCrossGate.WebAdmin.Controllers
             }
 
             var messageType = await _dbContext.MsgTypes
-                .FirstOrDefaultAsync(t => t.Code == code && t.MerchantID == merchantId);
+                .FirstOrDefaultAsync(t => t.ID == code && t.MerchantID == merchantId);
 
             if (messageType == null)
             {
@@ -123,10 +112,10 @@ namespace SlzrCrossGate.WebAdmin.Controllers
 
             return new MessageTypeDto
             {
-                Code = messageType.Code,
+                Code = messageType.ID,
                 MerchantID = messageType.MerchantID,
                 Name = messageType.Name,
-                Remark = messageType.Remark
+                Remark = messageType.Description
             };
         }
 
@@ -147,7 +136,7 @@ namespace SlzrCrossGate.WebAdmin.Controllers
 
             // 检查消息类型是否已存在
             var existingMessageType = await _dbContext.MsgTypes
-                .FirstOrDefaultAsync(t => t.Code == model.Code && t.MerchantID == model.MerchantID);
+                .FirstOrDefaultAsync(t => t.ID == model.Code && t.MerchantID == model.MerchantID);
 
             if (existingMessageType != null)
             {
@@ -157,21 +146,21 @@ namespace SlzrCrossGate.WebAdmin.Controllers
             // 创建新消息类型
             var messageType = new MsgType
             {
-                Code = model.Code,
+                ID = model.Code,
                 MerchantID = model.MerchantID,
                 Name = model.Name,
-                Remark = model.Remark
+                Description = model.Remark
             };
 
             _dbContext.MsgTypes.Add(messageType);
             await _dbContext.SaveChangesAsync();
 
-            return CreatedAtAction(nameof(GetMessageType), new { code = messageType.Code, merchantId = messageType.MerchantID }, new MessageTypeDto
+            return CreatedAtAction(nameof(GetMessageType), new { code = messageType.ID, merchantId = messageType.MerchantID }, new MessageTypeDto
             {
-                Code = messageType.Code,
+                Code = messageType.ID,
                 MerchantID = messageType.MerchantID,
                 Name = messageType.Name,
-                Remark = messageType.Remark
+                Remark = messageType.Description
             });
         }
 
@@ -192,7 +181,7 @@ namespace SlzrCrossGate.WebAdmin.Controllers
 
             // 检查消息类型是否存在
             var messageType = await _dbContext.MsgTypes
-                .FirstOrDefaultAsync(t => t.Code == code && t.MerchantID == merchantId);
+                .FirstOrDefaultAsync(t => t.ID == code && t.MerchantID == merchantId);
 
             if (messageType == null)
             {
@@ -201,7 +190,7 @@ namespace SlzrCrossGate.WebAdmin.Controllers
 
             // 更新消息类型
             messageType.Name = model.Name;
-            messageType.Remark = model.Remark;
+            messageType.Description = model.Remark;
 
             await _dbContext.SaveChangesAsync();
 
@@ -225,7 +214,7 @@ namespace SlzrCrossGate.WebAdmin.Controllers
 
             // 检查消息类型是否存在
             var messageType = await _dbContext.MsgTypes
-                .FirstOrDefaultAsync(t => t.Code == code && t.MerchantID == merchantId);
+                .FirstOrDefaultAsync(t => t.ID == code && t.MerchantID == merchantId);
 
             if (messageType == null)
             {

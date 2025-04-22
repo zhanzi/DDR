@@ -4,6 +4,7 @@ namespace SlzrCrossGate.WebAdmin.DTOs
 {
     public class TerminalDto
     {
+        // 主要属性
         public string ID { get; set; } = string.Empty;
         public string MerchantID { get; set; } = string.Empty;
         public string MachineID { get; set; } = string.Empty;
@@ -12,6 +13,16 @@ namespace SlzrCrossGate.WebAdmin.DTOs
         public string TerminalType { get; set; } = string.Empty;
         public DateTime CreateTime { get; set; }
         public TerminalStatusDto? Status { get; set; }
+
+        // 兼容属性
+        public string TerminalID { get; set; } = string.Empty;
+        public string DeviceID { get; set; } = string.Empty;
+        public string DeviceNo { get; set; } = string.Empty;
+        public string LineNo { get; set; } = string.Empty;
+        public string TerminalTypeID { get; set; } = string.Empty;
+        public bool IsActive { get; set; }
+        public DateTime CreatedTime { get; set; }
+        public DateTime UpdatedTime { get; set; }
     }
 
     public class TerminalStatusDto
@@ -44,12 +55,7 @@ namespace SlzrCrossGate.WebAdmin.DTOs
         public int InactiveCount { get; set; }
     }
 
-    public class SendMessageDto
-    {
-        public List<string> TerminalIds { get; set; } = new List<string>();
-        public string MsgTypeCode { get; set; } = string.Empty;
-        public string Content { get; set; } = string.Empty;
-    }
+    // SendMessageDto 已移至 MessageDtos.cs
 
     public class PublishFileDto
     {

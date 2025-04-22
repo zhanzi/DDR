@@ -37,6 +37,15 @@ namespace SlzrCrossGate.Core.Database
         {
             base.OnModelCreating(modelBuilder);
 
+
+            // FileType 定义复合主键
+            modelBuilder.Entity<FileType>()
+                .HasKey(e => new {e.ID,e.MerchantID }).IsClustered();
+
+
+            modelBuilder.Entity<MsgType>()
+                .HasKey(e => new { e.ID, e.MerchantID }).IsClustered();
+
             // 配置ConsumeData的 ReceiveTime 作为非聚集索引
             modelBuilder.Entity<ConsumeData>()
                 .HasIndex(c => c.ReceiveTime)

@@ -1,4 +1,4 @@
-﻿using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging;
 using SlzrCrossGate.Core.Models;
 using SlzrCrossGate.Core.Repositories;
 using System;
@@ -26,19 +26,21 @@ namespace SlzrCrossGate.Core.Service.BusinessServices
             _terminalEventService = terminalEventService;
         }
 
-        public async Task<UnionPayTerminalKey?> BindUnionPayTerminalKey(string merchantid, string terminalId, string machineid, string lineid, string busno) { 
-            var result= await _unionPayTerminalKeyRepository.BindUnionPayKeyAsync(merchantid, machineid, lineid, busno);
+        public async Task<UnionPayTerminalKey?> BindUnionPayTerminalKey(string merchantid, string terminalId, string machineid, string lineid, string busno)
+        {
+            var result = await _unionPayTerminalKeyRepository.BindUnionPayKeyAsync(merchantid, machineid, lineid, busno);
             if (result.Item1 && result.Item2 != null)
             {
                 //第一次绑定
-                await _terminalEventService.RecordTerminalEventAsync(
-                    merchantid,
-                    terminalId,
-                    TerminalEventType.UnionPayKeyBound,
-                    EventSeverity.Info,
-                    //绑定银联终端密钥
-                    $"bind unionpay key:UnionpayMerchantID={result.Item2.UP_MerchantID},UnionpayTerminalID={result.Item2.UP_TerminalID}"
-                    );
+                await _terminalEventService.RecordTerminalEventAsync(new TerminalEvent
+                {
+                    MerchantID = merchantid,
+                    TerminalID = terminalId,
+                    EventType = TerminalEventType.UnionPayKeyBound,
+                    Severity = EventSeverity.Info,
+                    Remark = $"bind unionpay key:UnionpayMerchantID={result.Item2.UP_MerchantID},UnionpayTerminalID={result.Item2.UP_TerminalID}",
+                    Operator = ""
+                });
             }
             return result.Item2;
         }

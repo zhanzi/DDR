@@ -12,21 +12,10 @@ namespace SlzrCrossGate.WebAdmin.Controllers
     [Route("api/[controller]")]
     [ApiController]
     [Authorize]
-    public class FileVersionsController : ControllerBase
+    public class FileVersionsController(TcpDbContext dbContext, UserService userService) : ControllerBase
     {
-        private readonly TcpDbContext _dbContext;
-        private readonly UserService _userService;
-        private readonly ILogger<FileVersionsController> _logger;
-
-        public FileVersionsController(
-            TcpDbContext dbContext,
-            UserService userService,
-            ILogger<FileVersionsController> logger)
-        {
-            _dbContext = dbContext;
-            _userService = userService;
-            _logger = logger;
-        }
+        private readonly TcpDbContext _dbContext = dbContext;
+        private readonly UserService _userService = userService;
 
         // GET: api/FileVersions
         [HttpGet]
@@ -54,31 +43,33 @@ namespace SlzrCrossGate.WebAdmin.Controllers
                 merchantId = currentUserMerchantId;
             }
 
-            // 构建查询
-            var query = _dbContext.FileVers
-                .Include(f => f.FileType)
-                .Where(f => !f.IsDelete)
-                .AsQueryable();
+            // 构建查询 - 使用联结查询代替导航属性
+            var query = from fileVer in _dbContext.FileVers
+                        join fileType in _dbContext.FileTypes
+                            on new { TypeId = fileVer.FileTypeID, MerchantId = fileVer.MerchantID }
+                            equals new { TypeId = fileType.ID, MerchantId = fileType.MerchantID }
+                        where !fileVer.IsDelete
+                        select new { FileVer = fileVer, FileTypeName = fileType.Name };
 
             // 应用筛选条件
             if (!string.IsNullOrEmpty(merchantId))
             {
-                query = query.Where(f => f.MerchantID == merchantId);
+                query = query.Where(f => f.FileVer.MerchantID == merchantId);
             }
 
             if (!string.IsNullOrEmpty(fileTypeId))
             {
-                query = query.Where(f => f.FileTypeID == fileTypeId);
+                query = query.Where(f => f.FileVer.FileTypeID == fileTypeId);
             }
 
             if (!string.IsNullOrEmpty(filePara))
             {
-                query = query.Where(f => f.FilePara == filePara);
+                query = query.Where(f => f.FileVer.FilePara == filePara);
             }
 
             if (!string.IsNullOrEmpty(ver))
             {
-                query = query.Where(f => f.Ver == ver);
+                query = query.Where(f => f.FileVer.Ver == ver);
             }
 
             // 获取总记录数
@@ -86,7 +77,7 @@ namespace SlzrCrossGate.WebAdmin.Controllers
 
             // 应用分页和排序
             var fileVersions = await query
-                .OrderByDescending(f => f.CreateTime)
+                .OrderByDescending(f => f.FileVer.CreateTime)
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
                 .ToListAsync();
@@ -94,19 +85,19 @@ namespace SlzrCrossGate.WebAdmin.Controllers
             // 转换为DTO
             var fileVersionDtos = fileVersions.Select(f => new FileVersionDto
             {
-                ID = f.ID,
-                MerchantID = f.MerchantID,
-                FileTypeID = f.FileTypeID,
-                FilePara = f.FilePara,
-                FileFullType = f.FileFullType,
-                Ver = f.Ver,
-                CreateTime = f.CreateTime,
-                UpdateTime = f.UpdateTime,
-                UploadFileID = f.UploadFileID,
-                FileSize = f.FileSize,
-                Crc = f.Crc,
-                Operator = f.Operator,
-                FileTypeName = f.FileType?.Name
+                ID = f.FileVer.ID,
+                MerchantID = f.FileVer.MerchantID,
+                FileTypeID = f.FileVer.FileTypeID,
+                FilePara = f.FileVer.FilePara,
+                FileFullType = f.FileVer.FileFullType,
+                Ver = f.FileVer.Ver,
+                CreateTime = f.FileVer.CreateTime,
+                UpdateTime = f.FileVer.UpdateTime,
+                UploadFileID = f.FileVer.UploadFileID,
+                FileSize = f.FileVer.FileSize,
+                Crc = f.FileVer.Crc,
+                Operator = f.FileVer.Operator,
+                FileTypeName = f.FileTypeName
             }).ToList();
 
             return new PaginatedResult<FileVersionDto>
@@ -126,36 +117,43 @@ namespace SlzrCrossGate.WebAdmin.Controllers
             var currentUserMerchantId = await _userService.GetUserMerchantIdAsync(User);
             var isSystemAdmin = User.IsInRole("SystemAdmin");
 
-            var fileVersion = await _dbContext.FileVers
-                .Include(f => f.FileType)
-                .FirstOrDefaultAsync(f => f.ID == id && !f.IsDelete);
+            // 使用联结查询代替导航属性
+            var result = await (from fv in _dbContext.FileVers
+                               join ft in _dbContext.FileTypes
+                                   on new { TypeId = fv.FileTypeID, MerchantId = fv.MerchantID }
+                                   equals new { TypeId = ft.ID, MerchantId = ft.MerchantID }
+                               where fv.ID == id && !fv.IsDelete
+                               select new { FileVer = fv, FileTypeName = ft.Name })
+                              .FirstOrDefaultAsync();
 
-            if (fileVersion == null)
+            if (result == null)
             {
                 return NotFound();
             }
 
+            var fileVer = result.FileVer;
+
             // 如果不是系统管理员，只能查看自己商户的文件版本
-            if (!isSystemAdmin && fileVersion.MerchantID != currentUserMerchantId)
+            if (!isSystemAdmin && fileVer.MerchantID != currentUserMerchantId)
             {
                 return Forbid();
             }
 
             return new FileVersionDto
             {
-                ID = fileVersion.ID,
-                MerchantID = fileVersion.MerchantID,
-                FileTypeID = fileVersion.FileTypeID,
-                FilePara = fileVersion.FilePara,
-                FileFullType = fileVersion.FileFullType,
-                Ver = fileVersion.Ver,
-                CreateTime = fileVersion.CreateTime,
-                UpdateTime = fileVersion.UpdateTime,
-                UploadFileID = fileVersion.UploadFileID,
-                FileSize = fileVersion.FileSize,
-                Crc = fileVersion.Crc,
-                Operator = fileVersion.Operator,
-                FileTypeName = fileVersion.FileType?.Name
+                ID = fileVer.ID,
+                MerchantID = fileVer.MerchantID,
+                FileTypeID = fileVer.FileTypeID,
+                FilePara = fileVer.FilePara,
+                FileFullType = fileVer.FileFullType,
+                Ver = fileVer.Ver,
+                CreateTime = fileVer.CreateTime,
+                UpdateTime = fileVer.UpdateTime,
+                UploadFileID = fileVer.UploadFileID,
+                FileSize = fileVer.FileSize,
+                Crc = fileVer.Crc,
+                Operator = fileVer.Operator,
+                FileTypeName = result.FileTypeName
             };
         }
 
@@ -176,7 +174,7 @@ namespace SlzrCrossGate.WebAdmin.Controllers
 
             // 检查文件类型是否存在
             var fileType = await _dbContext.FileTypes
-                .FirstOrDefaultAsync(t => t.Code == model.FileTypeID && t.MerchantID == model.MerchantID);
+                .FirstOrDefaultAsync(t => t.ID == model.FileTypeID && t.MerchantID == model.MerchantID);
 
             if (fileType == null)
             {
@@ -219,10 +217,11 @@ namespace SlzrCrossGate.WebAdmin.Controllers
             {
                 ID = fileId,
                 FileName = fileName,
-                FileSize = fileSize,
+                FileSize = (int)fileSize, // 显式转换为 int
                 FilePath = filePath,
                 UploadTime = DateTime.Now,
-                Operator = username
+                Crc = crc // 添加必要的 Crc 属性
+                // 移除 Operator 属性，因为 UploadFile 模型中没有该属性
             };
 
             _dbContext.UploadFiles.Add(uploadFile);
@@ -239,7 +238,7 @@ namespace SlzrCrossGate.WebAdmin.Controllers
                 CreateTime = DateTime.Now,
                 UpdateTime = DateTime.Now,
                 UploadFileID = fileId,
-                FileSize = fileSize,
+                FileSize = (int)fileSize, // 显式转换为 int
                 Crc = crc,
                 Operator = username,
                 IsDelete = false
@@ -348,7 +347,7 @@ namespace SlzrCrossGate.WebAdmin.Controllers
         }
 
         // 计算CRC32
-        private string CalculateCrc32(Stream stream)
+        private static string CalculateCrc32(Stream stream)
         {
             // 这里使用简化的CRC32计算方法，实际应用中可能需要更复杂的实现
             var crc32 = new Crc32();
@@ -395,8 +394,8 @@ namespace SlzrCrossGate.WebAdmin.Controllers
         protected override byte[] HashFinal()
         {
             byte[] hashBuffer = BitConverter.GetBytes(~_crc32);
-            this.HashValue = new byte[4] { hashBuffer[0], hashBuffer[1], hashBuffer[2], hashBuffer[3] };
-            return this.HashValue;
+            HashValue = hashBuffer;
+            return HashValue;
         }
 
         public override void Initialize()

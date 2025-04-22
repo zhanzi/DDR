@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -25,26 +25,33 @@ namespace SlzrCrossGate.Core
             builder.Services.AddMemoryCache();
 
             // 注册仓储
+            builder.Services.AddScoped(typeof(Repository<>));
             builder.Services.AddScoped<MsgBoxRepository>();
             builder.Services.AddScoped<Repository<UploadFile>>(); 
             builder.Services.AddScoped<Repository<FileVer>>();
             builder.Services.AddScoped<Repository<TerminalEvent>>();
-
-
-            // 注册业务服务
-            builder.Services.AddScoped<MsgBoxService>();
-            builder.Services.AddScoped<PublishFileSerice>();
-
-            builder.Services.AddSingleton<TerminalEventService>();
-            builder.Services.AddSingleton<FilePublishEventService>();
-
-            builder.Services.AddSingleton<TerminalEventService>();
-            builder.Services.AddSingleton<FilePublishEventService>();
-            builder.Services.AddSingleton<MsgboxEventService>();
+            builder.Services.AddScoped<UnionPayTerminalKeyRepository>();
+            builder.Services.AddScoped<ConsumeDataService>();
 
             //注册rabbitmqservice
             builder.Services.Configure<RabbitMQOptions>(builder.Configuration.GetSection("RabbitMQ"));
-            builder.Services.AddSingleton<IRabbitMQService,RabbitMQService>();
+            builder.Services.AddSingleton<IRabbitMQService, RabbitMQService>();
+
+            // 注册业务服务 - 确保生命周期匹配
+            builder.Services.AddScoped<MsgBoxService>();
+            builder.Services.AddScoped<PublishFileService>();
+            builder.Services.AddScoped<IncrementContentService>();
+            builder.Services.AddScoped<TerminalSignService>();
+            builder.Services.AddScoped<UnionPayTerminalKeyService>();
+            builder.Services.AddScoped<FilePublishEventService>();
+
+
+            builder.Services.AddSingleton<TerminalManager>();
+            builder.Services.AddSingleton<TerminalEventService>();
+            builder.Services.AddSingleton<MsgboxEventService>();
+
+
+
 
 
 

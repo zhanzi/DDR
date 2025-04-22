@@ -1,4 +1,4 @@
-﻿using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging;
 using SlzrCrossGate.Core.Models;
 using SlzrCrossGate.Core.Repositories;
 using System;

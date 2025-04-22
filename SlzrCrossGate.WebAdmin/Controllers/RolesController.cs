@@ -3,27 +3,18 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SlzrCrossGate.Core.Models;
+using SlzrCrossGate.WebAdmin.DTOs;
 
 namespace SlzrCrossGate.WebAdmin.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
     [Authorize(Roles = "SystemAdmin")]
-    public class RolesController : ControllerBase
+    public class RolesController(RoleManager<ApplicationRole> roleManager, UserManager<ApplicationUser> userManager, ILogger<RolesController> logger) : ControllerBase
     {
-        private readonly RoleManager<ApplicationRole> _roleManager;
-        private readonly UserManager<ApplicationUser> _userManager;
-        private readonly ILogger<RolesController> _logger;
-
-        public RolesController(
-            RoleManager<ApplicationRole> roleManager,
-            UserManager<ApplicationUser> userManager,
-            ILogger<RolesController> logger)
-        {
-            _roleManager = roleManager;
-            _userManager = userManager;
-            _logger = logger;
-        }
+        private readonly RoleManager<ApplicationRole> _roleManager = roleManager;
+        private readonly UserManager<ApplicationUser> _userManager = userManager;
+        private readonly ILogger<RolesController> _logger = logger;
 
         // GET: api/roles
         [HttpGet]
@@ -35,9 +26,9 @@ namespace SlzrCrossGate.WebAdmin.Controllers
                 var roleDtos = roles.Select(r => new RoleDto
                 {
                     Id = r.Id,
-                    Name = r.Name,
+                    Name = r.Name ?? string.Empty,
                     IsSysAdmin = r.IsSysAdmin,
-                    Description = r.NormalizedName // 使用NormalizedName作为描述，实际应该有专门的Description字段
+                    Description = r.NormalizedName ?? string.Empty // 使用NormalizedName作为描述，实际应该有专门的Description字段
                 }).ToList();
 
                 return Ok(roleDtos);
@@ -64,9 +55,9 @@ namespace SlzrCrossGate.WebAdmin.Controllers
                 return Ok(new RoleDto
                 {
                     Id = role.Id,
-                    Name = role.Name,
+                    Name = role.Name ?? string.Empty,
                     IsSysAdmin = role.IsSysAdmin,
-                    Description = role.NormalizedName // 使用NormalizedName作为描述，实际应该有专门的Description字段
+                    Description = role.NormalizedName ?? string.Empty // 使用NormalizedName作为描述，实际应该有专门的Description字段
                 });
             }
             catch (Exception ex)
@@ -105,9 +96,9 @@ namespace SlzrCrossGate.WebAdmin.Controllers
                 return CreatedAtAction(nameof(GetRole), new { id = role.Id }, new RoleDto
                 {
                     Id = role.Id,
-                    Name = role.Name,
+                    Name = role.Name ?? string.Empty,
                     IsSysAdmin = role.IsSysAdmin,
-                    Description = role.NormalizedName
+                    Description = role.NormalizedName ?? string.Empty
                 });
             }
             catch (Exception ex)
@@ -184,7 +175,7 @@ namespace SlzrCrossGate.WebAdmin.Controllers
                 }
 
                 // 检查是否有用户使用该角色
-                var usersInRole = await _userManager.GetUsersInRoleAsync(role.Name);
+                var usersInRole = await _userManager.GetUsersInRoleAsync(role.Name ?? string.Empty);
                 if (usersInRole.Any())
                 {
                     return BadRequest(new { message = "该角色已被用户使用，无法删除" });
@@ -207,7 +198,7 @@ namespace SlzrCrossGate.WebAdmin.Controllers
 
         // GET: api/roles/{id}/users
         [HttpGet("{id}/users")]
-        public async Task<ActionResult<IEnumerable<UserDto>>> GetUsersInRole(string id, [FromQuery] int page = 1, [FromQuery] int pageSize = 10)
+        public async Task<ActionResult<IEnumerable<RoleUserDto>>> GetUsersInRole(string id, [FromQuery] int page = 1, [FromQuery] int pageSize = 10)
         {
             try
             {
@@ -218,7 +209,7 @@ namespace SlzrCrossGate.WebAdmin.Controllers
                 }
 
                 // 获取该角色的所有用户
-                var usersInRole = await _userManager.GetUsersInRoleAsync(role.Name);
+                var usersInRole = await _userManager.GetUsersInRoleAsync(role.Name ?? string.Empty);
 
                 // 计算总数
                 var totalCount = usersInRole.Count;
@@ -230,18 +221,18 @@ namespace SlzrCrossGate.WebAdmin.Controllers
                     .ToList();
 
                 // 转换为DTO
-                var userDtos = new List<UserDto>();
+                var userDtos = new List<RoleUserDto>();
                 foreach (var user in pagedUsers)
                 {
                     var roles = await _userManager.GetRolesAsync(user);
-                    userDtos.Add(new UserDto
+                    userDtos.Add(new RoleUserDto
                     {
                         Id = user.Id,
-                        UserName = user.UserName,
-                        Email = user.Email,
-                        RealName = user.RealName,
-                        MerchantId = user.MerchantID,
-                        Roles = roles.ToList(),
+                        UserName = user.UserName ?? string.Empty,
+                        Email = user.Email ?? string.Empty,
+                        RealName = user.RealName ?? string.Empty,
+                        MerchantId = user.MerchantID ?? string.Empty,
+                        Roles = roles.ToList(), // 必须使用 ToList() 将 IList<string> 转换为 List<string>
                         EmailConfirmed = user.EmailConfirmed,
                         LockoutEnd = user.LockoutEnd
                     });
@@ -265,43 +256,15 @@ namespace SlzrCrossGate.WebAdmin.Controllers
         }
 
         // 判断是否是系统预定义角色
-        private bool IsSystemDefinedRole(string roleName)
+        private static bool IsSystemDefinedRole(string? roleName)
         {
+            if (string.IsNullOrEmpty(roleName))
+                return false;
+
             var systemRoles = new[] { "SystemAdmin", "MerchantAdmin", "User" };
             return systemRoles.Contains(roleName);
         }
     }
 
-    // DTO 类
-    public class RoleDto
-    {
-        public string Id { get; set; }
-        public string Name { get; set; }
-        public bool IsSysAdmin { get; set; }
-        public string Description { get; set; }
-    }
 
-    public class CreateRoleDto
-    {
-        public string Name { get; set; }
-        public bool IsSysAdmin { get; set; }
-    }
-
-    public class UpdateRoleDto
-    {
-        public string Name { get; set; }
-        public bool IsSysAdmin { get; set; }
-    }
-
-    public class UserDto
-    {
-        public string Id { get; set; }
-        public string UserName { get; set; }
-        public string Email { get; set; }
-        public string RealName { get; set; }
-        public string MerchantId { get; set; }
-        public List<string> Roles { get; set; }
-        public bool EmailConfirmed { get; set; }
-        public DateTimeOffset? LockoutEnd { get; set; }
-    }
 }

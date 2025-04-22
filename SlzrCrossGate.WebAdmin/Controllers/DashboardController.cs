@@ -70,11 +70,11 @@ namespace SlzrCrossGate.WebAdmin.Controllers
                 .CountAsync();
 
             var readMessages = await _dbContext.MsgBoxes
-                .Where(m => m.MerchantID == merchantId && m.IsRead)
+                .Where(m => m.MerchantID == merchantId && m.Status==MessageStatus.Replied)
                 .CountAsync();
 
             var unreadMessages = await _dbContext.MsgBoxes
-                .Where(m => m.MerchantID == merchantId && !m.IsRead)
+                .Where(m => m.MerchantID == merchantId && m.Status==MessageStatus.Unread)
                 .CountAsync();
 
             // 获取文件统计
@@ -202,7 +202,7 @@ namespace SlzrCrossGate.WebAdmin.Controllers
 
             // 获取消息统计
             var totalMessages = await _dbContext.MsgBoxes.CountAsync();
-            var readMessages = await _dbContext.MsgBoxes.Where(m => m.IsRead).CountAsync();
+            var readMessages = await _dbContext.MsgBoxes.Where(m => m.Status == MessageStatus.Read || m.Status == MessageStatus.Replied).CountAsync();
             var unreadMessages = totalMessages - readMessages;
 
             // 获取文件统计
@@ -325,7 +325,8 @@ namespace SlzrCrossGate.WebAdmin.Controllers
         {
             try
             {
-                return new Microsoft.VisualBasic.Devices.ComputerInfo().TotalPhysicalMemory / (1024 * 1024); // MB
+                // 使用 GC.GetGCMemoryInfo 代替 Microsoft.VisualBasic.Devices.ComputerInfo
+                return GC.GetGCMemoryInfo().TotalAvailableMemoryBytes / (1024 * 1024); // MB
             }
             catch
             {

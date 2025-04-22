@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Minio.DataModel.Notification;
 using SlzrCrossGate.Core.Database;
 using SlzrCrossGate.Core.Models;
 using SlzrCrossGate.Core.Service;
@@ -279,13 +280,16 @@ namespace SlzrCrossGate.WebAdmin.Controllers
             // 记录事件
             foreach (var terminal in terminals)
             {
-                await _terminalEventService.RecordTerminalEventAsync(
-                    terminal.MerchantID,
-                    terminal.ID,
-                    TerminalEventType.MessageSent,
-                    EventSeverity.Info,
-                    $"Message sent: Type={model.MsgTypeCode}, Content={model.Content}"
-                );
+                await _terminalEventService.RecordTerminalEventAsync(new TerminalEvent
+                {
+                    MerchantID = terminal.MerchantID,
+                    TerminalID = terminal.ID,
+                    EventType = TerminalEventType.MessageSent,
+                    Severity = EventSeverity.Info,
+                    Remark = $"Message sent: Type={model.MsgTypeCode}, Content={model.Content}",
+                    Operator = ""
+                });
+                
             }
 
             return new MessageSendResultDto
@@ -360,13 +364,15 @@ namespace SlzrCrossGate.WebAdmin.Controllers
             // 记录事件
             foreach (var terminal in terminals)
             {
-                await _terminalEventService.RecordTerminalEventAsync(
-                    terminal.MerchantID,
-                    terminal.ID,
-                    TerminalEventType.MessageSent,
-                    EventSeverity.Info,
-                    $"Message sent to line {model.LineNo}: Type={model.MsgTypeCode}, Content={model.Content}"
-                );
+                await _terminalEventService.RecordTerminalEventAsync(new TerminalEvent
+                {
+                    MerchantID = terminal.MerchantID,
+                    TerminalID = terminal.ID,
+                    EventType = TerminalEventType.MessageSent,
+                    Severity = EventSeverity.Info,
+                    Remark = $"Message sent to line {model.LineNo}: Type={model.MsgTypeCode}, Content={model.Content}",
+                    Operator = ""
+                }); 
             }
 
             return new MessageSendResultDto
@@ -441,13 +447,15 @@ namespace SlzrCrossGate.WebAdmin.Controllers
             // 记录事件
             foreach (var terminal in terminals)
             {
-                await _terminalEventService.RecordTerminalEventAsync(
-                    terminal.MerchantID,
-                    terminal.ID,
-                    TerminalEventType.MessageSent,
-                    EventSeverity.Info,
-                    $"Message sent to merchant: Type={model.MsgTypeCode}, Content={model.Content}"
-                );
+                await _terminalEventService.RecordTerminalEventAsync(new TerminalEvent
+                {
+                    MerchantID = terminal.MerchantID,
+                    TerminalID = terminal.ID,
+                    EventType = TerminalEventType.MessageSent,
+                    Severity = EventSeverity.Info,
+                    Remark = $"Message sent to merchant: Type={model.MsgTypeCode}, Content={model.Content}",
+                    Operator = ""
+                }); 
             }
 
             return new MessageSendResultDto

@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using SlzrCrossGate.Core.Models;
 using SlzrCrossGate.Core.Repositories;
@@ -14,8 +15,7 @@ namespace SlzrCrossGate.Core.Service.BusinessServices
 {
     public class TerminalEventService
     {
-
-        private readonly Repository<TerminalEvent> _terminalEventRepository;
+        private readonly IServiceProvider _serviceProvider;
         private readonly ILogger<TerminalEventService> _logger;
         private readonly ConcurrentQueue<TerminalEvent> _eventQueue;
         private readonly Timer _timer;
@@ -23,13 +23,12 @@ namespace SlzrCrossGate.Core.Service.BusinessServices
         private readonly TimeSpan _interval;
         private readonly SemaphoreSlim _semaphore = new SemaphoreSlim(1, 1);
 
-        public TerminalEventService(
-            Repository<TerminalEvent> terminalEventRepository,
+        public TerminalEventService(IServiceProvider serviceProvider,
             ILogger<TerminalEventService> logger,
             int batchSize = 100,
             TimeSpan? interval = null)
         {
-            _terminalEventRepository = terminalEventRepository;
+            _serviceProvider = serviceProvider;
             _logger = logger;
             _eventQueue = new ConcurrentQueue<TerminalEvent>();
             _batchSize = batchSize;
@@ -38,21 +37,10 @@ namespace SlzrCrossGate.Core.Service.BusinessServices
             _timer = new Timer(async _ => await ProcessQueueAsync(), null, _interval, _interval);
         }
 
-        public async Task RecordTerminalEventAsync(string merchantId, string terminalId, TerminalEventType eventType, EventSeverity eventSeverity, string remark)
+        public async Task RecordTerminalEventAsync(TerminalEvent terminalEvent)
         {
-            var terminalEvent = new TerminalEvent
-            {
-                MerchantID = merchantId,
-                TerminalID = terminalId,
-                EventName = eventType.ToString(),
-                EventType = eventType,
-                Severity = eventSeverity,
-                Remark = remark,
-                EventTime = DateTime.UtcNow
-            };
-
             _eventQueue.Enqueue(terminalEvent);
-            _logger.LogInformation("Queued terminal event: {MerchantID} {TerminalID} {EventName} {Severity} {Remark}", merchantId, terminalId, eventType, eventSeverity, remark);
+            _logger.LogInformation("Queued terminal event: {MerchantID} {TerminalID} {EventName} {Severity} {Remark}", terminalEvent.MerchantID, terminalEvent.TerminalID, terminalEvent.EventName, terminalEvent.Severity, terminalEvent.Remark);
 
             if (_semaphore.CurrentCount == 1 && _eventQueue.Count >= _batchSize)
             {
@@ -76,6 +64,7 @@ namespace SlzrCrossGate.Core.Service.BusinessServices
                 {
                     try
                     {
+                        var _terminalEventRepository = _serviceProvider.GetRequiredService<Repository<TerminalEvent>>();
                         await _terminalEventRepository.AddRangeAsync(eventsToProcess);
                         _logger.LogInformation("Processed {Count} terminal events", eventsToProcess.Count);
                     }

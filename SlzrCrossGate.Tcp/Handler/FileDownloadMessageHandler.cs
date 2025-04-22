@@ -1,5 +1,7 @@
+using Azure;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using Minio.DataModel.Notification;
 using SlzrCrossGate.Common;
 using SlzrCrossGate.Core.Models;
 using SlzrCrossGate.Core.Service.BusinessServices;
@@ -12,13 +14,13 @@ namespace SlzrCrossGate.Tcp.Handler
     public class FileDownloadMessageHandler : IIso8583MessageHandler
     {
         private readonly ILogger<FileDownloadMessageHandler> _logger;
-        private readonly PublishFileSerice  _publishFileSerice;
+        private readonly PublishFileService  _publishFileSerice;
         private readonly FileService _fileService;
         private readonly Iso8583Schema _schema;
         private readonly TerminalEventService _terminalEventService;
 
         public FileDownloadMessageHandler(ILogger<FileDownloadMessageHandler> logger, 
-            PublishFileSerice publishFileSerice, 
+            PublishFileService publishFileSerice, 
             FileService fileService,
             TerminalEventService terminalEventService,
             Iso8583Schema schema)
@@ -35,7 +37,7 @@ namespace SlzrCrossGate.Tcp.Handler
             var response = new Iso8583Message(_schema, Iso8583MessageType.FileUpdateResponse);
             //response.SetField(3, "806003");
 
-            // ∏˘æ›–≠“È∞Ê±æ»∑∂®≤Œ ˝Œª÷√
+            // Ê†πÊçÆÂçèËÆÆÁâàÊú¨Á°ÆÂÆöÂèÇÊï∞‰ΩçÁΩÆ
             bool isNewVersion = Convert.ToInt32(message.ProtocolVer, 16) >= 0x0200;
             int codeLen = isNewVersion ? 22 : 6;
 
@@ -49,7 +51,7 @@ namespace SlzrCrossGate.Tcp.Handler
 
             try
             {
-                // Ω‚ŒˆŒƒº˛«Î«Û–≈œ¢
+                // Ëß£ÊûêÊñá‰ª∂ËØ∑Ê±Ç‰ø°ÊÅØ
                 string fileCode = DataConvert.HexToString(filePathInfo.Substring(0, codeLen)).Replace("\0", "");
                 string fileVersion = filePathInfo.Substring(codeLen, 4);
                 int fileOffset = Convert.ToInt32(filePathInfo.Substring(codeLen + 4, 8), 16);
@@ -57,23 +59,23 @@ namespace SlzrCrossGate.Tcp.Handler
 
                 _logger.LogInformation("file download request:MerchantID={MerchantID},TerminalID={TerminalID}, fileCode={FileCode}, fileVersion={FileVersion}, fileOffset={FileOffset}, requestLength={RequestLength}", message.MerchantID, terminalId, fileCode, fileVersion, fileOffset, requestLength);
 
-                // ≤È’“Œƒº˛
+                // Êü•ÊâæÊñá‰ª∂
                 var filePublish = await _publishFileSerice.GetFileInfoAsync(message.MerchantID, fileCode, fileVersion);
                 if (filePublish == null)
                 {
                     _logger.LogWarning("filePublish is null:MerchantID={MerchantID} fileCode={FileCode}, fileVersion={FileVersion}", message.MerchantID, fileCode, fileVersion);
 
-                    response.Error("0006", "Œƒº˛≤ª¥Ê‘⁄");
+                    response.Error("0006", "Êñá‰ª∂‰∏çÂ≠òÂú®");
                     return response;
                 }
                 var fileLength = filePublish.FileSize;
 
-                // ºÏ≤ÈŒƒº˛∆´“∆ «∑Ò≥¨≥ˆ∑∂Œß
+                // Ê£ÄÊü•Êñá‰ª∂ÂÅèÁßªÊòØÂê¶Ë∂ÖÂá∫ËåÉÂõ¥
                 if (fileOffset >= fileLength)
                 {
                     _logger.LogWarning("fileOffset >= fileLength:fileOffset={FileOffset}, fileLength={FileLength},MerchantID={MerchantID},TerminalID={TerminalID}, fileCode={FileCode}, fileVersion={FileVersion},fileID={FileID}", fileOffset, fileLength, message.MerchantID, message.TerimalID, fileCode, fileVersion, filePublish.ID);
 
-                    response.Error("0007", "Œƒº˛∆´“∆≥¨≥ˆ∑∂Œß");
+                    response.Error("0007", "Êñá‰ª∂ÂÅèÁßªË∂ÖÂá∫ËåÉÂõ¥");
                     return response;
                 }
 
@@ -82,19 +84,19 @@ namespace SlzrCrossGate.Tcp.Handler
                     requestLength = fileLength - fileOffset;
                 }
 
-                // ªÒ»°Œƒº˛∆¨∂Œ
+                // Ëé∑ÂèñÊñá‰ª∂ÁâáÊÆµ
                 var fileSegment = await _fileService.GetFileSegmentAsync(filePublish.FilePath, fileOffset, requestLength);
 
                 if (fileSegment == null)
                 {
                     _logger.LogWarning("fileSegment is null:filePath={FilePath}, fileOffset={FileOffset}, requestLength={RequestLength},fileID={FileID}", filePublish.FilePath, fileOffset, requestLength, filePublish.ID);
 
-                    response.Error("0008", "Œƒº˛∆¨∂Œ≤ª¥Ê‘⁄");
+                    response.Error("0008", "Êñá‰ª∂ÁâáÊÆµ‰∏çÂ≠òÂú®");
                     return response;
                 }
                 response.SetField(48, fileSegment);
 
-                // …Ë÷√Œƒº˛¬∑æ∂–≈œ¢
+                // ËÆæÁΩÆÊñá‰ª∂Ë∑ØÂæÑ‰ø°ÊÅØ
                 if (isNewVersion)
                 {
                     response.SetField(50, filePathInfo);
@@ -104,32 +106,40 @@ namespace SlzrCrossGate.Tcp.Handler
                     response.SetField(47, filePathInfo);
                 }
 
-                // …Ë÷√≥…π¶œÏ”¶
+                // ËÆæÁΩÆÊàêÂäüÂìçÂ∫î
                 response.Ok();
 
 
-                // »Áπ˚ «Œƒº˛µ⁄“ª∏ˆ∆¨∂Œ
+                // Â¶ÇÊûúÊòØÊñá‰ª∂Á¨¨‰∏Ä‰∏™ÁâáÊÆµ
                 if (fileOffset == 0)
                 {
                     await _terminalEventService.RecordTerminalEventAsync(
-                        message.MerchantID,
-                        terminalId,
-                        TerminalEventType.FileDownloadStart,
-                        EventSeverity.Info,
-                        $"FileCode={fileCode},FileVersion={fileVersion},FilePath={filePublish.FilePath},FileID={filePublish.ID}" //  ¬º˛ƒ⁄»›
-                        );
+                        new TerminalEvent
+                        {
+                            MerchantID = message.MerchantID,
+                            TerminalID = terminalId,
+                            EventType = TerminalEventType.FileDownloadStart,
+                            Severity = EventSeverity.Info,
+                            Remark = $"FileCode={fileCode},FileVersion={fileVersion},FilePath={filePublish.FilePath},FileID={filePublish.ID}",
+                            Operator = ""
+                        });
+                    
                 }
 
-                // »Áπ˚ «Œƒº˛◊Ó∫Û“ª∏ˆ∆¨∂Œ
+                // Â¶ÇÊûúÊòØÊñá‰ª∂ÊúÄÂêé‰∏Ä‰∏™ÁâáÊÆµ
                 if (fileOffset + requestLength >= fileLength)
                 {
                     await _terminalEventService.RecordTerminalEventAsync(
-                        message.MerchantID,
-                        terminalId,
-                        TerminalEventType.FileDownloadEnd,
-                        EventSeverity.Info,
-                        $"FileCode={fileCode},FileVersion={fileVersion},FilePath={filePublish.FilePath},FileID={filePublish.ID}" //  ¬º˛ƒ⁄»›
-                        );
+                        new TerminalEvent
+                        {
+                            MerchantID = message.MerchantID,
+                            TerminalID = terminalId,
+                            EventType = TerminalEventType.FileDownloadEnd,
+                            Severity = EventSeverity.Info,
+                            Remark = $"FileCode={fileCode},FileVersion={fileVersion},FilePath={filePublish.FilePath},FileID={filePublish.ID}",
+                            Operator = ""
+                        });
+                    
                 }
 
                 return response;
@@ -140,7 +150,7 @@ namespace SlzrCrossGate.Tcp.Handler
                 _logger.LogError(ex, "handle file download error:MerchantID={MerchantID},TerminalID={TerminalID}, filePathInfo={filePathInfo}", message.MerchantID, terminalId, filePathInfo);
 
                 response.SetField(39, "0009");
-                response.SetField(38, "ƒ⁄≤ø¥¶¿Ì¥ÌŒÛ");
+                response.SetField(38, "ÂÜÖÈÉ®Â§ÑÁêÜÈîôËØØ");
                 return response;
             }
         }

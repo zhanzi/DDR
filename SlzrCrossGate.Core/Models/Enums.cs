@@ -1,6 +1,6 @@
 namespace SlzrCrossGate.Core.Models
 {
-    // ·¢²¼ÀàÐÍ
+    // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
     public enum PublishTypeOption
     {
         Merchant = 1,
@@ -17,14 +17,14 @@ namespace SlzrCrossGate.Core.Models
         TenantViewer = 4
     }
 
-    //ÏûÏ¢±àÂëÀàÐÍ£¬ASCII,HEX
+    //ï¿½ï¿½Ï¢ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Í£ï¿½ASCII,HEX
     public enum MessageCodeType
     {
         ASCII = 1,
         HEX = 2
     }
 
-    //Éè±¸»îÔ¾×´Ì¬
+    //ï¿½è±¸ï¿½ï¿½Ô¾×´Ì¬
     public enum DeviceActiveStatus
     {
         Active = 1,
@@ -39,7 +39,7 @@ namespace SlzrCrossGate.Core.Models
     }
 
     /// <summary>
-    /// ÊÂ¼þÑÏÖØ³Ì¶È
+    /// ï¿½Â¼ï¿½ï¿½ï¿½ï¿½Ø³Ì¶ï¿½
     /// </summary>
     public enum EventSeverity
     {
@@ -49,31 +49,35 @@ namespace SlzrCrossGate.Core.Models
     }
 
     /// <summary>
-    /// ÖÕ¶ËÊÂ¼þÀàÐÍ
+    /// ï¿½Õ¶ï¿½ï¿½Â¼ï¿½ï¿½ï¿½ï¿½ï¿½
     /// </summary>
     public enum TerminalEventType
-    {   
-        //ÖÕ¶Ë±»×¢²áµ½ÏµÍ³
+    {
+        //ï¿½Õ¶Ë±ï¿½×¢ï¿½áµ½ÏµÍ³
         Created = 0,
-        //Ç©µ½ÊÂ¼þ
+        //Ç©ï¿½ï¿½ï¿½Â¼ï¿½
         SignIn = 1,
-        //Ç©ÍËÊÂ¼þ
+        //Ç©ï¿½ï¿½ï¿½Â¼ï¿½
         SignOut = 2,
-        //ÎÄ¼þÏÂÔØ¿ªÊ¼
+        //ï¿½Ä¼ï¿½ï¿½ï¿½ï¿½Ø¿ï¿½Ê¼
         FileDownloadStart = 3,
-        //ÎÄ¼þÏÂÔØ½áÊø
+        //ï¿½Ä¼ï¿½ï¿½ï¿½ï¿½Ø½ï¿½ï¿½ï¿½
         FileDownloadEnd = 4,
-        //ÎÄ¼þ°æ±¾ÒÑ¸üÐÂ
+        //ï¿½Ä¼ï¿½ï¿½æ±¾ï¿½Ñ¸ï¿½ï¿½ï¿½
         FileVersionUpdated = 5,
-        //ÊôÐÔÒÑ±ä¸ü
+        //ï¿½ï¿½ï¿½ï¿½ï¿½Ñ±ï¿½ï¿½
         PropertyChanged = 6,
-        //ÒøÁªÃÜÔ¿ÒÑ°ó¶¨
+        //ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ô¿ï¿½Ñ°ï¿½
         UnionPayKeyBound = 7,
-        //ÉÌ»§ºÅÒÑ±ä¸ü
+        //ï¿½Ì»ï¿½ï¿½ï¿½ï¿½Ñ±ï¿½ï¿½
         MerchantIDChanged = 8,
-        //ÏßÂ·ºÅÒÑ±ä¸ü
+        //ï¿½ï¿½Â·ï¿½ï¿½ï¿½Ñ±ï¿½ï¿½
         LineNOChanged = 9,
-        //Éè±¸ºÅÒÑ±ä¸ü
+        //ï¿½è±¸ï¿½ï¿½ï¿½Ñ±ï¿½ï¿½
         DeviceNOChanged = 10,
+        //Message Sent
+        MessageSent = 11,
+        //File Published
+        FilePublished = 12,
     }
 }

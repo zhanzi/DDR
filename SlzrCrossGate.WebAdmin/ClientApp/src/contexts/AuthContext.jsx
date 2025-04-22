@@ -8,6 +8,9 @@ const initialState = {
   isInitialized: false,
   user: null,
   token: null,
+  needTwoFactor: false,
+  isTwoFactorEnabled: false,
+  tempToken: null, // 用于存储双因素验证前的临时令牌
 };
 
 // 定义 reducer
@@ -20,6 +23,7 @@ const reducer = (state, action) => {
         isInitialized: true,
         user: action.payload.user,
         token: action.payload.token,
+        isTwoFactorEnabled: action.payload.isTwoFactorEnabled || false,
       };
     case 'LOGIN':
       return {
@@ -27,6 +31,9 @@ const reducer = (state, action) => {
         isAuthenticated: true,
         user: action.payload.user,
         token: action.payload.token,
+        needTwoFactor: false,
+        tempToken: null,
+        isTwoFactorEnabled: action.payload.isTwoFactorEnabled || false,
       };
     case 'LOGOUT':
       return {
@@ -34,6 +41,8 @@ const reducer = (state, action) => {
         isAuthenticated: false,
         user: null,
         token: null,
+        needTwoFactor: false,
+        tempToken: null,
       };
     case 'REGISTER':
       return {
@@ -41,6 +50,27 @@ const reducer = (state, action) => {
         isAuthenticated: true,
         user: action.payload.user,
         token: action.payload.token,
+        isTwoFactorEnabled: action.payload.isTwoFactorEnabled || false,
+      };
+    case 'NEED_TWO_FACTOR':
+      return {
+        ...state,
+        needTwoFactor: true,
+        tempToken: action.payload.tempToken,
+        user: action.payload.user,
+      };
+    case 'TWO_FACTOR_SETUP_REQUIRED':
+      return {
+        ...state,
+        needTwoFactor: false,
+        isTwoFactorEnabled: false,
+        tempToken: action.payload.tempToken,
+        user: action.payload.user,
+      };
+    case 'TWO_FACTOR_SETUP_COMPLETE':
+      return {
+        ...state,
+        isTwoFactorEnabled: true,
       };
     default:
       return state;
@@ -133,6 +163,115 @@ export const AuthProvider = ({ children }) => {
         password,
       });
 
+      const { token, requireTwoFactor, setupTwoFactor, tempToken, isTwoFactorEnabled } = response.data;
+
+      // 如果需要设置双因素验证
+      if (setupTwoFactor) {
+        const user = jwtDecode(tempToken);
+        dispatch({
+          type: 'TWO_FACTOR_SETUP_REQUIRED',
+          payload: {
+            user,
+            tempToken,
+          },
+        });
+        return { success: true, setupTwoFactor: true };
+      }
+
+      // 如果需要双因素验证
+      if (requireTwoFactor) {
+        const user = jwtDecode(tempToken);
+        dispatch({
+          type: 'NEED_TWO_FACTOR',
+          payload: {
+            user,
+            tempToken,
+          },
+        });
+        return { success: true, requireTwoFactor: true };
+      }
+
+      // 正常登录成功
+      const user = jwtDecode(token);
+      localStorage.setItem('token', token);
+
+      dispatch({
+        type: 'LOGIN',
+        payload: {
+          user,
+          token,
+          isTwoFactorEnabled,
+        },
+      });
+
+      return { success: true };
+    } catch (error) {
+      return {
+        success: false,
+        message: error.response?.data?.message || '登录失败，请检查用户名和密码',
+      };
+    }
+  };
+
+  // 验证动态口令
+  const verifyTwoFactor = async (code) => {
+    try {
+      const response = await axios.post('/api/auth/verify-two-factor', {
+        code,
+        tempToken: state.tempToken,
+      });
+
+      const { token, isTwoFactorEnabled } = response.data;
+      const user = jwtDecode(token);
+
+      localStorage.setItem('token', token);
+
+      dispatch({
+        type: 'LOGIN',
+        payload: {
+          user,
+          token,
+          isTwoFactorEnabled,
+        },
+      });
+
+      return { success: true };
+    } catch (error) {
+      return {
+        success: false,
+        message: error.response?.data?.message || '验证失败，请检查动态口令',
+      };
+    }
+  };
+
+  // 设置动态口令
+  const setupTwoFactor = async () => {
+    try {
+      const response = await axios.post('/api/auth/setup-two-factor', {
+        tempToken: state.tempToken,
+      });
+
+      return {
+        success: true,
+        qrCode: response.data.qrCode,
+        secret: response.data.secret,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: error.response?.data?.message || '设置动态口令失败',
+      };
+    }
+  };
+
+  // 确认动态口令设置
+  const confirmTwoFactorSetup = async (code) => {
+    try {
+      const response = await axios.post('/api/auth/confirm-two-factor', {
+        code,
+        tempToken: state.tempToken,
+      });
+
       const { token } = response.data;
       const user = jwtDecode(token);
 
@@ -143,6 +282,7 @@ export const AuthProvider = ({ children }) => {
         payload: {
           user,
           token,
+          isTwoFactorEnabled: true,
         },
       });
 
@@ -150,7 +290,61 @@ export const AuthProvider = ({ children }) => {
     } catch (error) {
       return {
         success: false,
-        message: error.response?.data?.message || '登录失败，请检查用户名和密码',
+        message: error.response?.data?.message || '验证失败，请检查动态口令',
+      };
+    }
+  };
+
+  // 微信扫码登录
+  const loginWithWechat = async () => {
+    try {
+      // 获取微信扫码登录的二维码URL
+      const response = await axios.get('/api/auth/wechat-login');
+
+      return {
+        success: true,
+        qrCodeUrl: response.data.qrCodeUrl,
+        loginId: response.data.loginId,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: error.response?.data?.message || '获取微信登录二维码失败',
+      };
+    }
+  };
+
+  // 检查微信扫码登录状态
+  const checkWechatLoginStatus = async (loginId) => {
+    try {
+      const response = await axios.get(`/api/auth/wechat-login-status?loginId=${loginId}`);
+
+      if (response.data.status === 'success') {
+        const { token } = response.data;
+        const user = jwtDecode(token);
+
+        localStorage.setItem('token', token);
+
+        dispatch({
+          type: 'LOGIN',
+          payload: {
+            user,
+            token,
+            isTwoFactorEnabled: response.data.isTwoFactorEnabled || false,
+          },
+        });
+
+        return { success: true, status: 'success' };
+      }
+
+      return {
+        success: true,
+        status: response.data.status,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: error.response?.data?.message || '检查微信登录状态失败',
       };
     }
   };
@@ -199,6 +393,11 @@ export const AuthProvider = ({ children }) => {
         login,
         logout,
         register,
+        verifyTwoFactor,
+        setupTwoFactor,
+        confirmTwoFactorSetup,
+        loginWithWechat,
+        checkWechatLoginStatus,
       }}
     >
       {children}

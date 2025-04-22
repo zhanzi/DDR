@@ -1,4 +1,4 @@
-﻿using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging;
 using SlzrCrossGate.Core.Services;
 using System;
 using System.Collections.Generic;
@@ -11,14 +11,14 @@ namespace SlzrCrossGate.Core.Service.BusinessServices
     public class MsgboxEventService
     {
         private readonly ILogger<MsgboxEventService> _logger;
-        private readonly RabbitMQService _rabbitMQService;
+        private readonly IRabbitMQService _rabbitMQService;
 
         private readonly string EXCHANGE_NAME = "SlzrCrossGate.Event";
         private readonly string QUEUE_NAME = "SlzrCrossGate.Event.Queue.MsgboxEvent";
         private readonly string ROUTING_KEY = "Event.MsgboxEvent";
 
         public MsgboxEventService(
-            ILogger<MsgboxEventService> logger, RabbitMQService rabbitMQService)
+            ILogger<MsgboxEventService> logger, IRabbitMQService rabbitMQService)
         {
             _logger = logger;
             _rabbitMQService = rabbitMQService;
@@ -29,6 +29,7 @@ namespace SlzrCrossGate.Core.Service.BusinessServices
         /// </summary>
         /// <returns></returns>
         public async Task PurgeQueue() {
+            
             await _rabbitMQService.PurgeQueue(QUEUE_NAME);
         }
 

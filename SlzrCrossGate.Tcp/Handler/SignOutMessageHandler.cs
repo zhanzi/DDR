@@ -26,16 +26,17 @@ namespace SlzrCrossGate.Tcp.Handler
 
         public async Task<Iso8583Message> HandleMessageAsync(TcpConnectionContext context, Iso8583Message message)
         {
-            await _terminalEventService.RecordTerminalEventAsync(
-                message.MerchantID,
-                message.TerimalID,
-                TerminalEventType.SignOut,
-                EventSeverity.Info,
-                //ÖÕ¶ËÖ÷¶¯Ç©ÍË
-                $"terminal sign out"
-            );
+            await _terminalEventService.RecordTerminalEventAsync(new TerminalEvent
+            {
+                MerchantID = message.MerchantID,
+                TerminalID = message.TerimalID,
+                EventType = TerminalEventType.SignOut,
+                Severity = EventSeverity.Info,
+                Remark = $"Terminal sign out",
+                Operator = ""
+            }); 
 
-            // ·¢ËÍÇ©µ½³É¹¦ÏìÓ¦
+            // å‘é€ç­¾åˆ°æˆåŠŸå“åº”
             var response = new Iso8583Message(_schema, Iso8583MessageType.SignOffResponse);
             response.Ok();
             return response;

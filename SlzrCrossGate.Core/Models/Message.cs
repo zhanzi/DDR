@@ -10,11 +10,9 @@ namespace SlzrCrossGate.Core.Models
 {
     public class MsgType : ITenantEntity
     {
-        [Key]
         [StringLength(4)]
         public required string ID { get; set; }
 
-        [Key]
         [MaxLength(8)]
         public required string MerchantID { get; set; }
 
