@@ -35,6 +35,8 @@ namespace SlzrCrossGate.Core
             builder.Services.AddScoped<MsgBoxService>();
             builder.Services.AddScoped<PublishFileSerice>();
 
+            builder.Services.AddSingleton<TerminalEventService>();
+            builder.Services.AddSingleton<FilePublishEventService>();
 
             builder.Services.AddSingleton<TerminalEventService>();
             builder.Services.AddSingleton<FilePublishEventService>();
