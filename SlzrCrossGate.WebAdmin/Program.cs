@@ -2,8 +2,8 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using SlzrCrossGate.Core.Models;
 using Microsoft.AspNetCore.Identity.UI.Services;
-using SlzrCrossGate.Core.Database; // 添加此行
-
+using SlzrCrossGate.Core.Database;  
+using SlzrCrossGate.Core;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.AddServiceDefaults();
@@ -16,37 +16,18 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 
-//配置 DbContext
-//var databaseProvider = builder.Configuration.GetValue<string>("DatabaseProvider");
-//var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 
-//switch (databaseProvider)
-//{
-//    case "SqlServer":
-//        builder.Services.AddDbContext<TcpDbContext>(options =>
-//            options.UseSqlServer(connectionString));
-//        break;
-//    case "MySql":
-//        builder.Services.AddDbContext<TcpDbContext>(options =>
-//            options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString)));
-//        break;
-//    case "PostgreSql":
-//        builder.Services.AddDbContext<TcpDbContext>(options =>
-//            options.UseNpgsql(connectionString));
-//        break;
-//    default:
-//        throw new Exception("Unsupported database provider: " + databaseProvider);
-//}
+builder.AddCoreService();
 
-//builder.Services.AddIdentity<ApplicationUser, ApplicationRole>(options => options.SignIn.RequireConfirmedAccount = true) // 修改此行
-//    .AddEntityFrameworkStores<AdminDbContext>()
-//    .AddDefaultTokenProviders(); // 添加此行
+builder.Services.AddIdentity<ApplicationUser, ApplicationRole>(options => options.SignIn.RequireConfirmedAccount = true) 
+    .AddEntityFrameworkStores<TcpDbContext>()
+    .AddDefaultTokenProviders(); 
 
 //builder.Services.AddScoped<TenantService>();
 
 var app = builder.Build();
 
-//// 调用 SeedData.Initialize 方法
+
 //using (var scope = app.Services.CreateScope())
 //{
 //    var services = scope.ServiceProvider;
@@ -62,6 +43,7 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
+
 //app.Use(async (context, next) =>
 //{
 //    var tenantService = context.RequestServices.GetRequiredService<TenantService>();
@@ -70,11 +52,11 @@ if (app.Environment.IsDevelopment())
 //});
 
 app.UseDefaultFiles();
-//添加静态文件支持
+
 app.UseStaticFiles();
 app.UseRouting();
 
-//配置跨域访问
+
 app.UseCors();
 
 app.UseHttpsRedirection();

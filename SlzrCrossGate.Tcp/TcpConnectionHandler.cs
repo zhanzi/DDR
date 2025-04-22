@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -111,6 +111,7 @@ namespace SlzrCrossGate.Tcp
                                     MerchantID = message.MerchantID,
                                     CreateTime = DateTime.Now,
                                     IsDeleted = false,
+                                    TerminalType = message.TerminalType,
                                     Status = new TerminalStatus
                                     {
                                         ID = message.TerimalID,

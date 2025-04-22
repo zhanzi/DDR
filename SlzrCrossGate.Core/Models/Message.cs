@@ -32,6 +32,7 @@ namespace SlzrCrossGate.Core.Models
         [MaxLength(500)]
         public string? Description { get; set; }
 
+
     }
 
     public class MsgContent : ITenantEntity

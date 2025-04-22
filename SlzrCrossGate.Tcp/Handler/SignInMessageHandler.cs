@@ -114,7 +114,7 @@ namespace SlzrCrossGate.Tcp.Handler
             string code = "";
             for (int i = 0; i < count; i++)
             {
-                code = DataConvert.HexToString(content.Substring(i * len, codeLen)).Replace("\0", "").Clean();
+                code = DataConvert.HexToString(content.Substring(i * len, codeLen)).Replace("\0", "");
                 if (!dict.ContainsKey(code))
                 {
                     dict.Add(code, content.Substring(i * len + codeLen, 4));
