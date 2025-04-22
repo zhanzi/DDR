@@ -36,5 +36,8 @@ namespace SlzrCrossGate.Core.Service.BusinessServices
         public async Task Publish(FilePublishEventMessage filePublishEventMessage) { 
             await _rabbitMQService.PublishAsync(EXCHANGE_NAME, ROUTING_KEY, filePublishEventMessage);
         }
+
     }
+
+
 }
