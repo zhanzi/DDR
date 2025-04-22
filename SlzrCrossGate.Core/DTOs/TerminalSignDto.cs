@@ -1,4 +1,4 @@
-﻿using SlzrCrossGate.Core.Models;
+using SlzrCrossGate.Core.Models;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations.Schema;
@@ -20,7 +20,9 @@ namespace SlzrCrossGate.Core.DTOs
         public string DeviceNO { get; set; }
 
         public string LineNO { get; set; }
-         
+
+        public string TerminalType { get; set; }
+
         public string ClientFileVersions { get; set; } = "";
 
         public Dictionary<string,string> ClientFileVersionsMetaData { get; set; } = [];

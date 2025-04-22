@@ -13,13 +13,13 @@ namespace SlzrCrossGate.Core.Repositories
 {
     public class MsgBoxRepository(TcpDbContext context) : Repository<MsgBox>(context)
     {
-        //��ȡ��һ��δ�ظ���Ϣ
-        public async Task<MsgReadDto?> GetFirstUnRepliedMessageAsync(string terminalId)
+        //获取第一条未回复消息
+        public async Task<MsgReadDto?> GetFirstUnRepliedMessageAsync(string terminalId, string merchantId)
         {
             var query = from msgbox in _context.MsgBoxes
                         join msgcontent in _context.MsgContents on msgbox.MsgContentID equals msgcontent.ID
                         join msgtype in _context.MsgTypes on msgcontent.MsgTypeID equals msgtype.ID
-                        where msgbox.TerminalID == terminalId && msgbox.Status != MessageStatus.Replied
+                        where msgbox.MerchantID == merchantId && msgbox.TerminalID == terminalId && msgbox.Status != MessageStatus.Replied
                         select new MsgReadDto
                         {
                             CodeType = msgtype.CodeType,
@@ -30,7 +30,7 @@ namespace SlzrCrossGate.Core.Repositories
             return await query.FirstOrDefaultAsync();
         }
 
-        //�޸���ϢΪ�Ѷ�״̬
+        //修改消息为已读状态
         public async Task MarkMessageAsReadAsync(int messageId)
         {
             var message = await GetByIdAsync(messageId);
@@ -42,7 +42,7 @@ namespace SlzrCrossGate.Core.Repositories
             }
         }
 
-        //�޸���ϢΪ�ѻظ�״̬
+        //修改消息为已回复状态
         public async Task MarkMessageAsRepliedAsync(IEnumerable<MsgConfirmDto> msgConfirmDtos)
         {
             var confirmDtoIds = msgConfirmDtos.Select(c => c.ID).ToArray();

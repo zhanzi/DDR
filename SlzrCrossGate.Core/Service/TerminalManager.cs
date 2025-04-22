@@ -30,21 +30,21 @@ namespace SlzrCrossGate.Core.Service
         private readonly RabbitMQService _rabbitMQService;
         private readonly FilePublishEventService _filePublishEventService;
         private readonly MsgboxEventService _msgboxEventService;
-        //DIÈİÆ÷¶ÔÏó»ñÈ¡Æ÷
+        //DIå®¹å™¨å¯¹è±¡è·å–å™¨
         private readonly IServiceProvider _serviceProvider;
 
-        //»º´æÖÕ¶ËµÄÎ´¶ÁÏûÏ¢ÊıÁ¿
+        //ç¼“å­˜ç»ˆç«¯çš„æœªè¯»æ¶ˆæ¯æ•°é‡
         private readonly ConcurrentDictionary<string, MessageCount> _unreadMessageCount = new();
 
         /// <summary>
-        /// »º´æÓĞ°æ±¾ĞèÒª¸üĞÂµÄÖÕ¶Ë±àºÅ
+        /// ç¼“å­˜æœ‰ç‰ˆæœ¬éœ€è¦æ›´æ–°çš„ç»ˆç«¯ç¼–å·
         /// </summary>
         private readonly HashSet<string> _cachedNeedSignTerminalIds = new();
 
-        //Ôö¼Ó¶¨Ê±Æ÷£¬¶¨Ê±¼ì²éÖÕ¶ËµÄÎÄ¼ş°æ±¾ÊÇ·ñÓëÆÚÍû°æ±¾Ò»ÖÂ£¬²¢ÌáĞÑ¸üĞÂ
+        //å¢åŠ å®šæ—¶å™¨ï¼Œå®šæ—¶æ£€æŸ¥ç»ˆç«¯çš„æ–‡ä»¶ç‰ˆæœ¬æ˜¯å¦ä¸æœŸæœ›ç‰ˆæœ¬ä¸€è‡´ï¼Œå¹¶æé†’æ›´æ–°
         private readonly Timer _checkFileVersionTimer;
 
-        //Ôö¼Ó¶¨Ê±Æ÷£¬¶¨ÆÚ¶ÔÆÚÍû°æ±¾¹ıÆÚµÄÖÕ¶Ë½øĞĞ¸üĞÂ
+        //å¢åŠ å®šæ—¶å™¨ï¼Œå®šæœŸå¯¹æœŸæœ›ç‰ˆæœ¬è¿‡æœŸçš„ç»ˆç«¯è¿›è¡Œæ›´æ–°
         private readonly Timer _updateExpiredVersionTimer;
 
 
@@ -66,9 +66,9 @@ namespace SlzrCrossGate.Core.Service
             _filePublishRepository = filePublishRepository;
             _serviceProvider = serviceProvider;
 
-            //¶¨Ê±Æ÷£¬¶¨Ê±¼ì²éÖÕ¶ËµÄÎÄ¼ş°æ±¾ÊÇ·ñÓëÆÚÍû°æ±¾Ò»ÖÂ£¬²¢ÌáĞÑ¸üĞÂ. Ã¿·ÖÖÓ¼ì²éÒ»´Î
+            //å®šæ—¶å™¨ï¼Œå®šæ—¶æ£€æŸ¥ç»ˆç«¯çš„æ–‡ä»¶ç‰ˆæœ¬æ˜¯å¦ä¸æœŸæœ›ç‰ˆæœ¬ä¸€è‡´ï¼Œå¹¶æé†’æ›´æ–°. æ¯åˆ†é’Ÿæ£€æŸ¥ä¸€æ¬¡
             _checkFileVersionTimer = new Timer(new TimerCallback( _ =>  CheckTerminalFileVersion()), null, TimeSpan.FromSeconds(59), TimeSpan.FromSeconds(59));
-            //¶¨Ê±Æ÷£¬¶¨ÆÚ¶ÔÆÚÍû°æ±¾¹ıÆÚµÄÖÕ¶Ë½øĞĞ¸üĞÂ. 5·ÖÖÓ¼ì²éÒ»´Î
+            //å®šæ—¶å™¨ï¼Œå®šæœŸå¯¹æœŸæœ›ç‰ˆæœ¬è¿‡æœŸçš„ç»ˆç«¯è¿›è¡Œæ›´æ–°. 5åˆ†é’Ÿæ£€æŸ¥ä¸€æ¬¡
             _updateExpiredVersionTimer = new Timer(new TimerCallback(async _ => await UpdateExpiredTerminalVersion()), null, TimeSpan.FromSeconds(293), TimeSpan.FromSeconds(293));
             _msgBoxRepository = msgBoxRepository;
             _msgboxEventService = msgboxEventService;
@@ -107,13 +107,13 @@ namespace SlzrCrossGate.Core.Service
 
             if (isNewTerminal)
             {
-                //ÖÕ¶Ë²»´æÔÚ£¬Ìí¼ÓĞÂÖÕ¶Ë
+                //ç»ˆç«¯ä¸å­˜åœ¨ï¼Œæ·»åŠ æ–°ç»ˆç«¯
                 terminal.CreateTime = DateTime.Now;
                 terminal.IsDeleted = false;
                 await _terminalRepository.AddAsync(terminal);
                 await _terminalStatusRepository.AddAsync(terminal.Status);
 
-                //ÖÕ¶ËµÚÒ»´ÎÁ¬½Ó£¬¼ÇÂ¼ÊÂ¼ş
+                //ç»ˆç«¯ç¬¬ä¸€æ¬¡è¿æ¥ï¼Œè®°å½•äº‹ä»¶
                 _ = _terminalEventService.RecordTerminalEventAsync(
                     terminal.MerchantID,
                     terminal.ID,
@@ -127,7 +127,7 @@ namespace SlzrCrossGate.Core.Service
             return true;
         }
 
-        //ÉèÖÃÉè±¸Îª»îÔ¾×´Ì¬
+        //è®¾ç½®è®¾å¤‡ä¸ºæ´»è·ƒçŠ¶æ€
         public bool SetTerminalActive(string terminalId)
         {
             if (_terminals.TryGetValue(terminalId, out var terminal))
@@ -143,7 +143,7 @@ namespace SlzrCrossGate.Core.Service
             return false;
         }
 
-        //ÉèÖÃÉè±¸Îª·Ç»îÔ¾×´Ì¬
+        //è®¾ç½®è®¾å¤‡ä¸ºéæ´»è·ƒçŠ¶æ€
         public bool SetTerminalInactive(string terminalId)
         {
             if (_terminals.TryGetValue(terminalId, out var terminal))
@@ -177,7 +177,7 @@ namespace SlzrCrossGate.Core.Service
                 });
         }
 
-        //Î´¶ÁÏûÏ¢Á¿¼õ1
+        //æœªè¯»æ¶ˆæ¯é‡å‡1
         public void DecreaseUnreadMessageCount(string terminalId)
         {
             if (_unreadMessageCount.TryGetValue(terminalId, out var messageCount))
@@ -186,7 +186,7 @@ namespace SlzrCrossGate.Core.Service
             }
         }
 
-        //Î´¶ÁÏûÏ¢Á¿¼Ó1
+        //æœªè¯»æ¶ˆæ¯é‡åŠ 1
         public void IncreaseUnreadMessageCount(string terminalId)
         {
             if (_unreadMessageCount.TryGetValue(terminalId, out var messageCount))
@@ -208,7 +208,7 @@ namespace SlzrCrossGate.Core.Service
             return 0;
         }
 
-        //ÏûÏ¢ÇåÁã
+        //æ¶ˆæ¯æ¸…é›¶
         public void ClearUnreadMessageCount(string terminalId)
         {
             if (_unreadMessageCount.TryGetValue(terminalId, out var messageCount))
@@ -217,7 +217,7 @@ namespace SlzrCrossGate.Core.Service
             }
         }
 
-        // ´ÓÊı¾İ¿â¼ÓÔØÖÕ¶ËĞÅÏ¢
+        // ä»æ•°æ®åº“åŠ è½½ç»ˆç«¯ä¿¡æ¯
         public void InitTerminalsFromDatabase()
         {
             var dbContext = _serviceProvider.GetRequiredService<TcpDbContext>();
@@ -296,6 +296,7 @@ namespace SlzrCrossGate.Core.Service
             terminal.LineNO = dto.LineNO;
             terminal.DeviceNO = dto.DeviceNO;
             terminal.StatusUpdateTime = DateTime.Now;
+
             if (terminal.Status != null)
             {
                 foreach (var item in terminal.Status.FileVersionMetadata)
@@ -304,13 +305,13 @@ namespace SlzrCrossGate.Core.Service
                 }
             }
 
-            //¸üĞÂ
+            //æ›´æ–°
             await _terminalRepository.UpdateAsync(terminal);
 
             return true;
         }
 
-        //°æ±¾±ä¸ü´¦Àí
+        //ç‰ˆæœ¬å˜æ›´å¤„ç†
         public async Task<bool> ProcessFileVersionChange(Terminal terminal, TerminalSignDto signDto)
         {
             if (terminal.Status == null)
@@ -328,7 +329,7 @@ namespace SlzrCrossGate.Core.Service
                     FileVersionMetadata = ConvertClientVersionToFileVersion(signDto.ClientFileVersionsMetaData),
                     PropertyMetadata = signDto.PropertiesMetaData
                 };
-                //²¹³äÂß¼­£¬µ±statusĞÅÏ¢±»ÈË¹¤É¾³ıºó¿ÉÒÔ×Ô¶¯ÖØ½¨
+                //è¡¥å……é€»è¾‘ï¼Œå½“statusä¿¡æ¯è¢«äººå·¥åˆ é™¤åå¯ä»¥è‡ªåŠ¨é‡å»º
                 await _terminalStatusRepository.AddAsync(terminal.Status);
                 return false;
             }
@@ -370,7 +371,7 @@ namespace SlzrCrossGate.Core.Service
             return result;
         }
 
-        //²éÑ¯ÊÇ·ñÓĞÆÚÍûµÄĞÂ°æ±¾
+        //æŸ¥è¯¢æ˜¯å¦æœ‰æœŸæœ›çš„æ–°ç‰ˆæœ¬
         public Dictionary<string, VersionOptions> QueryExpectedVersions(string terminalId)
         {
             if (_terminals.TryGetValue(terminalId, out var terminal))
@@ -390,7 +391,7 @@ namespace SlzrCrossGate.Core.Service
             return clientVersions.Select(x => new KeyValuePair<string, VersionOptions>(x.Key, new VersionOptions { Current = x.Value, IsExpired = true })).ToDictionary(x => x.Key, x => x.Value);
         }
 
-        //ÊµÏÖÒ»¸ö·½·¨£¬¼àÌıÒ»¸öRabbitMQµÄ¶ÓÁĞ£¬´¦ÀíÎÄ¼ş·¢²¼ºÍÈ¡ÏûµÄÊÂ¼ş
+        //å®ç°ä¸€ä¸ªæ–¹æ³•ï¼Œç›‘å¬ä¸€ä¸ªRabbitMQçš„é˜Ÿåˆ—ï¼Œå¤„ç†æ–‡ä»¶å‘å¸ƒå’Œå–æ¶ˆçš„äº‹ä»¶
         public async Task SubscribeToFileEventsQueue()
         {
             await _filePublishEventService.Subscribe(HandleFilePublishEvent);
@@ -466,7 +467,7 @@ namespace SlzrCrossGate.Core.Service
             return affectedTerminals;
         }
 
-        //¸üĞÂÖÕ¶ËÆÚÍû°æ±¾
+        //æ›´æ–°ç»ˆç«¯æœŸæœ›ç‰ˆæœ¬
         private async Task UpdateTerminalExpectedVersion(IEnumerable<TerminalStatus> terminalStatuses, FilePublishEventMessage fileEvent)
         {
             if (fileEvent.ActionType == FilePublishEventActionType.Publish)
@@ -487,7 +488,7 @@ namespace SlzrCrossGate.Core.Service
             }
             else
             {
-                //¶ÔÓÚÈ¡Ïû·¢²¼ÊÂ¼ş£¬¿ÉÄÜµ¼ÖÂÒ»Ğ©ÖÕ¶ËµÄÆÚÍû°æ±¾¹ıÆÚ£¬ĞèÒªÖØĞÂ²éÑ¯Êı¾İ¿â°æ±¾ĞÅÏ¢²¢¸üĞÂ
+                //å¯¹äºå–æ¶ˆå‘å¸ƒäº‹ä»¶ï¼Œå¯èƒ½å¯¼è‡´ä¸€äº›ç»ˆç«¯çš„æœŸæœ›ç‰ˆæœ¬è¿‡æœŸï¼Œéœ€è¦é‡æ–°æŸ¥è¯¢æ•°æ®åº“ç‰ˆæœ¬ä¿¡æ¯å¹¶æ›´æ–°
                 var published = await _filePublishRepository.FindAsync(p => p.MerchantID == fileEvent.MerchantID
                     && p.FileFullType == fileEvent.FileFullType
                     && p.PublishType < fileEvent.PublishType);
@@ -518,12 +519,12 @@ namespace SlzrCrossGate.Core.Service
                         version.IsExpired = false;
                     }
                 }
-                //ÅúÁ¿¸üĞÂÊı¾İ¿â
+                //æ‰¹é‡æ›´æ–°æ•°æ®åº“
                 await _terminalStatusRepository.BulkUpdateAsync(terminalStatuses, ["FileVersions"]);
             }
         }
 
-        //¶ÔÖÕ¶ËÆÚÍû°æ±¾¹ıÆÚµÄ½øĞĞÅúÁ¿¸üĞÂ
+        //å¯¹ç»ˆç«¯æœŸæœ›ç‰ˆæœ¬è¿‡æœŸçš„è¿›è¡Œæ‰¹é‡æ›´æ–°
         public async Task<bool> UpdateExpiredTerminalVersion()
         {
             using var filepublish = _serviceProvider.GetService<FilePublishCachedService>();
@@ -576,7 +577,7 @@ namespace SlzrCrossGate.Core.Service
             return true;
         }
 
-        //¼ì²éÖÕ¶ËÎÄ¼ş°æ±¾ÓëÆÚÍû°æ±¾²»Ò»ÖÂµÄ£¬ÌáĞÑ¸üĞÂ
+        //æ£€æŸ¥ç»ˆç«¯æ–‡ä»¶ç‰ˆæœ¬ä¸æœŸæœ›ç‰ˆæœ¬ä¸ä¸€è‡´çš„ï¼Œæé†’æ›´æ–°
         public bool CheckTerminalFileVersion()
         {
             var terminals = _terminals
@@ -591,13 +592,13 @@ namespace SlzrCrossGate.Core.Service
             return true;
         }
 
-        //²éÑ¯ÖÕ¶ËÊÇ·ñÓĞĞèÒª¸üĞÂ°æ±¾£¨ÊÇ·ñĞèÒªÖØĞÂÇ©µ½£©
+        //æŸ¥è¯¢ç»ˆç«¯æ˜¯å¦æœ‰éœ€è¦æ›´æ–°ç‰ˆæœ¬ï¼ˆæ˜¯å¦éœ€è¦é‡æ–°ç­¾åˆ°ï¼‰
         public bool CheckTerminalNeedSign(string terminalId)
         {
             return _cachedNeedSignTerminalIds.Contains(terminalId);
         }
 
-        //Çå³ıÖÕ¶ËµÄĞèÒª¸üĞÂ°æ±¾±ê¼Ç£¨Ç©µ½ºóµ÷ÓÃ£©
+        //æ¸…é™¤ç»ˆç«¯çš„éœ€è¦æ›´æ–°ç‰ˆæœ¬æ ‡è®°ï¼ˆç­¾åˆ°åè°ƒç”¨ï¼‰
         public bool ClearTerminalNeedSign(string terminalId)
         {
             return _cachedNeedSignTerminalIds.Remove(terminalId);
@@ -610,20 +611,20 @@ namespace SlzrCrossGate.Core.Service
         private int _count;
         public int Count { get; private set; }
 
-        //CountÔö¼Ó1 
+        //Countå¢åŠ 1 
         public void Increase()
         {
             Count++;
             FreshTime = DateTime.Now;
         }
-        //Count¼õÉÙ1
+        //Countå‡å°‘1
         public void Decrease()
         {
-            Count = Math.Max(Interlocked.Decrement(ref _count), 0);//¼õ1£¬Èç¹ûĞ¡ÓÚ0ÔòÇåÁã
+            Count = Math.Max(Interlocked.Decrement(ref _count), 0);//å‡1ï¼Œå¦‚æœå°äº0åˆ™æ¸…é›¶
             FreshTime = DateTime.Now;
         }
 
-        //CountÇåÁã
+        //Countæ¸…é›¶
         public void Clear()
         {
             Count = 0;

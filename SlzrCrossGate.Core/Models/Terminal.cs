@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
@@ -39,6 +39,9 @@ namespace SlzrCrossGate.Core.Models
 
         [MaxLength(8)]
         public required string LineNO { get; set; }
+
+        //设备类型TerminalType
+        public required string TerminalType { get; set; }
 
 
         public DateTime CreateTime { get; set; }

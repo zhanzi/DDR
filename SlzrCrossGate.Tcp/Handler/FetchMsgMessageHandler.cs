@@ -23,7 +23,7 @@ namespace SlzrCrossGate.Tcp.Handler
 
         public async Task<Iso8583Message> HandleMessageAsync(TcpConnectionContext context, Iso8583Message message)
         {
-            var msg = await _msgBoxService.GetFirstUnreadMessagesAsync(message.TerimalID);
+            var msg = await _msgBoxService.GetFirstUnreadMessagesAsync(message.TerimalID, message.MerchantID);
 
             var response = new Iso8583Message(_schema, Iso8583MessageType.MsgResponse);
             //response.SetField(3, "805001");

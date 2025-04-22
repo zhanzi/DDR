@@ -1,4 +1,4 @@
-﻿using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging;
 using SlzrCrossGate.Core.DTOs;
 using SlzrCrossGate.Core.Models;
 using SlzrCrossGate.Core.Repositories;
@@ -40,6 +40,7 @@ namespace SlzrCrossGate.Core.Service.BusinessServices
                 LineNO = signDto.LineNO,
                 CreateTime = DateTime.Now,
                 IsDeleted = false,
+                TerminalType = signDto.TerminalType,
                 StatusUpdateTime = DateTime.Now
             };
             terminal.Status = new TerminalStatus

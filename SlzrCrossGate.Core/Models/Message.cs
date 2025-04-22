@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
@@ -8,11 +8,15 @@ using System.Threading.Tasks;
 
 namespace SlzrCrossGate.Core.Models
 {
-    public class MsgType
+    public class MsgType : ITenantEntity
     {
         [Key]
         [StringLength(4)]
         public required string ID { get; set; }
+
+        [Key]
+        [MaxLength(8)]
+        public required string MerchantID { get; set; }
 
         [MaxLength(50)]
         public string? Name { get; set; }
@@ -22,6 +26,8 @@ namespace SlzrCrossGate.Core.Models
         [MaxLength(10)]
         public MessageCodeType CodeType { get; set; } = MessageCodeType.HEX;
 
+        [MaxLength(1000)] // 根据实际示例长度调整
+        public string? ExampleMessage { get; set; }
 
         [MaxLength(500)]
         public string? Description { get; set; }

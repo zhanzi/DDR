@@ -22,11 +22,11 @@ namespace SlzrCrossGate.Core.Services.BusinessServices
             _logger = logger;
         }
 
-        public async Task<MsgReadDto?> GetFirstUnreadMessagesAsync(string terminalId)
+        public async Task<MsgReadDto?> GetFirstUnreadMessagesAsync(string terminalId,string merchantId)
         {
             try
             {
-                return await _messageRepository.GetFirstUnRepliedMessageAsync(terminalId);
+                return await _messageRepository.GetFirstUnRepliedMessageAsync(terminalId, merchantId);
             }
             catch (Exception ex)
             {

@@ -34,14 +34,15 @@ namespace SlzrCrossGate.Tcp.Handler
                 MachineID = message.MachineID,
                 DeviceNO = message.DeviceNO,
                 LineNO = message.LineNO,
+                TerminalType = message.TerminalType,
                 ClientFileVersionsMetaData = GetClientFiles(message.GetString(45), message.ProtocolVer),
                 PropertiesMetaData = GetPropertys(message.GetString(54)),
             };
 
-            // 签到成功响应
+            // 绛惧埌鎴愬姛鍝嶅簲
             var response = new Iso8583Message(_schema, Iso8583MessageType.SignInResponse);
 
-            //检查终端是否存在，不存在则添加
+            //妫�鏌ョ粓绔槸鍚﹀瓨鍦紝涓嶅瓨鍦ㄥ垯娣诲姞
             if (_terminalSignService.CheckTerminalExists(message.TerimalID))
             {
                 await _terminalSignService.AddTerminal(signDto);
@@ -132,7 +133,7 @@ namespace SlzrCrossGate.Tcp.Handler
             for (int i = 0; i < ServerFiles.Length; i++)
             {
                 //sb.AppendFormat("{0}{1}{2}", DataConvert.StringToHex(ServerFiles[i].Code), DataConvert.PadLeft(ServerFiles[i].Ver, 4), DataConvert.BytesToHex(DataConvert.intToBytes2(ServerFiles[i].Size)));
-                //2017-01-11文件增加crc校验    
+                //2017-01-11鏂囦欢澧炲姞crc鏍￠獙    
                 var code = DataConvert.StringToHex(ServerFiles[i].Code).PadRight(22, '0');
                 if (ver < 0x0200) {
                     code = DataConvert.StringToHex(ServerFiles[i].Code).Substring(0, 6);

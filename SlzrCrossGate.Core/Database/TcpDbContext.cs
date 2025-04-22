@@ -37,24 +37,24 @@ namespace SlzrCrossGate.Core.Database
         {
             base.OnModelCreating(modelBuilder);
 
-            // ÅäÖÃConsumeDataµÄ ReceiveTime ×÷Îª·Ç¾Û¼¯Ë÷Òı
+            // é…ç½®ConsumeDataçš„ ReceiveTime ä½œä¸ºéèšé›†ç´¢å¼•
             modelBuilder.Entity<ConsumeData>()
                 .HasIndex(c => c.ReceiveTime)
                 .IncludeProperties(c => new { c.MerchantID,c.MachineID });
 
-            // ÅäÖÃTerminalEventµÄÁªºÏË÷Òı£¨e.MerchantID, e.TerminalID, e.EventType, e.EventTime£©,²¢°´EventTimeµ¹ĞòÅÅÁĞ
+            // é…ç½®TerminalEventçš„è”åˆç´¢å¼•ï¼ˆe.MerchantID, e.TerminalID, e.EventType, e.EventTimeï¼‰,å¹¶æŒ‰EventTimeå€’åºæ’åˆ—
             modelBuilder.Entity<TerminalEvent>()
                 .HasIndex(e => new { e.MerchantID, e.TerminalID, e.EventType, e.EventTime })
                 .IsDescending([false, false, false, true]);
-            // ÅäÖÃTerminalEventµÄÁªºÏË÷Òı£¨e.MerchantID, e.TerminalID, e.EventTime£©,²¢°´EventTimeµ¹ĞòÅÅÁĞ
+            // é…ç½®TerminalEventçš„è”åˆç´¢å¼•ï¼ˆe.MerchantID, e.TerminalID, e.EventTimeï¼‰,å¹¶æŒ‰EventTimeå€’åºæ’åˆ—
             modelBuilder.Entity<TerminalEvent>()
                 .HasIndex(e => new { e.MerchantID, e.TerminalID, e.EventTime })
                 .IsDescending([false, false, true]);
 
-            //json×Ö¶ÎÅäÖÃ
+            //jsonå­—æ®µé…ç½®
             modelBuilder.Entity<TerminalStatus>(entity =>
             {
-                // MySQL ÅäÖÃ
+                // MySQL é…ç½®
                 if (Database.IsMySql())
                 {
                     entity.Property(e => e.FileVersions)
@@ -64,33 +64,33 @@ namespace SlzrCrossGate.Core.Database
                 }
             });
 
-            // ÅäÖÃ TerminalEvent µÄÁªºÏË÷Òı
+            // é…ç½® TerminalEvent çš„è”åˆç´¢å¼•
             modelBuilder.Entity<TerminalEvent>()
                 .HasIndex(e => new { e.MerchantID, e.TerminalID, e.EventType });
 
-            // ÅäÖÃUnionPayTerminalKeyµÄË÷Òı
+            // é…ç½®UnionPayTerminalKeyçš„ç´¢å¼•
             modelBuilder.Entity<UnionPayTerminalKey>()
                 .HasIndex(e => new { e.MerchantID, e.MachineID });
             modelBuilder.Entity<UnionPayTerminalKey>()
                 .HasIndex(e => new { e.MerchantID, e.IsInUse });
 
-            //ÅäÖÃIncrementContentµÄÁªºÏÖ÷¼ü
+            //é…ç½®IncrementContentçš„è”åˆä¸»é”®
             modelBuilder.Entity<IncrementContent>()
                 .HasKey(e => new { e.MerchantID, e.IncrementType, e.SerialNum })
                 .IsClustered();
 
-            //ÅäÖÃfilepublishµÄÎ¨Ò»Ë÷Òı
+            //é…ç½®filepublishçš„å”¯ä¸€ç´¢å¼•
             modelBuilder.Entity<FilePublish>()
                 .HasIndex(e => new { e.MerchantID, e.FileFullType, e.PublishType, e.PublishTarget })
                 .IsUnique();
 
-            //ÅäÖÃMsgBoxµÄÁªºÏË÷Òı
+            //é…ç½®MsgBoxçš„è”åˆç´¢å¼•
             modelBuilder.Entity<MsgBox>()
-                .HasIndex(e => new { e.Status, e.TerminalID, e.SendTime })
-                .IsDescending([false, false, false]);
+                .HasIndex(e => new { e.MerchantID, e.Status, e.TerminalID, e.SendTime })
+                .IsDescending([false, false, false, false]);
 
 
-            // ÅäÖÃ×â»§¸ôÀë
+            // é…ç½®ç§Ÿæˆ·éš”ç¦»
             foreach (var entityType in modelBuilder.Model.GetEntityTypes())
             {
                 if (typeof(ITenantEntity).IsAssignableFrom(entityType.ClrType))
@@ -101,17 +101,17 @@ namespace SlzrCrossGate.Core.Database
             }
         }
 
-        // ×â»§¸ôÀë¹ıÂËÆ÷, ½ö²éÑ¯µ±Ç°×â»§µÄÊı¾İ,¹ÜÀíÔ±¿ÉÒÔ²é¿´ËùÓĞÊı¾İ
+        // ç§Ÿæˆ·éš”ç¦»è¿‡æ»¤å™¨, ä»…æŸ¥è¯¢å½“å‰ç§Ÿæˆ·çš„æ•°æ®,ç®¡ç†å‘˜å¯ä»¥æŸ¥çœ‹æ‰€æœ‰æ•°æ®
         private LambdaExpression GetTenantFilter(Type entityType)
         {
             var parameter = Expression.Parameter(entityType, "e");
 
-            //Èç¹ûÊÇ¹ÜÀíÔ±£¬²»¹ıÂË
+            //å¦‚æœæ˜¯ç®¡ç†å‘˜ï¼Œä¸è¿‡æ»¤
             if (IsAdmin) return Expression.Lambda(Expression.Constant(true), parameter);
 
             var property = Expression.Property(parameter, "MerchantID");
 
-            //²»´æÔÚ×â»§IDµÄÊı¾İ£¬²»¹ıÂË
+            //ä¸å­˜åœ¨ç§Ÿæˆ·IDçš„æ•°æ®ï¼Œä¸è¿‡æ»¤
             if (property == null) return Expression.Lambda(Expression.Constant(true), parameter);
 
             var currentTenantId = Expression.Constant(CurrentTenantId);
