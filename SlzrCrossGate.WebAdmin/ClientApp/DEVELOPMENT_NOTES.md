@@ -2,7 +2,7 @@
 
 ## 项目概述
 
-WebAdmin 是一个终端后台管理系统，使用 React + Material UI 作为前端技术栈，.NET 8.0 + Identity 作为后端技术栈。项目采用科技感/简约设计风格，包含用户角色管理、商户管理、终端管理、文件管理、消息管理和仪表盘等多个核心功能模块。
+WebAdmin 是一个终端后台管理系统，使用 React + Material UI 作为前端技术栈，.NET 8.0 + Identity 作为后端技术栈。项目采用科技感/简约设计风格，包含用户角色管理、商户管理、终端管理、文件管理、消息管理和仪表盘等多个核心功能模块。项目采用前后端分离架构，使用 JWT 进行身份验证。
 
 ## 前端技术栈
 
@@ -13,6 +13,8 @@ WebAdmin 是一个终端后台管理系统，使用 React + Material UI 作为�
 - Formik + Yup (表单处理和验证)
 - Notistack (通知提示)
 - React Feather (图标库)
+- Axios (网络请求)
+- JWT-Decode (JWT 解析)
 
 ## 项目结构
 
@@ -164,6 +166,8 @@ ClientApp/
 - 应用内页面的路径格式为: `/app/[module]`
 - 404 页面的路径为: `/app/404`
 - 使用 `<Navigate to="/app/dashboard" />` 进行重定向
+- 添加兼容路径，如 `/auth/login` 重定向到 `/login`
+- 确保所有页面都使用相同的布局组件，包括 404 页面
 
 ### 3. 导航属性查询问题
 
@@ -219,11 +223,13 @@ ClientApp/
    - 使用 Material UI 的 sx 属性进行样式定制
    - 对于复杂组件，使用 styled 函数创建样式化组件
    - 保持样式的一致性，遵循项目的样式风格指南
+   - 确保所有页面都遵循玻璃拟态+微立体感风格
 
 4. **API 调用**
-   - 使用服务模块封装 API 调用
+   - 使用 services/api.js 模块封装所有 API 调用
    - 处理加载状态和错误状态
    - 使用 try/catch 块捕获异常
+   - 使用 axios 拦截器统一处理请求和响应
 
 5. **表单处理**
    - 使用 Formik 管理表单状态
@@ -359,6 +365,69 @@ ClientApp/
    - 使用 `e.stopPropagation()` 阻止事件冒泡，避免意外关闭
    - 设置适当的 `zIndex` 确保侧边栏在正确的层级显示
 
+## API 调用与认证
+
+### API 服务配置
+
+所有 API 调用应使用 `services/api.js` 中定义的服务：
+
+```javascript
+// 创建axios实例
+const api = axios.create({
+  baseURL: 'https://localhost:7296/api',
+  timeout: 10000,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+
+// 请求拦截器
+api.interceptors.request.use(
+  (config) => {
+    // 从 localStorage 获取 token
+    const token = localStorage.getItem('token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
+
+// 响应拦截器
+api.interceptors.response.use(
+  (response) => {
+    return response.data;
+  },
+  (error) => {
+    // 处理401错误
+    if (error.response && error.response.status === 401) {
+      // 清除token
+      localStorage.removeItem('token');
+      // 重定向到登录页
+      window.location.href = '/login';
+    }
+    return Promise.reject(error);
+  }
+);
+```
+
+### 认证上下文使用
+
+在组件中使用认证上下文：
+
+```javascript
+import { useAuth } from '../contexts/AuthContext';
+
+const MyComponent = () => {
+  const { isAuthenticated, user, login, logout } = useAuth();
+
+  // 使用认证状态和方法
+};
+```
+
 ## 未来改进计划
 
 1. 添加更多的单元测试和集成测试
@@ -369,3 +438,5 @@ ClientApp/
 6. 完善用户管理、角色管理和商户管理功能
 7. 实现文件管理模块的上传、预览和版本控制功能
 8. 优化移动端体验，提高响应式设计的适配性
+9. 实现微信扫码登录功能
+10. 完善双因素认证功能

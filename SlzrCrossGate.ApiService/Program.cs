@@ -27,13 +27,10 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-
-
-// ÅäÖÃÉí·İÈÏÖ¤·şÎñ(WEB¶ËĞèÒª)
-builder.Services.AddIdentity<ApplicationUser, ApplicationRole>(options => options.SignIn.RequireConfirmedAccount = true) // ĞŞ¸Ä´ËĞĞ
-    .AddEntityFrameworkStores<TcpDbContext>()
-    .AddDefaultTokenProviders(); // Ìí¼Ó´ËĞĞ
-
+//// é…ç½®èº«ä»½è®¤è¯æœåŠ¡(WEBç«¯éœ€è¦)
+//builder.Services.AddIdentity<ApplicationUser, ApplicationRole>(options => options.SignIn.RequireConfirmedAccount = true) // ä¿®æ”¹æ­¤è¡Œ
+//    .AddEntityFrameworkStores<TcpDbContext>()
+//    .AddDefaultTokenProviders(); // æ·»åŠ æ­¤è¡Œ
 
 builder.AddCoreService();
 builder.AddTcpService();
@@ -42,7 +39,7 @@ builder.Services.AddOpenTelemetry()
     //.WithTracing(tracerProviderBuilder =>
     //{
     //    tracerProviderBuilder
-    //        .AddSource("SlzrCrossGate.Tcp")  // Ìí¼Ó×Ô¶¨Òå»î¶¯Ô´
+    //        .AddSource("SlzrCrossGate.Tcp")  // æ·»åŠ è‡ªå®šä¹‰æ´»åŠ¨æº
     //        .SetResourceBuilder(ResourceBuilder.CreateDefault()
     //            .AddService("SlzrCrossGate.Tcp"))
     //        .AddAspNetCoreInstrumentation()
@@ -51,22 +48,22 @@ builder.Services.AddOpenTelemetry()
     .WithMetrics(meterProviderBuilder =>
     {
         meterProviderBuilder
-            .AddMeter("SlzrCrossGate.Tcp")  // Ìí¼Ó×Ô¶¨Òå¶ÈÁ¿Ô´
+            .AddMeter("SlzrCrossGate.Tcp")  // æ·»åŠ è‡ªå®šä¹‰åº¦é‡æº
             .AddAspNetCoreInstrumentation()
             .AddHttpClientInstrumentation();
     });
 
 
-// ÅäÖÃKestrelÍ¬Ê±¼àÌıHTTPºÍTCP
+// é…ç½®KestrelåŒæ—¶ç›‘å¬HTTPå’ŒTCP
 builder.WebHost.ConfigureKestrel(kestrel =>
 {
-    // HTTP¶Ëµã£¨Ô­ÓĞÅäÖÃ±£Áô£©
+    // HTTPç«¯ç‚¹ï¼ˆåŸæœ‰é…ç½®ä¿ç•™ï¼‰
     kestrel.Listen(IPAddress.Any, 5000, listen =>
     {
         listen.Protocols = HttpProtocols.Http1AndHttp2;
     });
 
-    // TCP¶Ëµã£¨ĞÂÔöÅäÖÃ£©
+    // TCPç«¯ç‚¹ï¼ˆæ–°å¢é…ç½®ï¼‰
     kestrel.Listen(IPAddress.Any, 5001, listen =>
     {
         listen.UseConnectionHandler<TcpConnectionHandler>();
@@ -85,14 +82,14 @@ builder.WebHost.ConfigureKestrel(kestrel =>
 
 var app = builder.Build();
 
-// Ó¦ÓÃÊı¾İ¿âÇ¨ÒÆ
+// åº”ç”¨æ•°æ®åº“è¿ç§»
 using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
     var dbContext = services.GetRequiredService<TcpDbContext>();
     dbContext.Database.Migrate();
 
-    await SeedData.InitializeUser(services);
+    //await SeedData.InitializeUser(services);
 
     var terminalManager = services.GetRequiredService<TerminalManager>();
     terminalManager.InitTerminalsFromDatabase();
@@ -116,8 +113,8 @@ app.UseAuthorization();
 
 app.MapControllers();
 
-Console.WriteLine("Console ÈÕÖ¾");
+Console.WriteLine("Console æ—¥å¿—");
 
-app.Logger.LogInformation("Logger ÈÕÖ¾");
+app.Logger.LogInformation("Logger æ—¥å¿—");
 
 app.Run();

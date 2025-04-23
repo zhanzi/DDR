@@ -44,13 +44,14 @@ namespace SlzrCrossGate.Core
             builder.Services.AddScoped<TerminalSignService>();
             builder.Services.AddScoped<UnionPayTerminalKeyService>();
             builder.Services.AddScoped<FilePublishEventService>();
+            builder.Services.AddScoped<FilePublishCachedService>();
 
 
             builder.Services.AddSingleton<TerminalManager>();
             builder.Services.AddSingleton<TerminalEventService>();
             builder.Services.AddSingleton<MsgboxEventService>();
 
-
+            
 
 
 
@@ -66,8 +67,6 @@ namespace SlzrCrossGate.Core
                 options.MinioSecretKey = fileServiceConfig["MinIO:SecretKey"] ?? throw new ArgumentNullException("MinIO:SecretKey");
                 options.MinioBucketName = fileServiceConfig["MinIO:BucketName"] ?? throw new ArgumentNullException("MinIO:BucketName");
             });
-            //注册终端管理服务
-            builder.Services.AddSingleton<TerminalManager>();
 
             // 配置数据库服务
             builder.Services.AddConfiguredDbContext(builder.Configuration);
@@ -76,6 +75,61 @@ namespace SlzrCrossGate.Core
 
             return builder;
         }
+
+        public static TBuilder AddCoreWebAdminService<TBuilder>(this TBuilder builder) where TBuilder : IHostApplicationBuilder
+        {
+            builder.Services.AddMemoryCache();
+
+            // 注册仓储
+            builder.Services.AddScoped(typeof(Repository<>));
+            builder.Services.AddScoped<MsgBoxRepository>();
+            builder.Services.AddScoped<Repository<UploadFile>>();
+            builder.Services.AddScoped<Repository<FileVer>>();
+            builder.Services.AddScoped<Repository<TerminalEvent>>();
+            builder.Services.AddScoped<UnionPayTerminalKeyRepository>();
+            builder.Services.AddScoped<ConsumeDataService>();
+
+            //注册rabbitmqservice
+            builder.Services.Configure<RabbitMQOptions>(builder.Configuration.GetSection("RabbitMQ"));
+            builder.Services.AddSingleton<IRabbitMQService, RabbitMQService>();
+
+            // 注册业务服务 - 确保生命周期匹配
+            builder.Services.AddScoped<MsgBoxService>();
+            builder.Services.AddScoped<PublishFileService>();
+            //builder.Services.AddScoped<IncrementContentService>();
+            //builder.Services.AddScoped<TerminalSignService>();
+            //builder.Services.AddScoped<UnionPayTerminalKeyService>();
+            builder.Services.AddScoped<FilePublishEventService>();
+            //builder.Services.AddScoped<FilePublishCachedService>();
+
+
+            //builder.Services.AddSingleton<TerminalManager>();
+            //builder.Services.AddSingleton<TerminalEventService>();
+            builder.Services.AddSingleton<MsgboxEventService>();
+
+
+
+            //配置文件上传服务
+            _ = builder.Services.AddFileService(options =>
+            {
+                var fileServiceConfig = builder.Configuration.GetSection("FileService");
+                options.DefaultStorageType = fileServiceConfig["DefaultStorageType"] ?? throw new ArgumentNullException("FileService:DefaultStorageType");
+                options.LocalFilePath = fileServiceConfig["LocalFilePath"] ?? throw new ArgumentNullException("FileService:LocalFilePath");
+                options.MinioEndpoint = fileServiceConfig["MinIO:Endpoint"] ?? throw new ArgumentNullException("MinIO:Endpoint");
+                options.MinioAccessKey = fileServiceConfig["MinIO:AccessKey"] ?? throw new ArgumentNullException("MinIO:AccessKey");
+                options.MinioSecretKey = fileServiceConfig["MinIO:SecretKey"] ?? throw new ArgumentNullException("MinIO:SecretKey");
+                options.MinioBucketName = fileServiceConfig["MinIO:BucketName"] ?? throw new ArgumentNullException("MinIO:BucketName");
+            });
+
+            // 配置数据库服务
+            builder.Services.AddConfiguredDbContext(builder.Configuration);
+
+
+
+            return builder;
+        }
+
+
 
         /// <summary>
         /// 配置数据库服务

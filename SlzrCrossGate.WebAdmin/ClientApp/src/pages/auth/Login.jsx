@@ -47,7 +47,9 @@ const Login = () => {
       setError('');
 
       try {
+        console.log('开始登录请求:', values.username);
         const result = await login(values.username, values.password);
+        console.log('登录结果:', result);
 
         if (result.success) {
           // 如果需要双因素验证
@@ -66,11 +68,12 @@ const Login = () => {
           enqueueSnackbar('登录成功', { variant: 'success' });
           navigate('/app/dashboard');
         } else {
+          console.error('登录失败:', result.message);
           setError(result.message || '登录失败，请检查用户名和密码');
         }
       } catch (err) {
+        console.error('登录异常:', err);
         setError('登录过程中发生错误，请稍后再试');
-        console.error(err);
       } finally {
         setLoading(false);
       }

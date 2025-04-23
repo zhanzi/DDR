@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useReducer } from 'react';
 import { jwtDecode } from 'jwt-decode';
 import axios from 'axios';
+import { authAPI } from '../services/api';
 
 // 初始状态
 const initialState = {
@@ -158,12 +159,11 @@ export const AuthProvider = ({ children }) => {
   // 登录
   const login = async (username, password) => {
     try {
-      const response = await axios.post('/api/auth/login', {
-        username,
-        password,
-      });
+      const response = await authAPI.login(username, password);
+      console.log('Login response:', response); // 调试日志
 
-      const { token, requireTwoFactor, setupTwoFactor, tempToken, isTwoFactorEnabled } = response.data;
+      // 直接使用response，因为api.js中的响应拦截器已经处理了response.data
+      const { token, requireTwoFactor, setupTwoFactor, tempToken, isTwoFactorEnabled } = response;
 
       // 如果需要设置双因素验证
       if (setupTwoFactor) {
@@ -192,19 +192,26 @@ export const AuthProvider = ({ children }) => {
       }
 
       // 正常登录成功
-      const user = jwtDecode(token);
-      localStorage.setItem('token', token);
+      if (token) {
+        const user = jwtDecode(token);
+        localStorage.setItem('token', token);
 
-      dispatch({
-        type: 'LOGIN',
-        payload: {
-          user,
-          token,
-          isTwoFactorEnabled,
-        },
-      });
+        dispatch({
+          type: 'LOGIN',
+          payload: {
+            user,
+            token,
+            isTwoFactorEnabled: isTwoFactorEnabled || false,
+          },
+        });
 
-      return { success: true };
+        return { success: true };
+      } else {
+        return {
+          success: false,
+          message: '登录失败，服务器没有返回token',
+        };
+      }
     } catch (error) {
       return {
         success: false,
@@ -216,12 +223,10 @@ export const AuthProvider = ({ children }) => {
   // 验证动态口令
   const verifyTwoFactor = async (code) => {
     try {
-      const response = await axios.post('/api/auth/verify-two-factor', {
-        code,
-        tempToken: state.tempToken,
-      });
+      const response = await authAPI.verifyCode(state.user?.userName, code);
+      console.log('Verify code response:', response); // 调试日志
 
-      const { token, isTwoFactorEnabled } = response.data;
+      const { token, isTwoFactorEnabled } = response;
       const user = jwtDecode(token);
 
       localStorage.setItem('token', token);
@@ -231,7 +236,7 @@ export const AuthProvider = ({ children }) => {
         payload: {
           user,
           token,
-          isTwoFactorEnabled,
+          isTwoFactorEnabled: isTwoFactorEnabled || false,
         },
       });
 
@@ -247,7 +252,7 @@ export const AuthProvider = ({ children }) => {
   // 设置动态口令
   const setupTwoFactor = async () => {
     try {
-      const response = await axios.post('/api/auth/setup-two-factor', {
+      const response = await axios.post('https://localhost:7296/api/auth/setup-two-factor', {
         tempToken: state.tempToken,
       });
 
@@ -267,7 +272,7 @@ export const AuthProvider = ({ children }) => {
   // 确认动态口令设置
   const confirmTwoFactorSetup = async (code) => {
     try {
-      const response = await axios.post('/api/auth/confirm-two-factor', {
+      const response = await axios.post('https://localhost:7296/api/auth/confirm-two-factor', {
         code,
         tempToken: state.tempToken,
       });
@@ -299,7 +304,7 @@ export const AuthProvider = ({ children }) => {
   const loginWithWechat = async () => {
     try {
       // 获取微信扫码登录的二维码URL
-      const response = await axios.get('/api/auth/wechat-login');
+      const response = await axios.get('https://localhost:7296/api/auth/wechat-login');
 
       return {
         success: true,
@@ -317,7 +322,7 @@ export const AuthProvider = ({ children }) => {
   // 检查微信扫码登录状态
   const checkWechatLoginStatus = async (loginId) => {
     try {
-      const response = await axios.get(`/api/auth/wechat-login-status?loginId=${loginId}`);
+      const response = await axios.get(`https://localhost:7296/api/auth/wechat-login-status?loginId=${loginId}`);
 
       if (response.data.status === 'success') {
         const { token } = response.data;
@@ -352,13 +357,10 @@ export const AuthProvider = ({ children }) => {
   // 注册
   const register = async (email, username, password) => {
     try {
-      const response = await axios.post('/api/auth/register', {
-        email,
-        username,
-        password,
-      });
+      const response = await authAPI.register(email, username, password);
+      console.log('Register response:', response); // 调试日志
 
-      const { token } = response.data;
+      const { token } = response;
       const user = jwtDecode(token);
 
       localStorage.setItem('token', token);

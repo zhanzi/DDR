@@ -61,6 +61,7 @@ const routes = [
     element: <AuthLayout />,
     children: [
       { path: 'login', element: <LoginView /> },
+      { path: 'auth/login', element: <Navigate to="/login" /> },
       { path: 'register', element: <RegisterView /> },
       { path: 'forgot-password', element: <ForgotPasswordView /> },
       { path: 'two-factor-verify', element: <TwoFactorVerifyView /> },

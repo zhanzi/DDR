@@ -2,16 +2,18 @@
 
 ## 项目概述
 
-WebAdmin 是一个终端后台管理系统，使用 .NET 8.0 + Identity 作为后端技术栈，React + Material UI 作为前端技术栈。后端提供 RESTful API 接口，支持用户认证、角色管理、商户管理、终端管理、文件管理和消息管理等功能。
+WebAdmin 是一个终端后台管理系统，使用 .NET 8.0 + Identity 作为后端技术栈，React + Material UI 作为前端技术栈。后端提供 RESTful API 接口，支持用户认证、角色管理、商户管理、终端管理、文件管理和消息管理等功能。项目采用前后端分离架构，使用 JWT 进行身份验证。
 
 ## 后端技术栈
 
 - .NET 8.0
 - ASP.NET Core Identity (认证和授权)
+- JWT Bearer Authentication (令牌认证)
 - Entity Framework Core (数据访问)
 - MySQL (数据库)
 - AutoMapper (对象映射)
 - Swagger/OpenAPI (API 文档)
+- RabbitMQ (消息队列)
 
 ## 项目结构
 
@@ -200,7 +202,7 @@ SlzrCrossGate.Core/
       .Include(m => m.Terminal)
       .AsQueryable();
   ```
-  
+
   改为:
   ```csharp
   var query = from msgBox in _dbContext.MsgBoxes
@@ -263,7 +265,7 @@ SlzrCrossGate.Core/
               .AllowAnyHeader()
               .AllowCredentials());
   });
-  
+
   app.UseCors("AllowSpecificOrigin");
   ```
 
@@ -273,8 +275,12 @@ SlzrCrossGate.Core/
 
 **解决方案**:
 - 检查 Identity 配置
-- 验证 JWT 令牌配置 (如果使用)
+- 验证 JWT 令牌配置
+  - 确保在 Program.cs 中正确配置了 JWT Bearer 认证
+  - 确保使用了 `app.UseAuthentication()` 和 `app.UseAuthorization()`
+  - 检查 appsettings.json 中的 JWT 配置是否正确
 - 确保前端正确发送认证头
+- 使用浏览器开发者工具检查网络请求和响应
 
 ### 3. 数据库迁移问题
 
@@ -345,6 +351,79 @@ SlzrCrossGate.Core/
    - 实施速率限制
    - 使用安全的认证机制
 
+## JWT 认证配置
+
+### Program.cs 中的 JWT 配置
+
+```csharp
+// 配置JWT认证
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+})
+.AddJwtBearer(options =>
+{
+    options.TokenValidationParameters = new TokenValidationParameters
+    {
+        ValidateIssuer = true,
+        ValidateAudience = true,
+        ValidateLifetime = true,
+        ValidateIssuerSigningKey = true,
+        ValidIssuer = builder.Configuration["Jwt:Issuer"],
+        ValidAudience = builder.Configuration["Jwt:Audience"],
+        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(
+            builder.Configuration["Jwt:Key"] ?? "defaultKeyForDevelopment12345678901234567890"))
+    };
+    options.Events = new JwtBearerEvents
+    {
+        OnChallenge = context =>
+        {
+            // 覆盖默认的401响应
+            context.HandleResponse();
+            context.Response.StatusCode = 401;
+            context.Response.ContentType = "application/json";
+            var result = JsonSerializer.Serialize(new { message = "未授权访问" });
+            return context.Response.WriteAsync(result);
+        }
+    };
+});
+```
+
+### 中间件配置
+
+在 Program.cs 中添加以下中间件（顺序很重要）：
+
+```csharp
+app.UseHttpsRedirection();
+
+app.UseAuthentication(); // 必须在 UseAuthorization 之前
+
+app.UseAuthorization();
+
+app.MapControllers();
+```
+
+### appsettings.json 中的 JWT 配置
+
+```json
+"Jwt": {
+  "Key": "YourSecretKeyHere12345678901234567890",
+  "Issuer": "WebAdmin",
+  "Audience": "WebAdmin",
+  "ExpiresInHours": 24
+}
+```
+
+## 双因素认证实现
+
+后端需要实现以下 API 端点：
+
+1. `/api/auth/login` - 用户名密码登录
+2. `/api/auth/verify-code` - 验证动态口令
+3. `/api/auth/setup-two-factor` - 设置双因素验证
+4. `/api/auth/confirm-two-factor` - 确认双因素验证设置
+
 ## 未来改进计划
 
 1. 实现更完善的审计日志
@@ -352,3 +431,5 @@ SlzrCrossGate.Core/
 3. 实现缓存机制提高性能
 4. 增强安全性，实现更完善的认证和授权机制
 5. 优化数据库查询性能
+6. 实现微信扫码登录功能
+7. 完善双因素认证功能
