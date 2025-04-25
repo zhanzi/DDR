@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Outlet } from 'react-router-dom';
+import { Outlet, Navigate } from 'react-router-dom';
 import { styled } from '@mui/material/styles';
 import { Box } from '@mui/material';
 import DashboardSidebar from './DashboardSidebar';
 import DashboardNavbar from './DashboardNavbar';
+import { useAuth } from '../contexts/AuthContext';
 
 const DashboardLayoutRoot = styled('div')(({ theme, isSidebarCollapsed }) => ({
   display: 'flex',
@@ -19,7 +20,20 @@ const DashboardLayoutRoot = styled('div')(({ theme, isSidebarCollapsed }) => ({
   }
 }));
 
-const DashboardLayout = () => {
+const DashboardLayout = ()  => {
+    const { isAuthenticated, needTwoFactor } = useAuth();
+
+    // 如果用户未认证，重定向到登录页面
+    if (!isAuthenticated) {
+        return <Navigate to="/login" />;
+    }
+
+    // 如果用户需要完成双因素验证，重定向到验证页面
+    if (needTwoFactor) {
+        return <Navigate to="/two-factor-verify" />;
+    }
+
+
   const [isMobileNavOpen, setMobileNavOpen] = useState(false);
   const [isSidebarCollapsed, setSidebarCollapsed] = useState(() => {
     const savedState = localStorage.getItem('sidebarCollapsed');
@@ -75,6 +89,9 @@ const DashboardLayout = () => {
             }),
           }}
         >
+          {/* <Container maxWidth="lg" sx={{ py: 4 }}>
+            {children}
+          </Container> */}
           <Outlet />
         </Box>
       </DashboardLayoutRoot>

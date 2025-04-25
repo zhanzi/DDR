@@ -193,17 +193,17 @@ const MerchantListView = () => {
 
         {/* 商户列表 */}
         <Card>
-          <TableContainer component={Paper}>
-            <Table>
+          <TableContainer component={Paper} sx={{ overflowX: 'auto' }}>
+            <Table sx={{ minWidth: 650 }}>
               <TableHead>
                 <TableRow>
                   <TableCell>商户ID</TableCell>
                   <TableCell>商户名称</TableCell>
-                  <TableCell>联系人</TableCell>
-                  <TableCell>联系电话</TableCell>
-                  <TableCell>联系邮箱</TableCell>
+                  <TableCell sx={{ display: { xs: 'none', sm: 'table-cell' } }}>联系人</TableCell>
+                  <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>联系电话</TableCell>
+                  <TableCell sx={{ display: { xs: 'none', lg: 'table-cell' } }}>联系邮箱</TableCell>
                   <TableCell>状态</TableCell>
-                  <TableCell align="right">操作</TableCell>
+                  <TableCell align="right" sx={{ minWidth: 120 }}>操作</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -226,9 +226,9 @@ const MerchantListView = () => {
                     <TableRow key={merchant.merchantID}>
                       <TableCell>{merchant.merchantID}</TableCell>
                       <TableCell>{merchant.name}</TableCell>
-                      <TableCell>{merchant.contactName}</TableCell>
-                      <TableCell>{merchant.contactPhone}</TableCell>
-                      <TableCell>{merchant.contactEmail}</TableCell>
+                      <TableCell sx={{ display: { xs: 'none', sm: 'table-cell' } }}>{merchant.contactName}</TableCell>
+                      <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>{merchant.contactPhone}</TableCell>
+                      <TableCell sx={{ display: { xs: 'none', lg: 'table-cell' } }}>{merchant.contactEmail}</TableCell>
                       <TableCell>
                         {merchant.isActive ? (
                           <Chip label="激活" color="success" size="small" />
@@ -236,7 +236,7 @@ const MerchantListView = () => {
                           <Chip label="停用" color="error" size="small" />
                         )}
                       </TableCell>
-                      <TableCell align="right">
+                      <TableCell align="right" sx={{ whiteSpace: 'nowrap' }}>
                         <Tooltip title="编辑">
                           <IconButton
                             component={RouterLink}

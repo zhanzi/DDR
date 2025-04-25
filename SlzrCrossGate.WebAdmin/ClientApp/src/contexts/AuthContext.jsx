@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useReducer } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { jwtDecode } from 'jwt-decode';
 import axios from 'axios';
 import { authAPI } from '../services/api';
@@ -84,6 +85,7 @@ const AuthContext = createContext(null);
 // 提供者组件
 export const AuthProvider = ({ children }) => {
   const [state, dispatch] = useReducer(reducer, initialState);
+  const navigate = useNavigate();
 
   // 设置 axios 默认请求头
   useEffect(() => {
@@ -223,7 +225,10 @@ export const AuthProvider = ({ children }) => {
   // 验证动态口令
   const verifyTwoFactor = async (code) => {
     try {
-      const response = await authAPI.verifyCode(state.user?.userName, code);
+      const response = await authAPI.verifyTwoFactorCode({
+        TempToken: state.tempToken,
+        Code: code
+      });
       console.log('Verify code response:', response); // 调试日志
 
       const { token, isTwoFactorEnabled } = response;
@@ -252,19 +257,56 @@ export const AuthProvider = ({ children }) => {
   // 设置动态口令
   const setupTwoFactor = async () => {
     try {
-      const response = await axios.post('https://localhost:7296/api/auth/setup-two-factor', {
-        tempToken: state.tempToken,
-      });
+      if (!state.tempToken) {
+        console.error('临时令牌不存在');
+        return {
+          success: false,
+          message: '临时令牌不存在，请重新登录',
+        };
+      }
+
+      console.log('调用setupTwoFactor API，临时令牌:', state.tempToken);
+      // 打印完整的临时令牌用于调试
+      console.log('完整临时令牌:', state.tempToken);
+      const response = await authAPI.setupTwoFactor(state.tempToken);
+      console.log('setupTwoFactor API响应:', response);
+
+      // 检查响应中是否包含必要的字段
+      if (!response || (!response.secretKey && !response.qrCodeUrl)) {
+        console.error('API响应中缺少必要的字段:', response);
+        return {
+          success: false,
+          message: '服务器响应格式错误，请联系管理员',
+        };
+      }
+
+      // 保存secretKey到localStorage，以便后续使用
+      const secretKey = response.secretKey;
+      if (secretKey) {
+        localStorage.setItem('twoFactorSecretKey', secretKey);
+        console.log('保存secretKey到localStorage:', secretKey);
+      }
 
       return {
         success: true,
-        qrCode: response.data.qrCode,
-        secret: response.data.secret,
+        qrCode: response.qrCodeUrl,
+        secret: secretKey,
       };
     } catch (error) {
+      console.error('setupTwoFactor API错误:', error);
+      console.error('错误详情:', error.response?.data);
+
+      // 更详细的错误信息
+      let errorMessage = '设置动态口令失败';
+      if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+
       return {
         success: false,
-        message: error.response?.data?.message || '设置动态口令失败',
+        message: errorMessage,
       };
     }
   };
@@ -272,14 +314,20 @@ export const AuthProvider = ({ children }) => {
   // 确认动态口令设置
   const confirmTwoFactorSetup = async (code) => {
     try {
-      const response = await axios.post('https://localhost:7296/api/auth/confirm-two-factor', {
-        code,
-        tempToken: state.tempToken,
-      });
+      if (!state.tempToken) {
+        return {
+          success: false,
+          message: '临时令牌不存在，请重新登录',
+        };
+      }
 
-      const { token } = response.data;
+      const response = await authAPI.confirmTwoFactor(code, state.tempToken);
+
+      const { token } = response;
       const user = jwtDecode(token);
 
+      // 清除localStorage中的临时密钥
+      localStorage.removeItem('twoFactorSecretKey');
       localStorage.setItem('token', token);
 
       dispatch({
@@ -304,14 +352,15 @@ export const AuthProvider = ({ children }) => {
   const loginWithWechat = async () => {
     try {
       // 获取微信扫码登录的二维码URL
-      const response = await axios.get('https://localhost:7296/api/auth/wechat-login');
+      const response = await authAPI.getWechatLoginQrCode();
 
       return {
         success: true,
-        qrCodeUrl: response.data.qrCodeUrl,
-        loginId: response.data.loginId,
+        qrCodeUrl: response.qrCodeUrl,
+        loginId: response.loginId,
       };
     } catch (error) {
+      console.error('获取微信登录二维码失败:', error);
       return {
         success: false,
         message: error.response?.data?.message || '获取微信登录二维码失败',
@@ -322,10 +371,10 @@ export const AuthProvider = ({ children }) => {
   // 检查微信扫码登录状态
   const checkWechatLoginStatus = async (loginId) => {
     try {
-      const response = await axios.get(`https://localhost:7296/api/auth/wechat-login-status?loginId=${loginId}`);
+      const response = await authAPI.checkWechatLoginStatus(loginId);
 
-      if (response.data.status === 'success') {
-        const { token } = response.data;
+      if (response.status === 'success') {
+        const { token } = response;
         const user = jwtDecode(token);
 
         localStorage.setItem('token', token);
@@ -335,18 +384,28 @@ export const AuthProvider = ({ children }) => {
           payload: {
             user,
             token,
-            isTwoFactorEnabled: response.data.isTwoFactorEnabled || false,
+            isTwoFactorEnabled: response.isTwoFactorEnabled || false,
           },
         });
 
         return { success: true, status: 'success' };
+      } else if (response.status === 'unbound') {
+        // 微信未绑定
+        return {
+          success: true,
+          status: 'unbound',
+          openId: response.openId,
+          unionId: response.unionId,
+          nickname: response.nickname
+        };
       }
 
       return {
         success: true,
-        status: response.data.status,
+        status: response.status,
       };
     } catch (error) {
+      console.error('检查微信登录状态失败:', error);
       return {
         success: false,
         message: error.response?.data?.message || '检查微信登录状态失败',
@@ -354,10 +413,64 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // 注册
-  const register = async (email, username, password) => {
+  // 绑定微信账号
+  const bindWechat = async (openId, unionId, nickname) => {
     try {
-      const response = await authAPI.register(email, username, password);
+      await authAPI.bindWechat({
+        openId,
+        unionId,
+        nickname
+      });
+
+      return { success: true };
+    } catch (error) {
+      console.error('绑定微信账号失败:', error);
+      return {
+        success: false,
+        message: error.response?.data?.message || '绑定微信账号失败',
+      };
+    }
+  };
+
+  // 解绑微信账号
+  const unbindWechat = async () => {
+    try {
+      await authAPI.unbindWechat();
+
+      return { success: true };
+    } catch (error) {
+      console.error('解绑微信账号失败:', error);
+      return {
+        success: false,
+        message: error.response?.data?.message || '解绑微信账号失败',
+      };
+    }
+  };
+
+  // 获取微信绑定状态
+  const getWechatBinding = async () => {
+    try {
+      const response = await authAPI.getWechatBinding();
+
+      return {
+        success: true,
+        isBound: response.isBound,
+        wechatNickname: response.wechatNickname,
+        bindTime: response.bindTime
+      };
+    } catch (error) {
+      console.error('获取微信绑定状态失败:', error);
+      return {
+        success: false,
+        message: error.response?.data?.message || '获取微信绑定状态失败',
+      };
+    }
+  };
+
+  // 注册
+  const register = async (data) => {
+    try {
+      const response = await authAPI.register(data);
       console.log('Register response:', response); // 调试日志
 
       const { token } = response;
@@ -383,9 +496,20 @@ export const AuthProvider = ({ children }) => {
   };
 
   // 登出
-  const logout = () => {
-    localStorage.removeItem('token');
-    dispatch({ type: 'LOGOUT' });
+  const logout = async () => {
+    try {
+      // 调用后端登出API
+      await authAPI.logout();
+      console.log('登出成功');
+    } catch (error) {
+      console.error('登出API调用失败:', error);
+      // 即使API调用失败，我们仍然要清除本地状态
+    } finally {
+      // 无论API调用成功与否，都清除本地状态
+      localStorage.removeItem('token');
+      dispatch({ type: 'LOGOUT' });
+      navigate('/login');
+    }
   };
 
   return (
@@ -400,6 +524,9 @@ export const AuthProvider = ({ children }) => {
         confirmTwoFactorSetup,
         loginWithWechat,
         checkWechatLoginStatus,
+        bindWechat,
+        unbindWechat,
+        getWechatBinding,
       }}
     >
       {children}

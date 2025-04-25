@@ -13,6 +13,7 @@ import {
   Alert,
 } from '@mui/material';
 import { useSnackbar } from 'notistack';
+import { authAPI } from '../../services/api';
 
 const ForgotPassword = () => {
   const { enqueueSnackbar } = useSnackbar();
@@ -30,23 +31,20 @@ const ForgotPassword = () => {
         .email('请输入有效的电子邮箱')
         .required('请输入电子邮箱'),
     }),
-    onSubmit: async () => {
+    onSubmit: async (values) => {
       setLoading(true);
       setError('');
 
       try {
-        // 这里应该调用重置密码API
-        // const result = await resetPassword(values.email);
+        // 调用忘记密码API
+        await authAPI.forgotPassword(values.email);
 
-        // 模拟API调用
-        setTimeout(() => {
-          setSuccess(true);
-          enqueueSnackbar('重置密码链接已发送到您的邮箱', { variant: 'success' });
-          setLoading(false);
-        }, 1500);
+        setSuccess(true);
+        enqueueSnackbar('重置密码链接已发送到您的邮箱', { variant: 'success' });
       } catch (err) {
         setError('发送重置密码邮件过程中发生错误，请稍后再试');
         console.error(err);
+      } finally {
         setLoading(false);
       }
     },

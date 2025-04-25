@@ -453,16 +453,16 @@ const MerchantDetailView = () => {
             />
             <Divider />
             <CardContent>
-              <TableContainer component={Paper}>
-                <Table>
+              <TableContainer component={Paper} sx={{ overflowX: 'auto' }}>
+                <Table sx={{ minWidth: 650 }}>
                   <TableHead>
                     <TableRow>
                       <TableCell>用户名</TableCell>
-                      <TableCell>邮箱</TableCell>
-                      <TableCell>真实姓名</TableCell>
-                      <TableCell>角色</TableCell>
+                      <TableCell sx={{ display: { xs: 'none', sm: 'table-cell' } }}>邮箱</TableCell>
+                      <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>真实姓名</TableCell>
+                      <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>角色</TableCell>
                       <TableCell>状态</TableCell>
-                      <TableCell align="right">操作</TableCell>
+                      <TableCell align="right" sx={{ minWidth: 80 }}>操作</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
@@ -484,9 +484,9 @@ const MerchantDetailView = () => {
                       users.map((user) => (
                         <TableRow key={user.id}>
                           <TableCell>{user.userName}</TableCell>
-                          <TableCell>{user.email}</TableCell>
-                          <TableCell>{user.realName}</TableCell>
-                          <TableCell>
+                          <TableCell sx={{ display: { xs: 'none', sm: 'table-cell' } }}>{user.email}</TableCell>
+                          <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>{user.realName}</TableCell>
+                          <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>
                             {user.roles.map((role) => {
                               let color = 'default';
                               if (role === 'SystemAdmin') color = 'error';
@@ -511,7 +511,7 @@ const MerchantDetailView = () => {
                               <Chip label="正常" color="success" size="small" />
                             )}
                           </TableCell>
-                          <TableCell align="right">
+                          <TableCell align="right" sx={{ whiteSpace: 'nowrap' }}>
                             <Tooltip title="查看详情">
                               <IconButton
                                 onClick={() => navigate(`/app/users/${user.id}`)}
@@ -565,16 +565,16 @@ const MerchantDetailView = () => {
             />
             <Divider />
             <CardContent>
-              <TableContainer component={Paper}>
-                <Table>
+              <TableContainer component={Paper} sx={{ overflowX: 'auto' }}>
+                <Table sx={{ minWidth: 650 }}>
                   <TableHead>
                     <TableRow>
                       <TableCell>终端ID</TableCell>
-                      <TableCell>设备编号</TableCell>
-                      <TableCell>线路编号</TableCell>
+                      <TableCell sx={{ display: { xs: 'none', sm: 'table-cell' } }}>设备编号</TableCell>
+                      <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>线路编号</TableCell>
                       <TableCell>终端类型</TableCell>
-                      <TableCell>创建时间</TableCell>
-                      <TableCell align="right">操作</TableCell>
+                      <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>创建时间</TableCell>
+                      <TableCell align="right" sx={{ minWidth: 80 }}>操作</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
@@ -596,11 +596,11 @@ const MerchantDetailView = () => {
                       terminals.map((terminal) => (
                         <TableRow key={terminal.id}>
                           <TableCell>{terminal.id}</TableCell>
-                          <TableCell>{terminal.deviceNO}</TableCell>
-                          <TableCell>{terminal.lineNO}</TableCell>
+                          <TableCell sx={{ display: { xs: 'none', sm: 'table-cell' } }}>{terminal.deviceNO}</TableCell>
+                          <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>{terminal.lineNO}</TableCell>
                           <TableCell>{terminal.terminalType}</TableCell>
-                          <TableCell>{new Date(terminal.createTime).toLocaleString()}</TableCell>
-                          <TableCell align="right">
+                          <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>{new Date(terminal.createTime).toLocaleString()}</TableCell>
+                          <TableCell align="right" sx={{ whiteSpace: 'nowrap' }}>
                             <Tooltip title="查看详情">
                               <IconButton
                                 onClick={() => navigate(`/app/terminals/${terminal.id}`)}

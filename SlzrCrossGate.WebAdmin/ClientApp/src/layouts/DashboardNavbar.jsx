@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import PropTypes from 'prop-types';
+import { Link as RouterLink } from 'react-router-dom';
 import {
   AppBar,
   Box,
@@ -10,7 +11,12 @@ import {
   useMediaQuery,
   Badge,
   Avatar,
-  alpha
+  alpha,
+  Menu,
+  MenuItem,
+  ListItemIcon,
+  ListItemText,
+  Divider
 } from '@mui/material';
 import {
   Menu as MenuIcon,
@@ -20,9 +26,13 @@ import {
   AccountCircle as AccountIcon,
   ChevronLeft as CollapseIcon,
   ChevronRight as ExpandIcon,
-  Search as SearchIcon
+  Search as SearchIcon,
+  Logout as LogoutIcon,
+  Settings as SettingsIcon,
+  Person as PersonIcon
 } from '@mui/icons-material';
 import { useTheme } from '../contexts/ThemeContext';
+import { useAuth } from '../contexts/AuthContext';
 
 const DashboardNavbar = ({
   onMobileNavOpen,
@@ -30,7 +40,22 @@ const DashboardNavbar = ({
   onToggleSidebar
 }) => {
   const { mode, toggleTheme, theme } = useTheme();
+  const { logout, user } = useAuth();
   const isMobile = useMediaQuery((theme) => theme.breakpoints.down('lg'));
+  const [anchorEl, setAnchorEl] = useState(null);
+
+  const handleMenuOpen = (event) => {
+    setAnchorEl(event.currentTarget);
+  };
+
+  const handleMenuClose = () => {
+    setAnchorEl(null);
+  };
+
+  const handleLogout = () => {
+    handleMenuClose();
+    logout();
+  };
 
   return (
     <AppBar
@@ -173,6 +198,7 @@ const DashboardNavbar = ({
           <Tooltip title="账户设置">
             <IconButton
               color="inherit"
+              onClick={handleMenuOpen}
               sx={{
                 ml: 1,
                 transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
@@ -199,6 +225,78 @@ const DashboardNavbar = ({
               </Avatar>
             </IconButton>
           </Tooltip>
+
+          {/* 用户菜单 */}
+          <Menu
+            anchorEl={anchorEl}
+            open={Boolean(anchorEl)}
+            onClose={handleMenuClose}
+            PaperProps={{
+              sx: {
+                mt: 1.5,
+                overflow: 'visible',
+                filter: 'drop-shadow(0px 2px 8px rgba(0,0,0,0.32))',
+                backdropFilter: 'blur(8px)',
+                backgroundColor: mode === 'dark'
+                  ? alpha(theme.palette.background.paper, 0.8)
+                  : alpha(theme.palette.background.paper, 0.9),
+                border: mode === 'dark'
+                  ? '1px solid rgba(255, 255, 255, 0.12)'
+                  : '1px solid rgba(0, 0, 0, 0.08)',
+                '&:before': {
+                  content: '""',
+                  display: 'block',
+                  position: 'absolute',
+                  top: 0,
+                  right: 14,
+                  width: 10,
+                  height: 10,
+                  bgcolor: mode === 'dark'
+                    ? alpha(theme.palette.background.paper, 0.8)
+                    : alpha(theme.palette.background.paper, 0.9),
+                  transform: 'translateY(-50%) rotate(45deg)',
+                  zIndex: 0,
+                  borderLeft: mode === 'dark'
+                    ? '1px solid rgba(255, 255, 255, 0.12)'
+                    : '1px solid rgba(0, 0, 0, 0.08)',
+                  borderTop: mode === 'dark'
+                    ? '1px solid rgba(255, 255, 255, 0.12)'
+                    : '1px solid rgba(0, 0, 0, 0.08)',
+                },
+              },
+            }}
+            transformOrigin={{ horizontal: 'right', vertical: 'top' }}
+            anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
+          >
+            <MenuItem sx={{ minWidth: 180 }}>
+              <ListItemIcon>
+                <PersonIcon fontSize="small" />
+              </ListItemIcon>
+              <ListItemText
+                primary={user?.name || '用户'}
+                secondary={user?.email || ''}
+                primaryTypographyProps={{ variant: 'subtitle2' }}
+                secondaryTypographyProps={{ variant: 'caption' }}
+              />
+            </MenuItem>
+            <Divider />
+            <MenuItem
+              component={RouterLink}
+              to="/app/account"
+              onClick={handleMenuClose}
+            >
+              <ListItemIcon>
+                <SettingsIcon fontSize="small" />
+              </ListItemIcon>
+              <ListItemText primary="账户设置" />
+            </MenuItem>
+            <MenuItem onClick={handleLogout}>
+              <ListItemIcon>
+                <LogoutIcon fontSize="small" />
+              </ListItemIcon>
+              <ListItemText primary="退出登录" />
+            </MenuItem>
+          </Menu>
         </Box>
       </Toolbar>
     </AppBar>

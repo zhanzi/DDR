@@ -37,7 +37,7 @@ import {
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
 import { useSnackbar } from 'notistack';
-import { userAPI, roleAPI, merchantAPI } from '../../services/api';
+import { userAPI, roleAPI, merchantAPI, authAPI } from '../../services/api';
 
 const UserDetailView = () => {
   const { id } = useParams();
@@ -135,12 +135,21 @@ const UserDetailView = () => {
     onSubmit: async (values) => {
       try {
         setSaving(true);
-        await userAPI.changePassword(id, { newPassword: values.newPassword });
-        enqueueSnackbar('密码修改成功', { variant: 'success' });
+        // 获取用户信息，用于重置密码
+        const userData = await userAPI.getUser(id);
+
+        // 使用resetPassword接口重置密码
+        await authAPI.resetPassword({
+          email: userData.email,
+          password: values.newPassword,
+          token: 'admin-reset' // 管理员重置密码的特殊标记
+        });
+
+        enqueueSnackbar('密码重置成功', { variant: 'success' });
         passwordFormik.resetForm();
         setPasswordDialogOpen(false);
       } catch (error) {
-        enqueueSnackbar(`修改密码失败: ${error.message}`, { variant: 'error' });
+        enqueueSnackbar(`重置密码失败: ${error.response?.data?.message || error.message}`, { variant: 'error' });
       } finally {
         setSaving(false);
       }
@@ -235,10 +244,13 @@ const UserDetailView = () => {
           <Box>
             <Button
               variant="outlined"
-              color={user?.lockoutEnd && new Date(user.lockoutEnd) > new Date() ? "primary" : "default"}
+              color="inherit"
               startIcon={user?.lockoutEnd && new Date(user.lockoutEnd) > new Date() ? <LockOpenIcon /> : <LockIcon />}
               onClick={handleToggleLock}
-              sx={{ mr: 1 }}
+              sx={{
+                mr: 1,
+                color: user?.lockoutEnd && new Date(user.lockoutEnd) > new Date() ? "#3B82F6" : "inherit"
+              }}
               disabled={loading || saving}
             >
               {user?.lockoutEnd && new Date(user.lockoutEnd) > new Date() ? '解锁用户' : '锁定用户'}
@@ -410,18 +422,24 @@ const UserDetailView = () => {
                 </Grid>
                 <Grid item xs={12}>
                   <Typography variant="subtitle1">账户状态</Typography>
-                  <Typography variant="body2" color="textSecondary" sx={{ mb: 2 }}>
-                    当前状态: {user?.lockoutEnd && new Date(user.lockoutEnd) > new Date() ? (
+                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                    <Typography variant="body2" color="textSecondary" component="span" sx={{ mr: 1 }}>
+                      当前状态:
+                    </Typography>
+                    {user?.lockoutEnd && new Date(user.lockoutEnd) > new Date() ? (
                       <Chip label="已锁定" color="error" size="small" />
                     ) : (
                       <Chip label="正常" color="success" size="small" />
                     )}
-                  </Typography>
+                  </Box>
                   <Button
                     variant="outlined"
-                    color={user?.lockoutEnd && new Date(user.lockoutEnd) > new Date() ? "primary" : "default"}
+                    color="inherit"
                     startIcon={user?.lockoutEnd && new Date(user.lockoutEnd) > new Date() ? <LockOpenIcon /> : <LockIcon />}
                     onClick={handleToggleLock}
+                    sx={{
+                      color: user?.lockoutEnd && new Date(user.lockoutEnd) > new Date() ? "#3B82F6" : "inherit"
+                    }}
                     disabled={loading || saving}
                   >
                     {user?.lockoutEnd && new Date(user.lockoutEnd) > new Date() ? '解锁用户' : '锁定用户'}

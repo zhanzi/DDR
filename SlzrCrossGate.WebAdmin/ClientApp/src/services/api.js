@@ -17,9 +17,11 @@ api.interceptors.request.use(
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+    console.log('请求:', config.method.toUpperCase(), config.url, config.data || config.params);
     return config;
   },
   (error) => {
+    console.error('请求错误:', error);
     return Promise.reject(error);
   }
 );
@@ -32,25 +34,94 @@ api.interceptors.response.use(
   },
   (error) => {
     console.error('响应错误:', error.config?.url, error.response?.status, error.response?.data);
+    console.error('错误详情:', error);
 
+    // 临时禁用自动跳转到登录页面，方便调试
     // 处理401错误
-    if (error.response && error.response.status === 401) {
-      // 清除token
-      localStorage.removeItem('token');
-      // 重定向到登录页
-      window.location.href = '/login';
-    }
+    // if (error.response && error.response.status === 401) {
+    //   // 清除token
+    //   localStorage.removeItem('token');
+    //   // 重定向到登录页
+    //   window.location.href = '/login';
+    // }
     return Promise.reject(error);
   }
 );
 
+
 // 认证相关API
 export const authAPI = {
-  login: (username, password) => api.post('/auth/login', { username, password }),
-  register: (email, username, password) => api.post('/auth/register', { email, username, password }),
-  forgotPassword: (email) => api.post('/auth/forgot-password', { email }),
-  resetPassword: (token, password) => api.post('/auth/reset-password', { token, password }),
-  verifyCode: (username, code) => api.post('/auth/verify-code', { username, code }),
+    login: (username, password) =>
+        api.post('/auth/login', { username, password }),
+
+    register: (data) =>
+        api.post('/auth/register', data),
+
+    verifyTwoFactorCode: (data) =>
+        api.post('/auth/verify-code', data, {
+            headers: data.TempToken ? {
+                'Authorization': `Bearer ${data.TempToken}`
+            } : undefined
+        }),
+
+    setupTwoFactor: (tempToken) =>
+        api.post('/auth/setup-two-factor', { }, {
+            headers: {
+                'Authorization': `Bearer ${tempToken}`
+            },
+            // 添加错误处理
+            validateStatus: function (status) {
+                return status < 500; // 只有状态码小于500的响应会被解析为成功
+            }
+        }),
+
+    confirmTwoFactor: (code, tempToken) =>
+        api.post('/auth/confirm-two-factor', {
+            Code: code,
+            TempToken: tempToken
+        }, {
+            headers: {
+                'Authorization': `Bearer ${tempToken}`
+            },
+            // 添加错误处理
+            validateStatus: function (status) {
+                return status < 500; // 只有状态码小于500的响应会被解析为成功
+            }
+        }),
+
+    forgotPassword: (email) =>
+        api.post('/auth/forgot-password', { email }),
+
+    resetPassword: (data) =>
+        api.post('/auth/reset-password', data),
+
+    verifyCode: (username, code) =>
+        api.post('/auth/verify-code', { username, code }),
+
+    logout: () =>
+        api.post('/auth/logout'),
+
+    // 微信相关API
+    getWechatLoginQrCode: () =>
+        api.get('/auth/wechat-login'),
+
+    checkWechatLoginStatus: (loginId) =>
+        api.get(`/auth/wechat-login-status?loginId=${loginId}`),
+
+    mockWechatScan: (data) =>
+        api.post('/auth/wechat-mock-scan', data),
+
+    mockWechatConfirm: (loginId) =>
+        api.post('/auth/wechat-mock-confirm', { loginId }),
+
+    bindWechat: (data) =>
+        api.post('/auth/bind-wechat', data),
+
+    unbindWechat: () =>
+        api.post('/auth/unbind-wechat'),
+
+    getWechatBinding: () =>
+        api.get('/auth/wechat-binding'),
 };
 
 // 用户相关API

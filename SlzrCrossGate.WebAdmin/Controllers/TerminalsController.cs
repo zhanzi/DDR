@@ -462,7 +462,7 @@ namespace SlzrCrossGate.WebAdmin.Controllers
                     Remark = $"Message sent: Type={model.MsgTypeCode}, Content={model.Content}",
                     Operator = ""
                 });
-                
+
             }
 
             return Ok(new { MessageId = msgContent.ID, TerminalCount = terminals.Count });
@@ -549,7 +549,7 @@ namespace SlzrCrossGate.WebAdmin.Controllers
                     Remark = $"File published: Type={fileVer.FileFullType}, Version={fileVer.Ver}",
                     Operator = ""
                 });
-                
+
             }
 
             return Ok(new { PublishId = filePublish.ID, TerminalCount = terminals.Count });

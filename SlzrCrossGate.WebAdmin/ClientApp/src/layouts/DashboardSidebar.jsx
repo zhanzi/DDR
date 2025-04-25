@@ -20,22 +20,23 @@ import {
   Server as ServerIcon,
   MessageCircle as MessageCircleIcon,
   FileText as FileTextIcon,
-  Monitor as MonitorIcon
+  Monitor as MonitorIcon,
+  User as UserIcon
 } from 'react-feather';
 import NavItem from './NavItem';
 import { useTheme } from '../contexts/ThemeContext';
-
-const user = {
-  avatar: '/static/images/avatars/avatar_6.png',
-  jobTitle: '系统管理员',
-  name: 'Admin User'
-};
+import { useAuth } from '../contexts/AuthContext';
 
 const items = [
   {
     href: '/app/dashboard',
     icon: BarChartIcon,
     title: '仪表盘'
+  },
+  {
+    href: '/app/account',
+    icon: UserIcon,
+    title: '账户设置'
   },
   {
     href: '/app/users',
@@ -87,6 +88,7 @@ const DashboardSidebar = ({
   const location = useLocation();
   const muiTheme = useMuiTheme();
   const { mode, theme } = useTheme();
+  const { user } = useAuth();
   const isMobile = useMediaQuery(muiTheme.breakpoints.down('lg'));
 
   // 创建一个 ref 来跟踪是否是首次渲染
@@ -178,7 +180,7 @@ const DashboardSidebar = ({
                   : '0 0 10px rgba(126, 34, 206, 0.1)',
               }}
             >
-              {user.name}
+              {user?.realName || user?.name || '用户'}
             </Typography>
             <Typography
               color="textSecondary"
@@ -189,7 +191,7 @@ const DashboardSidebar = ({
                 opacity: 0.8,
               }}
             >
-              {user.jobTitle}
+              {user?.roles?.join(', ') || '用户'}
             </Typography>
           </>
         )}

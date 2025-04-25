@@ -260,9 +260,9 @@ export const lightTheme = createTheme({
           height: 48,
         },
         containedPrimary: {
-          background: `linear-gradient(135deg, ${PRIMARY.main} 0%, ${PRIMARY.dark} 100%)`,
+          background: PRIMARY.main,
           '&:hover': {
-            background: `linear-gradient(135deg, ${PRIMARY.light} 0%, ${PRIMARY.main} 100%)`,
+            background: PRIMARY.dark,
           },
           boxShadow: `0 4px 14px 0 ${PRIMARY.main}40`,
         },
@@ -507,17 +507,21 @@ export const lightTheme = createTheme({
         root: {
           '& .MuiOutlinedInput-root': {
             borderRadius: 10,
-            backdropFilter: 'blur(8px)',
-            backgroundColor: 'rgba(255, 255, 255, 0.7)',
+            backdropFilter: 'blur(4px)',
+            backgroundColor: 'rgba(255, 255, 255, 0.9)',
             transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
             '&:hover': {
-              backgroundColor: 'rgba(255, 255, 255, 0.9)',
+              backgroundColor: 'rgba(255, 255, 255, 0.95)',
             },
             '&.Mui-focused': {
               boxShadow: `0 0 0 2px ${PRIMARY.main}40`,
             },
             '& fieldset': {
               borderColor: 'rgba(0, 0, 0, 0.1)',
+            },
+            '& input[type="password"]': {
+              backgroundColor: 'rgba(255, 255, 255, 0.95)',
+              borderRadius: 8,
             },
           },
         },
@@ -673,9 +677,9 @@ export const darkTheme = createTheme({
           height: 48,
         },
         containedPrimary: {
-          background: `linear-gradient(135deg, ${PRIMARY.light} 0%, ${PRIMARY.main} 100%)`,
+          background: PRIMARY.main,
           '&:hover': {
-            background: `linear-gradient(135deg, ${PRIMARY.lighter} 0%, ${PRIMARY.light} 100%)`,
+            background: PRIMARY.light,
           },
           boxShadow: `0 4px 14px 0 ${PRIMARY.main}40`,
         },
@@ -921,17 +925,21 @@ export const darkTheme = createTheme({
         root: {
           '& .MuiOutlinedInput-root': {
             borderRadius: 10,
-            backdropFilter: 'blur(8px)',
-            backgroundColor: 'rgba(30, 41, 59, 0.7)',
+            backdropFilter: 'blur(4px)',
+            backgroundColor: 'rgba(30, 41, 59, 0.9)',
             transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
             '&:hover': {
-              backgroundColor: 'rgba(30, 41, 59, 0.9)',
+              backgroundColor: 'rgba(30, 41, 59, 0.95)',
             },
             '&.Mui-focused': {
               boxShadow: `0 0 0 2px ${PRIMARY.main}40`,
             },
             '& fieldset': {
               borderColor: 'rgba(255, 255, 255, 0.15)',
+            },
+            '& input[type="password"]': {
+              backgroundColor: 'rgba(30, 41, 59, 0.95)',
+              borderRadius: 8,
             },
           },
         },

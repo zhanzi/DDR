@@ -216,17 +216,17 @@ const UserListView = () => {
 
         {/* 用户列表 */}
         <Card>
-          <TableContainer component={Paper}>
-            <Table>
+          <TableContainer component={Paper} sx={{ overflowX: 'auto' }}>
+            <Table sx={{ minWidth: 650 }}>
               <TableHead>
                 <TableRow>
                   <TableCell>用户名</TableCell>
-                  <TableCell>邮箱</TableCell>
-                  <TableCell>真实姓名</TableCell>
-                  <TableCell>商户ID</TableCell>
-                  <TableCell>角色</TableCell>
+                  <TableCell sx={{ display: { xs: 'none', sm: 'table-cell' } }}>邮箱</TableCell>
+                  <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>真实姓名</TableCell>
+                  <TableCell sx={{ display: { xs: 'none', lg: 'table-cell' } }}>商户ID</TableCell>
+                  <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>角色</TableCell>
                   <TableCell>状态</TableCell>
-                  <TableCell align="right">操作</TableCell>
+                  <TableCell align="right" sx={{ minWidth: 120 }}>操作</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -248,10 +248,10 @@ const UserListView = () => {
                   users.map((user) => (
                     <TableRow key={user.id}>
                       <TableCell>{user.userName}</TableCell>
-                      <TableCell>{user.email}</TableCell>
-                      <TableCell>{user.realName}</TableCell>
-                      <TableCell>{user.merchantId}</TableCell>
-                      <TableCell>{renderRoles(user.roles)}</TableCell>
+                      <TableCell sx={{ display: { xs: 'none', sm: 'table-cell' } }}>{user.email}</TableCell>
+                      <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>{user.realName}</TableCell>
+                      <TableCell sx={{ display: { xs: 'none', lg: 'table-cell' } }}>{user.merchantId}</TableCell>
+                      <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>{renderRoles(user.roles)}</TableCell>
                       <TableCell>
                         {user.lockoutEnd && new Date(user.lockoutEnd) > new Date() ? (
                           <Chip label="已锁定" color="error" size="small" />
@@ -259,7 +259,7 @@ const UserListView = () => {
                           <Chip label="正常" color="success" size="small" />
                         )}
                       </TableCell>
-                      <TableCell align="right">
+                      <TableCell align="right" sx={{ whiteSpace: 'nowrap' }}>
                         <Tooltip title="编辑">
                           <IconButton
                             component={RouterLink}

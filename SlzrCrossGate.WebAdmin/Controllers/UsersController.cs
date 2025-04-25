@@ -26,6 +26,44 @@ namespace SlzrCrossGate.WebAdmin.Controllers
             _logger = logger;
         }
 
+        // GET: api/Users/CurrentUser
+        [HttpGet("CurrentUser")]
+        [Authorize]
+        public async Task<ActionResult<UserDto>> GetCurrentUser()
+        {
+            try
+            {
+                // 获取当前用户
+                var currentUser = await _userManager.GetUserAsync(User);
+                if (currentUser == null)
+                {
+                    return Unauthorized(new { message = "未找到当前用户" });
+                }
+
+                // 获取用户角色
+                var roles = await _userManager.GetRolesAsync(currentUser);
+
+                // 返回用户信息
+                return Ok(new UserDto
+                {
+                    Id = currentUser.Id,
+                    UserName = currentUser.UserName,
+                    Email = currentUser.Email,
+                    RealName = currentUser.RealName,
+                    MerchantId = currentUser.MerchantID,
+                    Roles = roles.ToList(),
+                    EmailConfirmed = currentUser.EmailConfirmed,
+                    LockoutEnd = currentUser.LockoutEnd,
+                    IsTwoFactorEnabled = currentUser.TwoFactorEnabled
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "获取当前用户信息时发生错误");
+                return StatusCode(500, new { message = "服务器内部错误" });
+            }
+        }
+
         // GET: api/users
         [HttpGet]
         [Authorize(Roles = "SystemAdmin,MerchantAdmin")]
@@ -55,9 +93,9 @@ namespace SlzrCrossGate.WebAdmin.Controllers
                 // 搜索条件
                 if (!string.IsNullOrEmpty(search))
                 {
-                    query = query.Where(u => 
-                        u.UserName.Contains(search) || 
-                        u.Email.Contains(search) || 
+                    query = query.Where(u =>
+                        u.UserName.Contains(search) ||
+                        u.Email.Contains(search) ||
                         u.RealName.Contains(search));
                 }
 
@@ -148,7 +186,8 @@ namespace SlzrCrossGate.WebAdmin.Controllers
                     MerchantId = user.MerchantID,
                     Roles = roles.ToList(),
                     EmailConfirmed = user.EmailConfirmed,
-                    LockoutEnd = user.LockoutEnd
+                    LockoutEnd = user.LockoutEnd,
+                    IsTwoFactorEnabled = user.TwoFactorEnabled
                 });
             }
             catch (Exception ex)
@@ -252,7 +291,8 @@ namespace SlzrCrossGate.WebAdmin.Controllers
                     MerchantId = user.MerchantID,
                     Roles = assignedRoles.ToList(),
                     EmailConfirmed = user.EmailConfirmed,
-                    LockoutEnd = user.LockoutEnd
+                    LockoutEnd = user.LockoutEnd,
+                    IsTwoFactorEnabled = user.TwoFactorEnabled
                 });
             }
             catch (Exception ex)
@@ -264,7 +304,7 @@ namespace SlzrCrossGate.WebAdmin.Controllers
 
         // PUT: api/users/{id}
         [HttpPut("{id}")]
-        [Authorize(Roles = "SystemAdmin,MerchantAdmin")]
+        [Authorize]
         public async Task<IActionResult> UpdateUser(string id, [FromBody] UpdateUserDto updateUserDto)
         {
             try
@@ -276,8 +316,10 @@ namespace SlzrCrossGate.WebAdmin.Controllers
                     return Unauthorized();
                 }
 
-                // 检查是否是系统管理员
+                // 检查是否是系统管理员或商户管理员
                 var isSystemAdmin = await _userManager.IsInRoleAsync(currentUser, "SystemAdmin");
+                var isMerchantAdmin = await _userManager.IsInRoleAsync(currentUser, "MerchantAdmin");
+                var isAdmin = isSystemAdmin || isMerchantAdmin;
 
                 // 获取目标用户
                 var user = await _userManager.FindByIdAsync(id);
@@ -286,8 +328,14 @@ namespace SlzrCrossGate.WebAdmin.Controllers
                     return NotFound(new { message = "用户不存在" });
                 }
 
-                // 如果不是系统管理员，只能更新自己商户的用户
-                if (!isSystemAdmin && user.MerchantID != currentUser.MerchantID)
+                // 如果是普通用户，只能更新自己的信息
+                if (!isAdmin && currentUser.Id != id)
+                {
+                    return Forbid();
+                }
+
+                // 如果是商户管理员，只能更新自己商户的用户
+                if (isMerchantAdmin && !isSystemAdmin && user.MerchantID != currentUser.MerchantID)
                 {
                     return Forbid();
                 }
@@ -311,10 +359,15 @@ namespace SlzrCrossGate.WebAdmin.Controllers
                     user.RealName = updateUserDto.RealName;
                 }
 
-                // 只有系统管理员可以更改用户的商户ID
-                if (isSystemAdmin && !string.IsNullOrEmpty(updateUserDto.MerchantId))
+                // 只有管理员可以更改用户的商户ID
+                if (isAdmin && !string.IsNullOrEmpty(updateUserDto.MerchantId))
                 {
-                    user.MerchantID = updateUserDto.MerchantId;
+                    // 只有系统管理员可以随意更改商户ID
+                    // 商户管理员只能将用户分配到自己的商户
+                    if (isSystemAdmin || updateUserDto.MerchantId == currentUser.MerchantID)
+                    {
+                        user.MerchantID = updateUserDto.MerchantId;
+                    }
                 }
 
                 // 更新用户
@@ -324,8 +377,8 @@ namespace SlzrCrossGate.WebAdmin.Controllers
                     return BadRequest(new { message = result.Errors.First().Description });
                 }
 
-                // 更新角色
-                if (updateUserDto.Roles != null)
+                // 更新角色 - 只有管理员可以更新角色
+                if (updateUserDto.Roles != null && isAdmin)
                 {
                     // 获取当前角色
                     var currentRoles = await _userManager.GetRolesAsync(user);
@@ -467,8 +520,8 @@ namespace SlzrCrossGate.WebAdmin.Controllers
                     }
 
                     var changePasswordResult = await _userManager.ChangePasswordAsync(
-                        user, 
-                        changePasswordDto.CurrentPassword, 
+                        user,
+                        changePasswordDto.CurrentPassword,
                         changePasswordDto.NewPassword);
 
                     if (!changePasswordResult.Succeeded)
@@ -481,8 +534,8 @@ namespace SlzrCrossGate.WebAdmin.Controllers
                     // 管理员重置其他用户密码
                     var resetToken = await _userManager.GeneratePasswordResetTokenAsync(user);
                     var resetPasswordResult = await _userManager.ResetPasswordAsync(
-                        user, 
-                        resetToken, 
+                        user,
+                        resetToken,
                         changePasswordDto.NewPassword);
 
                     if (!resetPasswordResult.Succeeded)
@@ -615,38 +668,39 @@ namespace SlzrCrossGate.WebAdmin.Controllers
     // DTO 类
     public class UserDto
     {
-        public string Id { get; set; }
-        public string UserName { get; set; }
-        public string Email { get; set; }
-        public string RealName { get; set; }
-        public string MerchantId { get; set; }
-        public List<string> Roles { get; set; }
+        public string Id { get; set; } = string.Empty;
+        public string UserName { get; set; } = string.Empty;
+        public string Email { get; set; } = string.Empty;
+        public string RealName { get; set; } = string.Empty;
+        public string MerchantId { get; set; } = string.Empty;
+        public List<string> Roles { get; set; } = new List<string>();
         public bool EmailConfirmed { get; set; }
         public DateTimeOffset? LockoutEnd { get; set; }
+        public bool IsTwoFactorEnabled { get; set; }
     }
 
     public class CreateUserDto
     {
-        public string UserName { get; set; }
-        public string Email { get; set; }
-        public string Password { get; set; }
-        public string RealName { get; set; }
-        public string MerchantId { get; set; }
-        public List<string> Roles { get; set; }
+        public string UserName { get; set; } = string.Empty;
+        public string Email { get; set; } = string.Empty;
+        public string Password { get; set; } = string.Empty;
+        public string RealName { get; set; } = string.Empty;
+        public string MerchantId { get; set; } = string.Empty;
+        public List<string> Roles { get; set; } = new List<string>();
     }
 
     public class UpdateUserDto
     {
-        public string Email { get; set; }
-        public string RealName { get; set; }
-        public string MerchantId { get; set; }
-        public List<string> Roles { get; set; }
+        public string? Email { get; set; }
+        public string? RealName { get; set; }
+        public string? MerchantId { get; set; }
+        public List<string>? Roles { get; set; }
     }
 
     public class ChangePasswordDto
     {
-        public string CurrentPassword { get; set; }
-        public string NewPassword { get; set; }
+        public string CurrentPassword { get; set; } = string.Empty;
+        public string NewPassword { get; set; } = string.Empty;
     }
 
     public class LockUserDto

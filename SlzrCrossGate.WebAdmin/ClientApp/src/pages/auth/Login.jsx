@@ -14,11 +14,8 @@ import {
   Paper,
   TextField,
   Typography,
-  InputAdornment,
-  IconButton,
   Alert,
 } from '@mui/material';
-import { Visibility, VisibilityOff } from '@mui/icons-material';
 import { useAuth } from '../../contexts/AuthContext';
 import { useSnackbar } from 'notistack';
 import WechatIcon from '../../components/icons/WechatIcon';
@@ -27,7 +24,6 @@ const Login = () => {
   const { login } = useAuth();
   const { enqueueSnackbar } = useSnackbar();
   const navigate = useNavigate();
-  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -80,10 +76,7 @@ const Login = () => {
     },
   });
 
-  // 切换密码可见性
-  const handleTogglePassword = () => {
-    setShowPassword(!showPassword);
-  };
+
 
   return (
       <Container maxWidth="sm">
@@ -122,31 +115,52 @@ const Login = () => {
               onChange={formik.handleChange}
               error={formik.touched.username && Boolean(formik.errors.username)}
               helperText={formik.touched.username && formik.errors.username}
+              sx={{
+                // 处理自动填充的样式
+                '& input:-webkit-autofill': {
+                  WebkitBoxShadow: '0 0 0 1000px white inset',
+                  transition: 'background-color 5000s ease-in-out 0s',
+                },
+                '& input:-webkit-autofill ~ label': {
+                  transform: 'translate(14px, -9px) scale(0.75)',
+                  background: '#fff',
+                  padding: '0 5px',
+                },
+                '& .MuiInputBase-input:-webkit-autofill + fieldset + .MuiInputLabel-root': {
+                  transform: 'translate(14px, -9px) scale(0.75)',
+                  background: '#fff',
+                  padding: '0 5px',
+                },
+              }}
             />
             <TextField
               fullWidth
               id="password"
               name="password"
               label="密码"
-              type={showPassword ? 'text' : 'password'}
+              type="password"
               margin="normal"
               autoComplete="current-password"
               value={formik.values.password}
               onChange={formik.handleChange}
               error={formik.touched.password && Boolean(formik.errors.password)}
               helperText={formik.touched.password && formik.errors.password}
-              InputProps={{
-                endAdornment: (
-                  <InputAdornment position="end">
-                    <IconButton
-                      aria-label="toggle password visibility"
-                      onClick={handleTogglePassword}
-                      edge="end"
-                    >
-                      {showPassword ? <VisibilityOff /> : <Visibility />}
-                    </IconButton>
-                  </InputAdornment>
-                ),
+              sx={{
+                // 处理自动填充的样式
+                '& input:-webkit-autofill': {
+                  WebkitBoxShadow: '0 0 0 1000px white inset',
+                  transition: 'background-color 5000s ease-in-out 0s',
+                },
+                '& input:-webkit-autofill ~ label': {
+                  transform: 'translate(14px, -9px) scale(0.75)',
+                  background: '#fff',
+                  padding: '0 5px',
+                },
+                '& .MuiInputBase-input:-webkit-autofill + fieldset + .MuiInputLabel-root': {
+                  transform: 'translate(14px, -9px) scale(0.75)',
+                  background: '#fff',
+                  padding: '0 5px',
+                },
               }}
             />
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 1 }}>

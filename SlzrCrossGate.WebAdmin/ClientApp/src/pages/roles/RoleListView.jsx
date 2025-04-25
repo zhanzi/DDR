@@ -126,14 +126,14 @@ const RoleListView = () => {
 
         {/* 角色列表 */}
         <Card>
-          <TableContainer component={Paper}>
-            <Table>
+          <TableContainer component={Paper} sx={{ overflowX: 'auto' }}>
+            <Table sx={{ minWidth: 500 }}>
               <TableHead>
                 <TableRow>
                   <TableCell>角色名称</TableCell>
-                  <TableCell>描述</TableCell>
+                  <TableCell sx={{ display: { xs: 'none', sm: 'table-cell' } }}>描述</TableCell>
                   <TableCell>用户数</TableCell>
-                  <TableCell align="right">操作</TableCell>
+                  <TableCell align="right" sx={{ minWidth: 100 }}>操作</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -155,9 +155,9 @@ const RoleListView = () => {
                   roles.map((role) => (
                     <TableRow key={role.id}>
                       <TableCell>{role.name}</TableCell>
-                      <TableCell>{role.description}</TableCell>
+                      <TableCell sx={{ display: { xs: 'none', sm: 'table-cell' } }}>{role.description}</TableCell>
                       <TableCell>{role.userCount || 0}</TableCell>
-                      <TableCell align="right">
+                      <TableCell align="right" sx={{ whiteSpace: 'nowrap' }}>
                         <Tooltip title="编辑">
                           <IconButton
                             component={RouterLink}

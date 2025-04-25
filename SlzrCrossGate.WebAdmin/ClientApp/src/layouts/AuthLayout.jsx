@@ -2,7 +2,7 @@ import React from 'react';
 import { Outlet } from 'react-router-dom';
 import { Box } from '@mui/material';
 
-const AuthLayout = () => {
+const AuthLayout = ({ children })  => {
   return (
     <Box
       sx={{
@@ -14,7 +14,7 @@ const AuthLayout = () => {
         py: 4,
       }}
     >
-      <Outlet />
+      {children || <Outlet />}
     </Box>
   );
 };

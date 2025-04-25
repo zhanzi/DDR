@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
@@ -22,10 +22,11 @@ const TwoFactorVerify = () => {
   const [error, setError] = useState('');
 
   // 如果不需要双因素验证，重定向到仪表盘
-  if (!needTwoFactor) {
-    navigate('/app/dashboard');
-    return null;
-  }
+  useEffect(() => {
+    if (!needTwoFactor) {
+      navigate('/app/dashboard');
+    }
+  }, [needTwoFactor, navigate]);
 
   // 表单验证
   const formik = useFormik({

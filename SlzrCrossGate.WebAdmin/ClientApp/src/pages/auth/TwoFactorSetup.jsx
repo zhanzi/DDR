@@ -1,259 +1,246 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import {
+    Box,
+    Button,
+    TextField,
+    Typography,
+    CircularProgress,
+    Stepper,
+    Step,
+    StepLabel,
+    Paper
+} from '@mui/material';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
-import {
-  Box,
-  Button,
-  Container,
-  Paper,
-  TextField,
-  Typography,
-  Alert,
-  Stepper,
-  Step,
-  StepLabel,
-  Link,
-} from '@mui/material';
-import { useAuth } from '../../contexts/AuthContext';
 import { useSnackbar } from 'notistack';
+import { QRCodeSVG } from "qrcode.react";
+import AuthLayout from '../../layouts/AuthLayout';
+import { useAuth } from '../../contexts/AuthContext';
+
+const steps = ['下载验证器', '扫描二维码', '验证设置'];
 
 const TwoFactorSetup = () => {
-  const { setupTwoFactor, confirmTwoFactorSetup, tempToken } = useAuth();
-  const navigate = useNavigate();
-  const { enqueueSnackbar } = useSnackbar();
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [activeStep, setActiveStep] = useState(0);
-  const [qrCode, setQrCode] = useState('');
-  const [secret, setSecret] = useState('');
+    const navigate = useNavigate();
+    const { enqueueSnackbar } = useSnackbar();
+    const { setupTwoFactor, confirmTwoFactorSetup } = useAuth();
+    const [activeStep, setActiveStep] = useState(0);
+    const [loading, setLoading] = useState(false);
+    const [setupData, setSetupData] = useState(null);
 
-  // 如果没有临时令牌，重定向到登录页面
-  useEffect(() => {
-    if (!tempToken) {
-      navigate('/login');
-    } else if (activeStep === 0) {
-      // 获取设置信息
-      fetchSetupInfo();
-    }
-  }, [tempToken, navigate, activeStep]);
-
-  // 获取设置信息
-  const fetchSetupInfo = async () => {
-    setLoading(true);
-    setError('');
-
-    try {
-      const result = await setupTwoFactor();
-
-      if (result.success) {
-        setQrCode(result.qrCode);
-        setSecret(result.secret);
-      } else {
-        setError(result.message || '获取设置信息失败');
-      }
-    } catch (err) {
-      setError('获取设置信息过程中发生错误，请稍后再试');
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // 表单验证
-  const formik = useFormik({
-    initialValues: {
-      code: '',
-    },
-    validationSchema: Yup.object({
-      code: Yup.string()
-        .required('请输入动态口令')
-        .matches(/^\d{6}$/, '动态口令必须是6位数字'),
-    }),
-    onSubmit: async (values) => {
-      setLoading(true);
-      setError('');
-
-      try {
-        const result = await confirmTwoFactorSetup(values.code);
-
-        if (result.success) {
-          enqueueSnackbar('设置成功', { variant: 'success' });
-          navigate('/app/dashboard');
-        } else {
-          setError(result.message || '验证失败，请检查动态口令');
+    useEffect(() => {
+        if (activeStep === 1) {
+            generateSetupData();
         }
-      } catch (err) {
-        setError('验证过程中发生错误，请稍后再试');
-        console.error(err);
-      } finally {
-        setLoading(false);
-      }
-    },
-  });
+    }, [activeStep]);
 
-  // 步骤内容
-  const getStepContent = (step) => {
-    switch (step) {
-      case 0:
-        return (
-          <Box>
-            <Typography variant="h6" gutterBottom>
-              下载身份验证器应用
-            </Typography>
-            <Typography variant="body2" paragraph>
-              请在您的手机上下载并安装以下任一身份验证器应用：
-            </Typography>
-            <ul>
-              <li>
-                <Link href="https://play.google.com/store/apps/details?id=com.google.android.apps.authenticator2" target="_blank" rel="noopener">
-                  Google Authenticator (Android)
-                </Link>
-              </li>
-              <li>
-                <Link href="https://apps.apple.com/us/app/google-authenticator/id388497605" target="_blank" rel="noopener">
-                  Google Authenticator (iOS)
-                </Link>
-              </li>
-              <li>
-                <Link href="https://authy.com/download/" target="_blank" rel="noopener">
-                  Authy (Android/iOS)
-                </Link>
-              </li>
-            </ul>
-            <Button
-              variant="contained"
-              onClick={() => setActiveStep(1)}
-              sx={{ mt: 2 }}
-            >
-              下一步
-            </Button>
-          </Box>
-        );
-      case 1:
-        return (
-          <Box>
-            <Typography variant="h6" gutterBottom>
-              扫描二维码
-            </Typography>
-            <Typography variant="body2" paragraph>
-              打开身份验证器应用，扫描下方二维码：
-            </Typography>
-            {qrCode && (
-              <Box sx={{ textAlign: 'center', my: 3 }}>
-                <img src={qrCode} alt="二维码" style={{ maxWidth: '200px' }} />
-              </Box>
-            )}
-            <Typography variant="body2" paragraph>
-              如果无法扫描二维码，请手动输入以下密钥：
-            </Typography>
-            <Typography
-              variant="body1"
-              sx={{
-                fontFamily: 'monospace',
-                p: 2,
-                backgroundColor: 'rgba(0, 0, 0, 0.05)',
-                borderRadius: 1,
-                textAlign: 'center',
-                letterSpacing: 1,
-              }}
-            >
-              {secret}
-            </Typography>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 2 }}>
-              <Button variant="outlined" onClick={() => setActiveStep(0)}>
-                上一步
-              </Button>
-              <Button variant="contained" onClick={() => setActiveStep(2)}>
-                下一步
-              </Button>
-            </Box>
-          </Box>
-        );
-      case 2:
-        return (
-          <Box>
-            <Typography variant="h6" gutterBottom>
-              验证设置
-            </Typography>
-            <Typography variant="body2" paragraph>
-              请输入身份验证器应用中显示的6位动态口令，以完成设置：
-            </Typography>
-            <form onSubmit={formik.handleSubmit}>
-              <TextField
-                fullWidth
-                id="code"
-                name="code"
-                label="动态口令"
-                margin="normal"
-                autoComplete="one-time-code"
-                autoFocus
-                value={formik.values.code}
-                onChange={formik.handleChange}
-                error={formik.touched.code && Boolean(formik.errors.code)}
-                helperText={formik.touched.code && formik.errors.code}
-                inputProps={{ maxLength: 6 }}
-              />
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 2 }}>
-                <Button variant="outlined" onClick={() => setActiveStep(1)}>
-                  上一步
-                </Button>
-                <Button
-                  type="submit"
-                  variant="contained"
-                  disabled={loading}
-                >
-                  {loading ? '验证中...' : '完成设置'}
-                </Button>
-              </Box>
-            </form>
-          </Box>
-        );
-      default:
-        return '未知步骤';
-    }
-  };
+    const generateSetupData = async () => {
+        setLoading(true);
+        try {
+            console.log('开始设置双因素认证');
+            const response = await setupTwoFactor();
+            console.log('设置双因素认证响应:', response);
 
-  return (
-    <Container maxWidth="sm">
-      <Paper
-        elevation={3}
-        sx={{
-          p: 4,
-          borderRadius: 2,
-        }}
-      >
-        <Box sx={{ mb: 4, textAlign: 'center' }}>
-          <Typography variant="h4" gutterBottom>
-            设置双因素验证
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
-            增强您账户的安全性
-          </Typography>
-        </Box>
+            if (response.success) {
+                // 确保我们有必要的数据
+                if (!response.secret) {
+                    throw new Error('服务器未返回密钥');
+                }
 
-        {error && (
-          <Alert severity="error" sx={{ mb: 3 }}>
-            {error}
-          </Alert>
-        )}
+                const secretKey = response.secret;
+                setSetupData({
+                    qrCodeUrl: response.qrCode,
+                    secretKey: secretKey
+                });
 
-        <Stepper activeStep={activeStep} sx={{ mb: 4 }}>
-          <Step>
-            <StepLabel>下载应用</StepLabel>
-          </Step>
-          <Step>
-            <StepLabel>扫描二维码</StepLabel>
-          </Step>
-          <Step>
-            <StepLabel>验证设置</StepLabel>
-          </Step>
-        </Stepper>
+                // 保存secretKey到localStorage，以便后续使用
+                localStorage.setItem('twoFactorSecretKey', secretKey);
+                console.log('保存secretKey到localStorage:', secretKey);
+            } else {
+                throw new Error(response.message || '生成二维码失败');
+            }
+        } catch (error) {
+            console.error('设置双因素认证失败:', error);
+            // 显示更详细的错误信息
+            let errorMessage = '生成二维码失败';
+            if (error.message) {
+                errorMessage = error.message;
+            } else if (error.response?.data?.message) {
+                errorMessage = error.response.data.message;
+            }
+            enqueueSnackbar(errorMessage, { variant: 'error' });
+            setActiveStep(0);
+        } finally {
+            setLoading(false);
+        }
+    };
 
-        {getStepContent(activeStep)}
-      </Paper>
-    </Container>
-  );
+    const formik = useFormik({
+        initialValues: {
+            code: '',
+        },
+        validationSchema: Yup.object({
+            code: Yup.string()
+                .required('请输入验证码')
+                .matches(/^[0-9]{6}$/, '验证码必须是6位数字'),
+        }),
+        onSubmit: async (values) => {
+            setLoading(true);
+            try {
+                // 确保我们有secretKey
+                const secretKey = setupData?.secretKey || localStorage.getItem('twoFactorSecretKey');
+                if (!secretKey) {
+                    throw new Error('未找到密钥，请重新开始设置过程');
+                }
+
+                console.log('提交验证码，使用密钥:', secretKey);
+                const response = await confirmTwoFactorSetup(values.code);
+                if (response.success) {
+                    // 清除localStorage中的临时密钥
+                    localStorage.removeItem('twoFactorSecretKey');
+                    enqueueSnackbar('双因素认证设置成功', { variant: 'success' });
+                    navigate('/app/dashboard');
+                } else {
+                    throw new Error(response.message || '验证失败');
+                }
+            } catch (error) {
+                enqueueSnackbar(error.message || error.response?.data?.message || '验证失败', {
+                    variant: 'error'
+                });
+            } finally {
+                setLoading(false);
+            }
+        },
+    });
+
+    const handleNext = () => {
+        setActiveStep((prevStep) => prevStep + 1);
+    };
+
+    const handleBack = () => {
+        setActiveStep((prevStep) => prevStep - 1);
+    };
+
+    const renderStepContent = (step) => {
+        switch (step) {
+            case 0:
+                return (
+                    <Box sx={{ mt: 2 }}>
+                        <Typography variant="body1" gutterBottom>
+                            请在您的手机上安装以下任一验证器应用：
+                        </Typography>
+                        <ul>
+                            <li>Google Authenticator</li>
+                            <li>Microsoft Authenticator</li>
+                            <li>Authy</li>
+                        </ul>
+                    </Box>
+                );
+            case 1:
+                return (
+                    <Box sx={{ mt: 2, textAlign: 'center' }}>
+                        {loading ? (
+                            <CircularProgress />
+                        ) : setupData ? (
+                            <>
+                                <QRCodeSVG
+                                    value={setupData.qrCodeUrl}
+                                    size={200}
+                                    level="H"
+                                    margin={10}
+                                />
+                                <Typography variant="body2" sx={{ mt: 2 }}>
+                                    请使用验证器应用扫描上方二维码
+                                </Typography>
+                                <Typography variant="caption" color="text.secondary" sx={{ mt: 1 }}>
+                                    或手动输入密钥: {setupData.secretKey}
+                                </Typography>
+                            </>
+                        ) : (
+                            <Typography color="error">
+                                生成二维码失败，请返回重试
+                            </Typography>
+                        )}
+                    </Box>
+                );
+            case 2:
+                return (
+                    <Box sx={{ mt: 2 }}>
+                        <Typography variant="body1" gutterBottom>
+                            请输入验证器应用中显示的6位验证码：
+                        </Typography>
+                        <form onSubmit={formik.handleSubmit}>
+                            <TextField
+                                fullWidth
+                                id="code"
+                                name="code"
+                                label="验证码"
+                                value={formik.values.code}
+                                onChange={formik.handleChange}
+                                error={formik.touched.code && Boolean(formik.errors.code)}
+                                helperText={formik.touched.code && formik.errors.code}
+                                sx={{ mt: 2 }}
+                                inputProps={{
+                                    maxLength: 6,
+                                    inputMode: 'numeric',
+                                    pattern: '[0-9]*'
+                                }}
+                            />
+                        </form>
+                    </Box>
+                );
+            default:
+                return null;
+        }
+    };
+
+    return (
+        <AuthLayout>
+            <Paper sx={{ p: 3, maxWidth: 600, mx: 'auto' }}>
+                <Typography variant="h5" gutterBottom>
+                    设置双因素认证
+                </Typography>
+
+                <Stepper activeStep={activeStep} sx={{ my: 4 }}>
+                    {steps.map((label) => (
+                        <Step key={label}>
+                            <StepLabel>{label}</StepLabel>
+                        </Step>
+                    ))}
+                </Stepper>
+
+                {renderStepContent(activeStep)}
+
+                <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 3 }}>
+                    <Button
+                        disabled={activeStep === 0 || loading}
+                        onClick={handleBack}
+                        sx={{ mr: 1 }}
+                    >
+                        上一步
+                    </Button>
+
+                    {activeStep === steps.length - 1 ? (
+                        <Button
+                            variant="contained"
+                            onClick={formik.handleSubmit}
+                            disabled={loading}
+                        >
+                            {loading ? <CircularProgress size={24} /> : '完成设置'}
+                        </Button>
+                    ) : (
+                        <Button
+                            variant="contained"
+                            onClick={handleNext}
+                            disabled={loading || (activeStep === 1 && !setupData)}
+                        >
+                            下一步
+                        </Button>
+                    )}
+                </Box>
+            </Paper>
+        </AuthLayout>
+    );
 };
 
 export default TwoFactorSetup;

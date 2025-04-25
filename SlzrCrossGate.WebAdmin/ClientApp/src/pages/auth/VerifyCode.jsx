@@ -1,145 +1,121 @@
-import { useState } from 'react';
-import { Link as RouterLink, useNavigate } from 'react-router-dom';
+import React, { useState } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
-import {
-  Box,
-  Button,
-  Container,
-  Link,
-  Paper,
-  TextField,
-  Typography,
-  Alert,
-} from '@mui/material';
-import { useAuth } from '../../contexts/AuthContext';
+import { Box, TextField, Button, Typography, CircularProgress } from '@mui/material';
 import { useSnackbar } from 'notistack';
+import { useAuth } from '../../contexts/AuthContext';
+import  AuthLayout  from '../../layouts/AuthLayout';
+import { authAPI } from '../../services/api';
 
 const VerifyCode = () => {
-  const navigate = useNavigate();
-  const { enqueueSnackbar } = useSnackbar();
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+    const navigate = useNavigate();
+    const location = useLocation();
+    const { enqueueSnackbar } = useSnackbar();
+    const { login } = useAuth();
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState('');
 
-  // 表单验证
-  const formik = useFormik({
-    initialValues: {
-      username: '',
-      code: '',
-    },
-    validationSchema: Yup.object({
-      username: Yup.string().required('请输入用户名'),
-      code: Yup.string()
-        .required('请输入验证码')
-        .matches(/^[0-9]{6}$/, '验证码必须是6位数字'),
-    }),
-    onSubmit: async (values) => {
-      setLoading(true);
-      setError('');
-      
-      try {
-        // 这里应该调用验证码登录API
-        // const result = await verifyCodeLogin(values.username, values.code);
-        
-        // 模拟API调用
-        setTimeout(() => {
-          enqueueSnackbar('验证成功', { variant: 'success' });
-          navigate('/dashboard');
-          setLoading(false);
-        }, 1500);
-      } catch (err) {
-        setError('验证过程中发生错误，请稍后再试');
-        console.error(err);
-        setLoading(false);
-      }
-    },
-  });
+    // 从location state获取临时令牌
+    const tempToken = location.state?.tempToken;
+    if (!tempToken) {
+        // 如果没有临时令牌，重定向到登录页
+        navigate('/login');
+        return null;
+    }
 
-  return (
-    <Box
-      sx={{
-        display: 'flex',
-        minHeight: '100vh',
-        alignItems: 'center',
-        justifyContent: 'center',
-        backgroundColor: (theme) => theme.palette.background.default,
-        py: 4,
-      }}
-    >
-      <Container maxWidth="sm">
-        <Paper
-          elevation={3}
-          sx={{
-            p: 4,
-            borderRadius: 2,
-          }}
-        >
-          <Box sx={{ mb: 3, textAlign: 'center' }}>
-            <Typography variant="h4" gutterBottom>
-              动态口令验证
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              请输入您的用户名和动态口令
-            </Typography>
-          </Box>
+    const formik = useFormik({
+        initialValues: {
+            code: '',
+        },
+        validationSchema: Yup.object({
+            code: Yup.string()
+                .required('请输入验证码')
+                .matches(/^[0-9]{6}$/, '验证码必须是6位数字'),
+        }),
+        onSubmit: async (values) => {
+            setLoading(true);
+            setError('');
 
-          {error && (
-            <Alert severity="error" sx={{ mb: 3 }}>
-              {error}
-            </Alert>
-          )}
+            try {
+                const response = await authAPI.verifyTwoFactorCode({
+                    tempToken,
+                    code: values.code
+                });
 
-          <form onSubmit={formik.handleSubmit}>
-            <TextField
-              fullWidth
-              id="username"
-              name="username"
-              label="用户名"
-              margin="normal"
-              autoComplete="username"
-              autoFocus
-              value={formik.values.username}
-              onChange={formik.handleChange}
-              error={formik.touched.username && Boolean(formik.errors.username)}
-              helperText={formik.touched.username && formik.errors.username}
-            />
-            <TextField
-              fullWidth
-              id="code"
-              name="code"
-              label="动态口令"
-              margin="normal"
-              autoComplete="one-time-code"
-              value={formik.values.code}
-              onChange={formik.handleChange}
-              error={formik.touched.code && Boolean(formik.errors.code)}
-              helperText={formik.touched.code && formik.errors.code}
-              inputProps={{ maxLength: 6 }}
-            />
-            
-            <Button
-              fullWidth
-              type="submit"
-              variant="contained"
-              size="large"
-              disabled={loading}
-              sx={{ mt: 3, mb: 2 }}
-            >
-              {loading ? '验证中...' : '验证'}
-            </Button>
-          </form>
+                // 使用返回的完整token登录
+                await login(response.token);
+                enqueueSnackbar('验证成功', { variant: 'success' });
+                navigate('/dashboard');
+            } catch (err) {
+                setError(err.response?.data?.message || '验证失败，请重试');
+                enqueueSnackbar(err.response?.data?.message || '验证失败，请重试', {
+                    variant: 'error'
+                });
+            } finally {
+                setLoading(false);
+            }
+        },
+    });
 
-          <Box sx={{ mt: 3, textAlign: 'center' }}>
-            <Typography variant="body2">
-              <Link component={RouterLink} to="/auth/login" variant="body2">
-                返回登录
-              </Link>
-            </Typography>
-          </Box>
-        </Paper>
-      </Container>
-    </Box>
-  );
+    return (
+        <AuthLayout>
+            <Box sx={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                p: 3,
+                backgroundColor: 'background.paper',
+                borderRadius: 1,
+                boxShadow: 1,
+                width: '100%',
+                maxWidth: 400,
+            }}>
+                <Typography component="h1" variant="h5" sx={{ mb: 3 }}>
+                    双因素认证
+                </Typography>
+
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                    请输入验证器应用中显示的6位验证码
+                </Typography>
+
+                <form onSubmit={formik.handleSubmit} style={{ width: '100%' }}>
+                    <TextField
+                        fullWidth
+                        id="code"
+                        name="code"
+                        label="验证码"
+                        value={formik.values.code}
+                        onChange={formik.handleChange}
+                        error={formik.touched.code && Boolean(formik.errors.code)}
+                        helperText={formik.touched.code && formik.errors.code}
+                        sx={{ mb: 2 }}
+                        inputProps={{
+                            maxLength: 6,
+                            inputMode: 'numeric',
+                            pattern: '[0-9]*'
+                        }}
+                    />
+
+                    {error && (
+                        <Typography color="error" variant="body2" sx={{ mb: 2 }}>
+                            {error}
+                        </Typography>
+                    )}
+
+                    <Button
+                        type="submit"
+                        fullWidth
+                        variant="contained"
+                        disabled={loading}
+                        sx={{ mb: 2 }}
+                    >
+                        {loading ? <CircularProgress size={24} /> : '验证'}
+                    </Button>
+                </form>
+            </Box>
+        </AuthLayout>
+    );
 };
 
 export default VerifyCode;

@@ -2,10 +2,14 @@ import React from 'react';
 import { Navigate } from 'react-router-dom';
 import AuthLayout from './layouts/AuthLayout';
 import DashboardLayout from './layouts/DashboardLayout';
+import TwoFactorGuard from './components/TwoFactorGuard';
 
-import LoginView from './pages/auth/Login';
+import Login from './pages/auth/Login';
+import VerifyCode from './pages/auth/VerifyCode';
+
 import RegisterView from './pages/auth/Register';
 import ForgotPasswordView from './pages/auth/ForgotPassword';
+import ResetPasswordView from './pages/auth/ResetPassword';
 import TwoFactorVerifyView from './pages/auth/TwoFactorVerify';
 import TwoFactorSetupView from './pages/auth/TwoFactorSetup';
 import WechatLoginView from './pages/auth/WechatLogin';
@@ -28,13 +32,19 @@ import FilePublishList from './pages/files/FilePublishList';
 import MessageTypeList from './pages/messages/MessageTypeList';
 import MessageSend from './pages/messages/MessageSend';
 import MessageList from './pages/messages/MessageList';
+import AccountView from './pages/account/AccountView';
 
 const routes = [
   {
     path: 'app',
-    element: <DashboardLayout />,
+    element: (
+      <TwoFactorGuard>
+        <DashboardLayout />
+      </TwoFactorGuard>
+    ),
     children: [
       { path: 'dashboard', element: <DashboardView /> },
+      { path: 'account', element: <AccountView /> },
       { path: 'users', element: <UserListView /> },
       { path: 'users/:id', element: <UserDetailView /> },
       { path: 'roles', element: <RoleListView /> },
@@ -60,14 +70,23 @@ const routes = [
     path: '/',
     element: <AuthLayout />,
     children: [
-      { path: 'login', element: <LoginView /> },
+      { path: 'login', element: <Login /> },
+      { path: 'verify-code', element: <VerifyCode /> },
       { path: 'auth/login', element: <Navigate to="/login" /> },
       { path: 'register', element: <RegisterView /> },
       { path: 'forgot-password', element: <ForgotPasswordView /> },
+      { path: 'reset-password', element: <ResetPasswordView /> },
       { path: 'two-factor-verify', element: <TwoFactorVerifyView /> },
       { path: 'two-factor-setup', element: <TwoFactorSetupView /> },
       { path: 'wechat-login', element: <WechatLoginView /> },
-      { path: '/', element: <Navigate to="/app/dashboard" /> },
+      {
+        path: '/',
+        element: (
+          <TwoFactorGuard>
+            <Navigate to="/app/dashboard" />
+          </TwoFactorGuard>
+        )
+      },
       { path: '*', element: <Navigate to="/app/404" /> }
     ]
   }

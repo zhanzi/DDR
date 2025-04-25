@@ -250,14 +250,14 @@ const RoleDetailView = () => {
           />
           <Divider />
           <CardContent>
-            <TableContainer component={Paper}>
-              <Table>
+            <TableContainer component={Paper} sx={{ overflowX: 'auto' }}>
+              <Table sx={{ minWidth: 500 }}>
                 <TableHead>
                   <TableRow>
                     <TableCell>用户名</TableCell>
-                    <TableCell>邮箱</TableCell>
-                    <TableCell>真实姓名</TableCell>
-                    <TableCell>商户ID</TableCell>
+                    <TableCell sx={{ display: { xs: 'none', sm: 'table-cell' } }}>邮箱</TableCell>
+                    <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>真实姓名</TableCell>
+                    <TableCell sx={{ display: { xs: 'none', lg: 'table-cell' } }}>商户ID</TableCell>
                     <TableCell>状态</TableCell>
                   </TableRow>
                 </TableHead>
@@ -280,9 +280,9 @@ const RoleDetailView = () => {
                     users.map((user) => (
                       <TableRow key={user.id}>
                         <TableCell>{user.userName}</TableCell>
-                        <TableCell>{user.email}</TableCell>
-                        <TableCell>{user.realName}</TableCell>
-                        <TableCell>{user.merchantId}</TableCell>
+                        <TableCell sx={{ display: { xs: 'none', sm: 'table-cell' } }}>{user.email}</TableCell>
+                        <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>{user.realName}</TableCell>
+                        <TableCell sx={{ display: { xs: 'none', lg: 'table-cell' } }}>{user.merchantId}</TableCell>
                         <TableCell>
                           {user.lockoutEnd && new Date(user.lockoutEnd) > new Date() ? (
                             <Chip label="已锁定" color="error" size="small" />
