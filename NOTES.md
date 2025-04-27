@@ -22,14 +22,23 @@
 - JWT-Decode (JWT解析)
 
 ### 后端技术栈
-- .NET 8.0
+- .NET 8.0 (不要升级到.NET 9.0)
 - ASP.NET Core Identity (认证和授权)
 - JWT Bearer Authentication (令牌认证)
-- Entity Framework Core (数据访问)
-- MySQL (数据库)
+- Entity Framework Core 8.0.14 (不要升级到EF Core 9.x)
+- Pomelo.EntityFrameworkCore.MySql 8.0.3 (与EF Core 8.x兼容)
+- MySQL 8.0+ (数据库)
 - AutoMapper (对象映射)
 - Swagger/OpenAPI (API 文档)
 - RabbitMQ (消息队列)
+
+### 版本兼容性注意事项
+- 项目使用.NET 8.0，不要升级到.NET 9.0
+- Entity Framework Core使用8.0.14版本，不要升级到EF Core 9.x
+- Pomelo.EntityFrameworkCore.MySql使用8.0.3版本，仅兼容EF Core 8.x
+- 安装新包时，确保版本兼容性，特别是EF Core相关包
+- 使用`dotnet add package PackageName --version X.Y.Z`指定版本安装包
+- 如需安装EF Core工具，使用`dotnet tool install --global dotnet-ef --version 8.0.14`
 
 ### 开发环境设置
 1. **前端开发环境**
@@ -136,6 +145,11 @@ SlzrCrossGate.Core/
 - POST /api/Auth/Unbind-Wechat - 解绑微信账号
 - GET /api/Auth/Wechat-Binding - 获取微信绑定状态
 
+### 系统设置
+- GET /api/SystemSettings - 获取系统设置
+- PUT /api/SystemSettings - 更新系统设置
+- 注意：API路径使用PascalCase（SystemSettings），而不是kebab-case（system-settings）
+
 ### 用户管理
 - GET /api/Users/CurrentUser - 获取当前登录用户信息
 - GET /api/Users - 获取用户列表
@@ -238,6 +252,7 @@ SlzrCrossGate.Core/
    - /app/terminals - 终端管理
    - /app/files - 文件管理
    - /app/messages - 消息管理
+   - /app/settings - 系统设置
 
 3. 错误页面：
    - /app/404 - 404页面
@@ -245,7 +260,16 @@ SlzrCrossGate.Core/
 ## 常见问题及解决方案
 
 ### 前端问题
-1. **路由问题**
+
+1. **双因素认证状态显示不一致**
+   - 问题：在用户管理页面和账户设置页面中，同一用户的双因素认证状态显示不一致
+   - 原因：后端返回的属性名为`IsTwoFactorEnabled`，但前端在用户管理页面使用的是`twoFactorEnabled`（首字母小写）
+   - 解决方案：
+     - 在后端`UserDto`类中添加`TwoFactorEnabled`属性，与`IsTwoFactorEnabled`保持一致
+     - 在前端检查时使用`user?.twoFactorEnabled || user?.isTwoFactorEnabled`兼容两种属性名
+     - 确保所有返回`UserDto`的API接口都包含这两个属性
+
+2. **路由问题**
    - 所有页面（包括404错误页面）都应保持统一的布局、菜单和风格
    - 路由定义在`App.jsx`中，新增页面需要在此处添加路由
    - 确保路由定义中的路径与导航链接一致
@@ -257,6 +281,8 @@ SlzrCrossGate.Core/
    - API定义在`services/api.js`中，按功能模块分类
    - 请求拦截器会自动添加token到请求头
    - 使用axios拦截器统一处理请求和响应
+   - API端点命名约定使用PascalCase（如`/api/SystemSettings`），而不是kebab-case（如`/api/system-settings`）
+   - 前端API调用地址需要与后端控制器路由匹配，注意大小写
 
 3. **布局问题**
    - 主布局使用`DashboardLayout.jsx`，包含侧边栏、顶部栏和内容区
@@ -431,6 +457,44 @@ app.MapControllers();
 }
 ```
 
+## 系统设置功能
+
+### 系统设置模型
+1. **SystemSettings**
+   - `EnableTwoFactorAuth`: 是否启用双因素认证功能
+   - `ForceTwoFactorAuth`: 是否强制所有用户使用双因素认证
+   - `EnableWechatLogin`: 是否启用微信扫码登录功能
+   - `LastModified`: 最后修改时间
+   - `LastModifiedBy`: 最后修改人
+
+### 系统设置服务
+1. **SystemSettingsService**
+   - 提供获取和更新系统设置的方法
+   - 使用内存缓存优化性能
+   - 提供检查用户是否需要双因素认证的方法
+   - 提供检查是否启用微信登录的方法
+
+### 系统设置控制器
+1. **SystemSettingsController**
+   - `GET /api/SystemSettings`: 获取系统设置
+   - `PUT /api/SystemSettings`: 更新系统设置
+   - 仅允许SystemAdmin角色访问
+
+### 系统设置页面
+1. **SystemSettings.jsx**
+   - 路径: `/app/settings`
+   - 功能:
+     - 启用/禁用双因素认证功能
+     - 启用/禁用强制双因素认证
+     - 启用/禁用微信扫码登录
+   - 权限: 仅SystemAdmin角色可访问
+
+### 用户级双因素认证设置
+1. **UserDetailView.jsx**
+   - 在用户详情页面的"安全设置"标签页中添加双因素认证开关
+   - 允许管理员为特定用户启用/禁用强制双因素认证
+   - 显示用户当前的双因素认证状态
+
 ## 双因素认证实现
 
 ### 前端实现
@@ -457,6 +521,14 @@ app.MapControllers();
    - 双因素验证设置页面：`src/pages/auth/TwoFactorSetup.jsx`
    - 微信登录页面：`src/pages/auth/WechatLogin.jsx`
 
+3. **账户设置页面**
+   - 文件路径：`src/pages/account/AccountView.jsx`
+   - 双因素认证管理功能：
+     - 显示当前双因素认证状态
+     - 启用双因素认证（生成密钥、显示二维码、验证确认）
+     - 禁用双因素认证（需要验证码确认）
+     - 根据系统设置和用户权限控制是否允许禁用
+
 ### 后端实现
 1. **TwoFactorAuthService**
    - 使用OtpNet库实现TOTP算法
@@ -464,12 +536,23 @@ app.MapControllers();
    - 使用Base32编码生成密钥和二维码URL
 
 2. **AuthController**
-   - `Login`方法：根据用户是否启用双因素认证，返回不同的响应
-   - `VerifyCode`方法：验证动态口令，支持两种验证方式：
-     - 使用用户名和验证码
-     - 使用临时令牌和验证码
-   - `SetupTwoFactor`方法：生成双因素认证密钥和二维码
-   - `ConfirmTwoFactor`方法：验证并启用双因素认证
+   - 双因素认证相关API端点：
+     - `POST /api/auth/setup-two-factor`: 获取双因素认证设置信息（密钥和二维码）
+     - `POST /api/auth/confirm-two-factor`: 确认双因素认证设置
+     - `POST /api/auth/verify-code`: 验证动态口令
+     - `POST /api/auth/toggle-two-factor`: 启用或禁用双因素认证
+   - 双因素认证控制逻辑：
+     - 根据系统设置和用户设置判断是否需要双因素认证
+     - 如果需要双因素认证但用户未设置，引导用户设置
+     - 如果系统强制要求双因素认证或用户被单独设置为需要双因素认证，用户不能禁用
+
+3. **SystemSettingsService**
+   - `IsTwoFactorRequiredAsync`方法：判断用户是否需要双因素认证
+   - 判断逻辑：
+     - 如果系统禁用了双因素认证，则不需要
+     - 如果用户已启用双因素认证，则需要
+     - 如果系统强制要求双因素认证，则需要
+     - 如果用户被单独设置为需要双因素认证，则需要
 
 3. **JWT令牌**
    - 使用临时令牌（有效期短）和完整令牌（有效期长）区分不同认证阶段
@@ -531,7 +614,46 @@ app.MapControllers();
    - 实施速率限制防止暴力攻击
 
 ## 最近修复的问题
-1. **用户退出功能实现**
+
+0. **双因素认证二维码显示问题**
+   - 问题：账户设置页面中启用双因素认证时，二维码无法正确显示
+   - 原因：
+     1. 前端使用`<img>`标签直接显示`otpauth://`协议的URI，而这不是有效的图片URL
+     2. 后端返回的是TOTP URI，而不是图片URL
+   - 解决方案：
+     1. 在前端引入`qrcode.react`库，使用`QRCodeSVG`组件直接生成二维码
+     2. 修改账户设置页面中的二维码显示代码，使用`QRCodeSVG`组件替代`<img>`标签
+     3. 确保后端返回的是TOTP URI，而不是Google Chart API的URL
+     4. 参考`TwoFactorSetup`组件中的二维码显示方式进行实现
+
+1. **双因素认证用户控制**
+   - 问题：用户无法在账户设置中自行控制是否启用双因素认证
+   - 原因：
+     1. 缺少用户自行启用/禁用双因素认证的API和前端界面
+     2. 系统设计中没有考虑用户自主选择的场景
+   - 解决方案：
+     1. 在`AuthController`中添加`toggle-two-factor`API端点，支持启用和禁用双因素认证
+     2. 在账户设置页面添加双因素认证管理功能，包括启用和禁用选项
+     3. 实现逻辑控制：如果系统强制要求双因素认证或用户被单独设置为需要双因素认证，用户不能禁用
+     4. 启用双因素认证时显示二维码和密钥，禁用时需要验证码确认身份
+1. **系统设置页面404错误**
+   - 问题：系统管理员访问系统设置页面(/app/settings)时出现404错误，API请求`GET /api/system-settings`返回404
+   - 原因：
+     1. 数据库中缺少`SystemSettings`表，虽然代码中已定义了模型和控制器
+     2. 迁移文件`20250427064746_AddSystemSettings.cs`存在但内容为空，没有实际创建表的SQL语句
+     3. 前端API调用的地址与后端控制器定义的路由不匹配，前端使用kebab-case（`system-settings`），后端使用PascalCase（`SystemSettings`）
+   - 解决方案：
+     1. 修改迁移文件，添加创建`SystemSettings`表的SQL语句
+     2. 应用迁移到数据库，创建表并添加默认记录
+     3. 确保`SystemSettingsController`和`SystemSettingsService`正确实现
+     4. 修改前端API调用的地址，使其与后端路由匹配，将`/system-settings`改为`/SystemSettings`
+   - 注意事项：
+     1. 安装EF Core工具时需指定版本：`dotnet tool install --global dotnet-ef --version 8.0.14`
+     2. 安装`Microsoft.EntityFrameworkCore.Design`包时需指定版本：`dotnet add package Microsoft.EntityFrameworkCore.Design --version 8.0.14`
+     3. 避免版本不兼容问题，确保所有EF Core相关包版本一致(8.0.x)
+     4. API端点命名约定应保持一致，要么全部使用kebab-case，要么全部使用PascalCase
+
+2. **用户退出功能实现**
    - 功能：添加用户退出登录功能
    - 实现：
      1. 在顶部导航栏添加用户菜单，包含"退出登录"选项
@@ -540,7 +662,7 @@ app.MapControllers();
      4. 修改`AuthContext.jsx`中的`logout`函数，调用后端API
    - 使用方式：点击顶部导航栏右侧的用户头像，在弹出的菜单中选择"退出登录"
 
-2. **用户编辑页面渲染问题**
+3. **用户编辑页面渲染问题**
    - 问题：
      1. 用户编辑页面中的按钮无法正常渲染，控制台报错"Cannot read properties of undefined (reading 'main')"
      2. 点击"安全设置"标签时出现DOM嵌套错误，控制台报错"Warning: validateDOMNesting(...): <div> cannot appear as a descendant of <p>"
@@ -556,7 +678,7 @@ app.MapControllers();
      6. 将Typography组件的component属性设置为"span"，避免使用p标签
    - 影响范围：所有使用Material UI按钮的页面，特别是用户详情页面
 
-2. **双因素认证设置页面空白问题**
+4. **双因素认证设置页面空白问题**
    - 问题：双因素认证设置页面显示为空白
    - 原因：
      1. `AuthLayout`组件被设计为使用`<Outlet />`渲染子组件，但在`TwoFactorSetup.jsx`中直接作为普通组件使用
@@ -566,7 +688,7 @@ app.MapControllers();
      2. 修改后端接口，移除`[Authorize]`属性，改为接受临时令牌作为参数
      3. 更新前端代码，在调用这些接口时传递临时令牌
 
-3. **双因素认证设置失败问题**
+5. **双因素认证设置失败问题**
    - 问题：点击"下一步"按钮后提示失败
    - 原因：
      1. 前端和后端参数名称不一致，前端使用`tempToken`，后端使用`TempToken`
@@ -577,7 +699,7 @@ app.MapControllers();
      3. 修改`AuthContext.jsx`中的字段映射，兼容不同的字段名称
      4. 禁用自动跳转到登录页面的功能，方便调试错误信息
 
-4. **双因素认证确认失败问题**
+6. **双因素认证确认失败问题**
    - 问题：在设置双因素认证时，验证码验证失败，提示"用户未设置双因素认证密钥"
    - 原因：
      1. 在`setupTwoFactor`接口中设置的密钥没有正确保存到数据库，或者在保存后被覆盖
@@ -588,7 +710,7 @@ app.MapControllers();
      3. 在`confirmTwoFactorSetup`方法中，从`localStorage`获取密钥并传递给后端
      4. 在验证成功后，清除`localStorage`中的临时密钥
 
-5. **双因素认证设置二维码获取失败问题**
+7. **双因素认证设置二维码获取失败问题**
    - 问题：点击"下一步"按钮后，获取二维码时服务器返回500错误
    - 原因：
      1. 后端`SetupTwoFactor`方法在处理过程中可能出现异常，但没有足够的错误处理和日志记录
@@ -599,7 +721,7 @@ app.MapControllers();
      3. 增强前端错误处理，显示更详细的错误信息
      4. 在`AuthContext.jsx`中添加更严格的响应数据验证
 
-6. **浏览器自动填充时输入框标签位置问题**
+8. **浏览器自动填充时输入框标签位置问题**
    - 问题：当浏览器自动填充用户名和密码时，Material UI的浮动标签没有正确地移动到左上角
    - 原因：浏览器的自动填充机制与Material UI的浮动标签动画存在冲突
    - 解决方案：
@@ -722,6 +844,18 @@ app.MapControllers();
      3. 修改`ValidateToken`方法，增强其查找用户ID的能力，支持多种声明类型
      4. 确保在所有使用临时令牌的地方都能正确提取用户ID
 
+5. **JWT令牌角色声明处理问题**
+   - 问题：前端无法正确识别JWT令牌中的角色信息，导致系统设置页面权限检查失败
+   - 原因：
+     1. 后端使用`ClaimTypes.Role`（即`http://schemas.microsoft.com/ws/2008/06/identity/claims/role`）添加角色声明
+     2. 前端直接使用`user.roles`访问角色信息，但JWT令牌中没有这个属性
+     3. 前端没有处理JWT令牌中的角色声明格式
+   - 解决方案：
+     1. 在前端添加`processUserFromToken`函数，处理JWT令牌中的角色信息
+     2. 将`http://schemas.microsoft.com/ws/2008/06/identity/claims/role`声明转换为`roles`数组
+     3. 在所有使用`jwtDecode`的地方改为使用`processUserFromToken`函数
+     4. 确保前端可以正确识别用户角色，并根据角色显示相应的内容
+
 ## 最近添加的功能
 
 1. **微信扫码登录功能**
@@ -774,10 +908,27 @@ app.MapControllers();
      - 在`UserDto`类中添加了`IsTwoFactorEnabled`属性，修复了双因素认证状态显示问题
      - 修复了右上角用户菜单中的账户设置链接，使其正确导航到账户设置页面
 
+## 最近添加的功能
+
+1. **管理员重置用户双因素认证功能**
+   - 功能：允许管理员重置用户的双因素认证设置，以便用户遗忘后能重新绑定
+   - 权限控制：
+     - 系统管理员可以重置任何用户的双因素认证
+     - 商户管理员只能重置其商户下用户的双因素认证
+   - 实现文件：
+     - 后端：`SlzrCrossGate.WebAdmin\Controllers\UsersController.cs` - 添加 `ResetTwoFactor` 方法
+     - 前端：`SlzrCrossGate.WebAdmin\ClientApp\src\pages\users\UserDetailView.jsx` - 添加重置按钮和确认对话框
+     - API：`SlzrCrossGate.WebAdmin\ClientApp\src\services\api.js` - 添加 `resetTwoFactor` 方法
+   - API接口：
+     - `POST /api/users/{id}/reset-two-factor` - 重置用户的双因素认证
+   - 使用方式：
+     - 在用户详情页面的"安全设置"标签页中，当用户已启用双因素认证时，显示"重置双因素认证"按钮
+     - 点击按钮后弹出确认对话框，确认后重置用户的双因素认证设置
+     - 重置后，用户的双因素认证将被禁用，用户需要重新设置才能继续使用
+
 ## 未来改进计划
 1. 添加更多的单元测试和集成测试
 2. 实现更完善的错误处理和日志记录
-3. 完善账户设置页面，添加重置双因素认证功能
 3. 优化应用性能，减少不必要的重新渲染
 4. 增强安全性，实现更完善的认证和授权机制
 5. 改进用户体验，添加更多的交互反馈和动画效果
@@ -788,4 +939,3 @@ app.MapControllers();
    - 确保操作按钮在移动端可见且可点击
    - 添加水平滚动支持，防止表格溢出容器
 9. 实现微信扫码登录功能
-10. 添加双因素认证管理界面，允许用户启用/禁用双因素认证

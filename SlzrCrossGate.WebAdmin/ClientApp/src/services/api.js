@@ -122,6 +122,10 @@ export const authAPI = {
 
     getWechatBinding: () =>
         api.get('/auth/wechat-binding'),
+
+    // 启用或禁用双因素认证
+    toggleTwoFactor: (enable, code = null) =>
+        api.post('/auth/toggle-two-factor', { Enable: enable, Code: code }),
 };
 
 // 用户相关API
@@ -134,6 +138,7 @@ export const userAPI = {
   changePassword: (id, data) => api.post(`/users/${id}/change-password`, data),
   lockUser: (id, data) => api.post(`/users/${id}/lock`, data),
   unlockUser: (id) => api.post(`/users/${id}/unlock`),
+  resetTwoFactor: (id) => api.post(`/users/${id}/reset-two-factor`),
 };
 
 // 角色相关API
@@ -222,6 +227,12 @@ export const dashboardAPI = {
   getMerchantDashboard: () => api.get('/dashboard/merchant'),
   getPlatformDashboard: () => api.get('/dashboard/platform'),
   getServerLogs: (params) => api.get('/dashboard/server-logs', { params }),
+};
+
+// 系统设置相关API
+export const systemSettingsAPI = {
+  getSettings: () => api.get('/SystemSettings'),
+  updateSettings: (data) => api.put('/SystemSettings', data),
 };
 
 export default api;

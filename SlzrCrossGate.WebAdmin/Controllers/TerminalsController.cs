@@ -19,20 +19,17 @@ namespace SlzrCrossGate.WebAdmin.Controllers
     public class TerminalsController : ControllerBase
     {
         private readonly TcpDbContext _dbContext;
-        private readonly TerminalManager _terminalManager;
         private readonly TerminalEventService _terminalEventService;
         private readonly UserService _userService;
         private readonly ILogger<TerminalsController> _logger;
 
         public TerminalsController(
             TcpDbContext dbContext,
-            TerminalManager terminalManager,
             TerminalEventService terminalEventService,
             UserService userService,
             ILogger<TerminalsController> logger)
         {
             _dbContext = dbContext;
-            _terminalManager = terminalManager;
             _terminalEventService = terminalEventService;
             _userService = userService;
             _logger = logger;

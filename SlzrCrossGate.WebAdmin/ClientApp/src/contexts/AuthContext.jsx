@@ -107,7 +107,7 @@ export const AuthProvider = ({ children }) => {
           axios.defaults.headers.common.Authorization = `Bearer ${token}`;
 
           // 解析 token 获取用户信息
-          const user = jwtDecode(token);
+          const user = processUserFromToken(token);
 
           dispatch({
             type: 'INITIALIZE',
@@ -158,6 +158,36 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  // 处理JWT令牌中的用户信息，特别是角色
+  const processUserFromToken = (token) => {
+    try {
+      const decoded = jwtDecode(token);
+
+      // 处理角色信息
+      let roles = [];
+
+      // 检查是否有角色声明
+      if (decoded['http://schemas.microsoft.com/ws/2008/06/identity/claims/role']) {
+        // 可能是单个角色或角色数组
+        const roleClaims = decoded['http://schemas.microsoft.com/ws/2008/06/identity/claims/role'];
+        if (Array.isArray(roleClaims)) {
+          roles = roleClaims;
+        } else {
+          roles = [roleClaims];
+        }
+      }
+
+      // 将角色添加到用户对象中
+      return {
+        ...decoded,
+        roles: roles
+      };
+    } catch (err) {
+      console.error('处理用户令牌时出错:', err);
+      return {};
+    }
+  };
+
   // 登录
   const login = async (username, password) => {
     try {
@@ -169,7 +199,7 @@ export const AuthProvider = ({ children }) => {
 
       // 如果需要设置双因素验证
       if (setupTwoFactor) {
-        const user = jwtDecode(tempToken);
+        const user = processUserFromToken(tempToken);
         dispatch({
           type: 'TWO_FACTOR_SETUP_REQUIRED',
           payload: {
@@ -182,7 +212,7 @@ export const AuthProvider = ({ children }) => {
 
       // 如果需要双因素验证
       if (requireTwoFactor) {
-        const user = jwtDecode(tempToken);
+        const user = processUserFromToken(tempToken);
         dispatch({
           type: 'NEED_TWO_FACTOR',
           payload: {
@@ -195,7 +225,7 @@ export const AuthProvider = ({ children }) => {
 
       // 正常登录成功
       if (token) {
-        const user = jwtDecode(token);
+        const user = processUserFromToken(token);
         localStorage.setItem('token', token);
 
         dispatch({
@@ -232,7 +262,7 @@ export const AuthProvider = ({ children }) => {
       console.log('Verify code response:', response); // 调试日志
 
       const { token, isTwoFactorEnabled } = response;
-      const user = jwtDecode(token);
+      const user = processUserFromToken(token);
 
       localStorage.setItem('token', token);
 
@@ -324,7 +354,7 @@ export const AuthProvider = ({ children }) => {
       const response = await authAPI.confirmTwoFactor(code, state.tempToken);
 
       const { token } = response;
-      const user = jwtDecode(token);
+      const user = processUserFromToken(token);
 
       // 清除localStorage中的临时密钥
       localStorage.removeItem('twoFactorSecretKey');
@@ -375,7 +405,7 @@ export const AuthProvider = ({ children }) => {
 
       if (response.status === 'success') {
         const { token } = response;
-        const user = jwtDecode(token);
+        const user = processUserFromToken(token);
 
         localStorage.setItem('token', token);
 
@@ -474,7 +504,7 @@ export const AuthProvider = ({ children }) => {
       console.log('Register response:', response); // 调试日志
 
       const { token } = response;
-      const user = jwtDecode(token);
+      const user = processUserFromToken(token);
 
       localStorage.setItem('token', token);
 

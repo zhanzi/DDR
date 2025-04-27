@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using SlzrCrossGate.Core.Database;
 
@@ -11,9 +12,11 @@ using SlzrCrossGate.Core.Database;
 namespace SlzrCrossGate.Core.Migrations
 {
     [DbContext(typeof(TcpDbContext))]
-    partial class TcpDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250427064746_AddSystemSettings")]
+    partial class AddSystemSettings
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -704,34 +707,6 @@ namespace SlzrCrossGate.Core.Migrations
                         .HasAnnotation("SqlServer:Clustered", true);
 
                     b.ToTable("MsgTypes");
-                });
-
-            modelBuilder.Entity("SlzrCrossGate.Core.Models.SystemSettings", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<bool>("EnableTwoFactorAuth")
-                        .HasColumnType("tinyint(1)");
-
-                    b.Property<bool>("EnableWechatLogin")
-                        .HasColumnType("tinyint(1)");
-
-                    b.Property<bool>("ForceTwoFactorAuth")
-                        .HasColumnType("tinyint(1)");
-
-                    b.Property<DateTime>("LastModified")
-                        .HasColumnType("datetime(6)");
-
-                    b.Property<string>("LastModifiedBy")
-                        .HasColumnType("longtext");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("SystemSettings");
                 });
 
             modelBuilder.Entity("SlzrCrossGate.Core.Models.Terminal", b =>

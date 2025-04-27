@@ -15,14 +15,17 @@ namespace SlzrCrossGate.WebAdmin.Controllers
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly RoleManager<ApplicationRole> _roleManager;
         private readonly ILogger<UsersController> _logger;
+        private readonly TwoFactorAuthService _twoFactorAuthService;
 
         public UsersController(
             UserManager<ApplicationUser> userManager,
             RoleManager<ApplicationRole> roleManager,
+            TwoFactorAuthService twoFactorAuthService,
             ILogger<UsersController> logger)
         {
             _userManager = userManager;
             _roleManager = roleManager;
+            _twoFactorAuthService = twoFactorAuthService;
             _logger = logger;
         }
 
@@ -54,7 +57,8 @@ namespace SlzrCrossGate.WebAdmin.Controllers
                     Roles = roles.ToList(),
                     EmailConfirmed = currentUser.EmailConfirmed,
                     LockoutEnd = currentUser.LockoutEnd,
-                    IsTwoFactorEnabled = currentUser.TwoFactorEnabled
+                    IsTwoFactorEnabled = currentUser.TwoFactorEnabled,
+                    TwoFactorEnabled = currentUser.TwoFactorEnabled
                 });
             }
             catch (Exception ex)
@@ -122,7 +126,9 @@ namespace SlzrCrossGate.WebAdmin.Controllers
                         MerchantId = user.MerchantID,
                         Roles = roles.ToList(),
                         EmailConfirmed = user.EmailConfirmed,
-                        LockoutEnd = user.LockoutEnd
+                        LockoutEnd = user.LockoutEnd,
+                        IsTwoFactorEnabled = user.TwoFactorEnabled,
+                        TwoFactorEnabled = user.TwoFactorEnabled
                     });
                 }
 
@@ -187,7 +193,8 @@ namespace SlzrCrossGate.WebAdmin.Controllers
                     Roles = roles.ToList(),
                     EmailConfirmed = user.EmailConfirmed,
                     LockoutEnd = user.LockoutEnd,
-                    IsTwoFactorEnabled = user.TwoFactorEnabled
+                    IsTwoFactorEnabled = user.TwoFactorEnabled,
+                    TwoFactorEnabled = user.TwoFactorEnabled // 添加兼容前端的属性
                 });
             }
             catch (Exception ex)
@@ -292,7 +299,8 @@ namespace SlzrCrossGate.WebAdmin.Controllers
                     Roles = assignedRoles.ToList(),
                     EmailConfirmed = user.EmailConfirmed,
                     LockoutEnd = user.LockoutEnd,
-                    IsTwoFactorEnabled = user.TwoFactorEnabled
+                    IsTwoFactorEnabled = user.TwoFactorEnabled,
+                    TwoFactorEnabled = user.TwoFactorEnabled
                 });
             }
             catch (Exception ex)
@@ -477,6 +485,68 @@ namespace SlzrCrossGate.WebAdmin.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "删除用户时发生错误");
+                return StatusCode(500, new { message = "服务器内部错误" });
+            }
+        }
+
+        // POST: api/users/{id}/reset-two-factor
+        [HttpPost("{id}/reset-two-factor")]
+        [Authorize(Roles = "SystemAdmin,MerchantAdmin")]
+        public async Task<IActionResult> ResetTwoFactor(string id)
+        {
+            try
+            {
+                // 获取当前用户
+                var currentUser = await _userManager.GetUserAsync(User);
+                if (currentUser == null)
+                {
+                    return Unauthorized();
+                }
+
+                // 检查是否是系统管理员
+                var isSystemAdmin = await _userManager.IsInRoleAsync(currentUser, "SystemAdmin");
+                var isMerchantAdmin = await _userManager.IsInRoleAsync(currentUser, "MerchantAdmin");
+
+                // 获取目标用户
+                var user = await _userManager.FindByIdAsync(id);
+                if (user == null)
+                {
+                    return NotFound(new { message = "用户不存在" });
+                }
+
+                // 如果不是系统管理员，只能重置自己商户的用户
+                if (!isSystemAdmin && (user.MerchantID != currentUser.MerchantID || !isMerchantAdmin))
+                {
+                    return Forbid();
+                }
+
+                // 检查用户是否已启用双因素认证
+                if (!user.TwoFactorEnabled)
+                {
+                    return BadRequest(new { message = "用户未启用双因素认证" });
+                }
+
+                // 重置双因素认证密钥
+                user.TwoFactorSecretKey = null;
+
+                // 禁用双因素认证
+                await _userManager.SetTwoFactorEnabledAsync(user, false);
+                user.TwoFactorEnabledDate = null;
+
+                // 保存更改
+                var result = await _userManager.UpdateAsync(user);
+                if (!result.Succeeded)
+                {
+                    return BadRequest(new { message = result.Errors.First().Description });
+                }
+
+                _logger.LogInformation("管理员 {AdminId} 重置了用户 {UserId} 的双因素认证", currentUser.Id, user.Id);
+
+                return Ok(new { message = "双因素认证已重置" });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "重置双因素认证时发生错误");
                 return StatusCode(500, new { message = "服务器内部错误" });
             }
         }
@@ -677,6 +747,7 @@ namespace SlzrCrossGate.WebAdmin.Controllers
         public bool EmailConfirmed { get; set; }
         public DateTimeOffset? LockoutEnd { get; set; }
         public bool IsTwoFactorEnabled { get; set; }
+        public bool TwoFactorEnabled { get; set; } // 添加兼容前端的属性
     }
 
     public class CreateUserDto

@@ -21,6 +21,7 @@ import {
   Tab,
   Avatar
 } from '@mui/material';
+import { QRCodeSVG } from "qrcode.react";
 import {
   Save as SaveIcon,
   Lock as LockIcon,
@@ -30,7 +31,7 @@ import { useFormik } from 'formik';
 import * as Yup from 'yup';
 import { useSnackbar } from 'notistack';
 import { useAuth } from '../../contexts/AuthContext';
-import { userAPI } from '../../services/api';
+import { userAPI, authAPI } from '../../services/api';
 import WechatBindingSection from './WechatBindingSection';
 
 function TabPanel(props) {
@@ -60,6 +61,11 @@ const AccountView = () => {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [passwordDialogOpen, setPasswordDialogOpen] = useState(false);
+  const [enableTwoFactorDialogOpen, setEnableTwoFactorDialogOpen] = useState(false);
+  const [disableTwoFactorDialogOpen, setDisableTwoFactorDialogOpen] = useState(false);
+  const [twoFactorCode, setTwoFactorCode] = useState('');
+  const [twoFactorQrCode, setTwoFactorQrCode] = useState('');
+  const [twoFactorSecretKey, setTwoFactorSecretKey] = useState('');
   const [userData, setUserData] = useState(null);
 
   // 加载用户数据
@@ -164,6 +170,84 @@ const AccountView = () => {
   const getInitials = (name) => {
     if (!name) return '?';
     return name.charAt(0).toUpperCase();
+  };
+
+  // 处理启用双因素认证
+  const handleEnableTwoFactor = async () => {
+    try {
+      setSaving(true);
+      // 注意：这里不需要传递验证码，因为是初始化设置
+      const response = await authAPI.toggleTwoFactor(true);
+
+      if (response.secretKey && response.qrCodeUrl) {
+        // 显示二维码和密钥
+        setTwoFactorSecretKey(response.secretKey);
+        setTwoFactorQrCode(response.qrCodeUrl);
+      } else {
+        // 如果已经启用，刷新用户数据
+        await refreshUserData();
+        setEnableTwoFactorDialogOpen(false);
+        enqueueSnackbar('双因素认证已启用', { variant: 'success' });
+      }
+    } catch (error) {
+      enqueueSnackbar(`启用双因素认证失败: ${error.response?.data?.message || error.message}`, { variant: 'error' });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // 确认双因素认证设置
+  const handleConfirmTwoFactor = async () => {
+    try {
+      setSaving(true);
+      await authAPI.toggleTwoFactor(true, twoFactorCode);
+
+      // 刷新用户数据
+      await refreshUserData();
+
+      // 重置状态
+      setTwoFactorCode('');
+      setTwoFactorSecretKey('');
+      setTwoFactorQrCode('');
+      setEnableTwoFactorDialogOpen(false);
+
+      enqueueSnackbar('双因素认证已成功启用', { variant: 'success' });
+    } catch (error) {
+      enqueueSnackbar(`确认双因素认证失败: ${error.response?.data?.message || error.message}`, { variant: 'error' });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // 处理禁用双因素认证
+  const handleDisableTwoFactor = async () => {
+    try {
+      setSaving(true);
+      await authAPI.toggleTwoFactor(false, twoFactorCode);
+
+      // 刷新用户数据
+      await refreshUserData();
+
+      // 重置状态
+      setTwoFactorCode('');
+      setDisableTwoFactorDialogOpen(false);
+
+      enqueueSnackbar('双因素认证已禁用', { variant: 'success' });
+    } catch (error) {
+      enqueueSnackbar(`禁用双因素认证失败: ${error.response?.data?.message || error.message}`, { variant: 'error' });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // 刷新用户数据
+  const refreshUserData = async () => {
+    try {
+      const response = await userAPI.getUser(user.sub);
+      setUserData(response);
+    } catch (error) {
+      enqueueSnackbar('刷新用户数据失败', { variant: 'error' });
+    }
   };
 
   if (loading) {
@@ -296,7 +380,26 @@ const AccountView = () => {
                     <span style={{ color: 'red' }}>未启用</span>
                   )}
                 </Typography>
-                {/* 这里可以添加重新设置双因素认证的按钮 */}
+
+                {userData?.isTwoFactorEnabled ? (
+                  <Button
+                    variant="contained"
+                    color="error"
+                    onClick={() => setDisableTwoFactorDialogOpen(true)}
+                    disabled={saving}
+                  >
+                    禁用双因素认证
+                  </Button>
+                ) : (
+                  <Button
+                    variant="contained"
+                    color="primary"
+                    onClick={() => setEnableTwoFactorDialogOpen(true)}
+                    disabled={saving}
+                  >
+                    启用双因素认证
+                  </Button>
+                )}
               </Grid>
 
               <Grid item xs={12}>
@@ -367,6 +470,151 @@ const AccountView = () => {
             </Button>
           </DialogActions>
         </form>
+      </Dialog>
+
+      {/* 启用双因素认证对话框 */}
+      <Dialog
+        open={enableTwoFactorDialogOpen}
+        onClose={() => {
+          if (!saving) {
+            setEnableTwoFactorDialogOpen(false);
+            setTwoFactorCode('');
+            setTwoFactorSecretKey('');
+            setTwoFactorQrCode('');
+          }
+        }}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>启用双因素认证</DialogTitle>
+        <DialogContent>
+          {!twoFactorSecretKey ? (
+            <DialogContentText>
+              启用双因素认证后，每次登录时都需要输入动态验证码。是否继续？
+            </DialogContentText>
+          ) : (
+            <>
+              <DialogContentText>
+                请使用身份验证器应用（如Google Authenticator、Microsoft Authenticator或Authy）扫描下方二维码，或手动输入密钥。
+              </DialogContentText>
+              <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', my: 2 }}>
+                <QRCodeSVG
+                  value={twoFactorQrCode}
+                  size={200}
+                  level="H"
+                  margin={10}
+                  style={{ marginBottom: 16 }}
+                />
+                <Typography variant="subtitle2" sx={{ mb: 1 }}>密钥：</Typography>
+                <Typography
+                  variant="body2"
+                  sx={{
+                    fontFamily: 'monospace',
+                    bgcolor: 'background.paper',
+                    p: 1,
+                    borderRadius: 1,
+                    letterSpacing: 1
+                  }}
+                >
+                  {twoFactorSecretKey}
+                </Typography>
+              </Box>
+              <DialogContentText sx={{ mt: 2 }}>
+                请输入验证器应用生成的6位验证码以确认设置：
+              </DialogContentText>
+              <TextField
+                autoFocus
+                margin="dense"
+                label="验证码"
+                type="text"
+                fullWidth
+                variant="outlined"
+                value={twoFactorCode}
+                onChange={(e) => setTwoFactorCode(e.target.value)}
+                inputProps={{ maxLength: 6, pattern: '[0-9]*' }}
+                sx={{ mt: 1 }}
+              />
+            </>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button
+            onClick={() => {
+              setEnableTwoFactorDialogOpen(false);
+              setTwoFactorCode('');
+              setTwoFactorSecretKey('');
+              setTwoFactorQrCode('');
+            }}
+            disabled={saving}
+          >
+            取消
+          </Button>
+          {!twoFactorSecretKey ? (
+            <Button
+              onClick={handleEnableTwoFactor}
+              color="primary"
+              disabled={saving}
+            >
+              {saving ? <CircularProgress size={24} /> : '继续'}
+            </Button>
+          ) : (
+            <Button
+              onClick={handleConfirmTwoFactor}
+              color="primary"
+              disabled={saving || twoFactorCode.length !== 6}
+            >
+              {saving ? <CircularProgress size={24} /> : '确认'}
+            </Button>
+          )}
+        </DialogActions>
+      </Dialog>
+
+      {/* 禁用双因素认证对话框 */}
+      <Dialog
+        open={disableTwoFactorDialogOpen}
+        onClose={() => {
+          if (!saving) {
+            setDisableTwoFactorDialogOpen(false);
+            setTwoFactorCode('');
+          }
+        }}
+      >
+        <DialogTitle>禁用双因素认证</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            禁用双因素认证后，登录时将不再需要输入验证码。为确保安全，请输入您的验证器应用生成的6位验证码以确认操作。
+          </DialogContentText>
+          <TextField
+            autoFocus
+            margin="dense"
+            label="验证码"
+            type="text"
+            fullWidth
+            variant="outlined"
+            value={twoFactorCode}
+            onChange={(e) => setTwoFactorCode(e.target.value)}
+            inputProps={{ maxLength: 6, pattern: '[0-9]*' }}
+            sx={{ mt: 2 }}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button
+            onClick={() => {
+              setDisableTwoFactorDialogOpen(false);
+              setTwoFactorCode('');
+            }}
+            disabled={saving}
+          >
+            取消
+          </Button>
+          <Button
+            onClick={handleDisableTwoFactor}
+            color="primary"
+            disabled={saving || twoFactorCode.length !== 6}
+          >
+            {saving ? <CircularProgress size={24} /> : '确认禁用'}
+          </Button>
+        </DialogActions>
       </Dialog>
     </Container>
   );

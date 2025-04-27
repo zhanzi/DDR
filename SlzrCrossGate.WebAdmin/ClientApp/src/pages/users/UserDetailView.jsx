@@ -25,14 +25,17 @@ import {
   CircularProgress,
   Paper,
   Tabs,
-  Tab
+  Tab,
+  Switch,
+  FormControlLabel
 } from '@mui/material';
 import {
   Save as SaveIcon,
   Delete as DeleteIcon,
   ArrowBack as ArrowBackIcon,
   Lock as LockIcon,
-  LockOpen as LockOpenIcon
+  LockOpen as LockOpenIcon,
+  Refresh as RefreshIcon
 } from '@mui/icons-material';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
@@ -51,6 +54,7 @@ const UserDetailView = () => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [passwordDialogOpen, setPasswordDialogOpen] = useState(false);
   const [tabValue, setTabValue] = useState(0);
+  const [resetTwoFactorDialogOpen, setResetTwoFactorDialogOpen] = useState(false);
 
   // 加载用户数据
   useEffect(() => {
@@ -191,6 +195,54 @@ const UserDetailView = () => {
       enqueueSnackbar(`操作失败: ${error.message}`, { variant: 'error' });
     } finally {
       setLoading(false);
+    }
+  };
+
+  // 处理双因素认证开关
+  const handleToggleTwoFactorRequired = async () => {
+    try {
+      setLoading(true);
+      // 更新用户的双因素认证要求
+      await userAPI.updateUser(id, {
+        ...formik.values,
+        isTwoFactorRequired: !user.isTwoFactorRequired
+      });
+
+      // 更新本地状态
+      setUser({
+        ...user,
+        isTwoFactorRequired: !user.isTwoFactorRequired
+      });
+
+      enqueueSnackbar(
+        user.isTwoFactorRequired
+          ? '已取消强制双因素认证要求'
+          : '已开启强制双因素认证要求',
+        { variant: 'success' }
+      );
+    } catch (error) {
+      enqueueSnackbar(`操作失败: ${error.message}`, { variant: 'error' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 处理重置双因素认证
+  const handleResetTwoFactor = async () => {
+    try {
+      setSaving(true);
+      const response = await userAPI.resetTwoFactor(id);
+
+      // 更新本地状态
+      const updatedUser = await userAPI.getUser(id);
+      setUser(updatedUser);
+
+      enqueueSnackbar('双因素认证已重置', { variant: 'success' });
+      setResetTwoFactorDialogOpen(false);
+    } catch (error) {
+      enqueueSnackbar(`重置双因素认证失败: ${error.response?.data?.message || error.message}`, { variant: 'error' });
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -421,6 +473,49 @@ const UserDetailView = () => {
                   </Button>
                 </Grid>
                 <Grid item xs={12}>
+                  <Typography variant="subtitle1">双因素认证</Typography>
+                  <Box sx={{ mb: 2 }}>
+                    <FormControlLabel
+                      control={
+                        <Switch
+                          checked={user?.isTwoFactorRequired || false}
+                          onChange={handleToggleTwoFactorRequired}
+                          disabled={loading || saving}
+                          color="primary"
+                        />
+                      }
+                      label="强制要求双因素认证"
+                    />
+                    <Typography variant="body2" color="textSecondary" sx={{ mt: 1 }}>
+                      启用后，该用户必须设置并使用双因素认证才能登录系统。
+                    </Typography>
+                    <Box sx={{ display: 'flex', alignItems: 'center', mt: 2 }}>
+                      <Typography variant="body2" color="textSecondary" component="span" sx={{ mr: 1 }}>
+                        双因素认证状态:
+                      </Typography>
+                      {user?.twoFactorEnabled || user?.isTwoFactorEnabled ? (
+                        <>
+                          <Chip label="已启用" color="success" size="small" />
+                          <Button
+                            variant="outlined"
+                            size="small"
+                            color="warning"
+                            startIcon={<RefreshIcon />}
+                            onClick={() => setResetTwoFactorDialogOpen(true)}
+                            disabled={loading || saving}
+                            sx={{ ml: 2 }}
+                          >
+                            重置双因素认证
+                          </Button>
+                        </>
+                      ) : (
+                        <Chip label="未启用" color="default" size="small" />
+                      )}
+                    </Box>
+                  </Box>
+                </Grid>
+
+                <Grid item xs={12}>
                   <Typography variant="subtitle1">账户状态</Typography>
                   <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
                     <Typography variant="body2" color="textSecondary" component="span" sx={{ mr: 1 }}>
@@ -515,6 +610,26 @@ const UserDetailView = () => {
             </Button>
           </DialogActions>
         </form>
+      </Dialog>
+
+      {/* 重置双因素认证对话框 */}
+      <Dialog open={resetTwoFactorDialogOpen} onClose={() => !saving && setResetTwoFactorDialogOpen(false)}>
+        <DialogTitle>重置双因素认证</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            重置双因素认证将禁用用户当前的双因素认证设置。用户需要重新设置双因素认证才能继续使用。
+            <br /><br />
+            确定要重置该用户的双因素认证吗？
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setResetTwoFactorDialogOpen(false)} disabled={saving}>
+            取消
+          </Button>
+          <Button onClick={handleResetTwoFactor} color="warning" disabled={saving}>
+            {saving ? <CircularProgress size={24} /> : '确认重置'}
+          </Button>
+        </DialogActions>
       </Dialog>
     </Container>
   );

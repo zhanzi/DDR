@@ -33,6 +33,7 @@ import MessageTypeList from './pages/messages/MessageTypeList';
 import MessageSend from './pages/messages/MessageSend';
 import MessageList from './pages/messages/MessageList';
 import AccountView from './pages/account/AccountView';
+import SystemSettings from './pages/settings/SystemSettings';
 
 const routes = [
   {
@@ -62,6 +63,7 @@ const routes = [
       { path: 'messages/types', element: <MessageTypeList /> },
       { path: 'messages/send', element: <MessageSend /> },
       { path: 'messages', element: <MessageList /> },
+      { path: 'settings', element: <SystemSettings /> },
       { path: '404', element: <NotFoundView /> },
       { path: '*', element: <Navigate to="/app/404" /> }
     ]

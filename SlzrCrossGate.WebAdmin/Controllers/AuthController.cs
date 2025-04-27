@@ -22,6 +22,7 @@ namespace SlzrCrossGate.WebAdmin.Controllers
         private readonly IConfiguration _configuration;
         private readonly TwoFactorAuthService _twoFactorAuthService;
         private readonly WechatAuthService _wechatAuthService;
+        private readonly SystemSettingsService _settingsService;
         private readonly ILogger<AuthController> _logger;
 
         public AuthController(
@@ -30,6 +31,7 @@ namespace SlzrCrossGate.WebAdmin.Controllers
             IConfiguration configuration,
             TwoFactorAuthService twoFactorAuthService,
             WechatAuthService wechatAuthService,
+            SystemSettingsService settingsService,
             ILogger<AuthController> logger)
         {
             _userManager = userManager;
@@ -37,6 +39,7 @@ namespace SlzrCrossGate.WebAdmin.Controllers
             _configuration = configuration;
             _twoFactorAuthService = twoFactorAuthService;
             _wechatAuthService = wechatAuthService;
+            _settingsService = settingsService;
             _logger = logger;
         }
 
@@ -64,9 +67,23 @@ namespace SlzrCrossGate.WebAdmin.Controllers
                     return Unauthorized(new { message = "用户名或密码错误" });
                 }
 
-                // 检查用户是否启用了双因素认证
+                // 获取系统设置
+                var systemSettings = await _settingsService.GetSettingsAsync();
+
+                // 检查是否需要双因素认证
+                bool requireTwoFactor = await _settingsService.IsTwoFactorRequiredAsync(user);
+
+                // 检查用户是否已启用双因素认证
                 var isTwoFactorEnabled = await _userManager.GetTwoFactorEnabledAsync(user);
 
+                // 如果系统设置禁用了双因素认证，或者用户不需要双因素认证，直接登录
+                if (!systemSettings.EnableTwoFactorAuth || !requireTwoFactor)
+                {
+                    var token = await GenerateJwtToken(user, false);
+                    return Ok(new { token, isTwoFactorEnabled });
+                }
+
+                // 如果用户已启用双因素认证
                 if (isTwoFactorEnabled)
                 {
                     // 用户已启用双因素认证，需要验证动态口令
@@ -75,18 +92,18 @@ namespace SlzrCrossGate.WebAdmin.Controllers
                     return Ok(new
                     {
                         requireTwoFactor = true,
-                        tempToken = tempToken,
+                        tempToken,
                         isTwoFactorEnabled = true
                     });
                 }
                 else
                 {
-                    // 用户未启用双因素认证，需要设置
+                    // 用户未启用双因素认证，但系统或用户设置要求双因素认证，需要设置
                     var tempToken = await GenerateJwtToken(user, true);
                     return Ok(new
                     {
                         setupTwoFactor = true,
-                        tempToken = tempToken
+                        tempToken
                     });
                 }
             }
@@ -745,6 +762,13 @@ namespace SlzrCrossGate.WebAdmin.Controllers
         {
             try
             {
+                // 检查系统设置是否启用微信登录
+                var systemSettings = await _settingsService.GetSettingsAsync();
+                if (!systemSettings.EnableWechatLogin)
+                {
+                    return BadRequest(new { message = "微信登录功能已被系统管理员禁用" });
+                }
+
                 // 创建微信登录会话
                 var session = await _wechatAuthService.CreateLoginSessionAsync();
 
@@ -794,6 +818,13 @@ namespace SlzrCrossGate.WebAdmin.Controllers
         {
             try
             {
+                // 检查系统设置是否启用微信登录
+                var systemSettings = await _settingsService.GetSettingsAsync();
+                if (!systemSettings.EnableWechatLogin)
+                {
+                    return BadRequest(new { message = "微信登录功能已被系统管理员禁用" });
+                }
+
                 if (string.IsNullOrEmpty(loginId))
                 {
                     return BadRequest(new { message = "登录ID不能为空" });
@@ -823,9 +854,25 @@ namespace SlzrCrossGate.WebAdmin.Controllers
                             return Ok(new { status = "unbound", openId = session.OpenId, unionId = session.UnionId, nickname = session.Nickname });
                         }
 
+                        // 检查是否需要双因素认证
+                        bool requireTwoFactor = await _settingsService.IsTwoFactorRequiredAsync(user);
+                        var isTwoFactorEnabled = await _userManager.GetTwoFactorEnabledAsync(user);
+
+                        // 如果需要双因素认证且用户已启用
+                        if (requireTwoFactor && isTwoFactorEnabled)
+                        {
+                            // 生成临时令牌
+                            var tempToken = await GenerateJwtToken(user, true);
+                            return Ok(new
+                            {
+                                status = "require_two_factor",
+                                tempToken,
+                                isTwoFactorEnabled = true
+                            });
+                        }
+
                         // 生成JWT令牌
                         var token = await GenerateJwtToken(user, false);
-                        var isTwoFactorEnabled = await _userManager.GetTwoFactorEnabledAsync(user);
 
                         return Ok(new
                         {
@@ -902,6 +949,130 @@ namespace SlzrCrossGate.WebAdmin.Controllers
             }
         }
 
+        // 启用或禁用双因素认证
+        [HttpPost("toggle-two-factor")]
+        [Authorize]
+        public async Task<IActionResult> ToggleTwoFactor([FromBody] ToggleTwoFactorRequest request)
+        {
+            try
+            {
+                // 获取当前用户
+                var userId = User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value;
+                if (string.IsNullOrEmpty(userId))
+                {
+                    return Unauthorized(new { message = "未找到用户ID" });
+                }
+
+                var user = await _userManager.FindByIdAsync(userId);
+                if (user == null)
+                {
+                    return Unauthorized(new { message = "未找到用户" });
+                }
+
+                // 检查是否需要强制双因素认证
+                var systemSettings = await _settingsService.GetSettingsAsync();
+
+                // 如果系统强制要求双因素认证，用户不能禁用
+                if (systemSettings.ForceTwoFactorAuth && !request.Enable)
+                {
+                    return BadRequest(new { message = "系统设置要求所有用户必须启用双因素认证，无法禁用" });
+                }
+
+                // 如果用户被单独设置为需要双因素认证，用户不能禁用
+                if (user.IsTwoFactorRequired && !request.Enable)
+                {
+                    return BadRequest(new { message = "您的账户被管理员设置为必须使用双因素认证，无法禁用" });
+                }
+
+                // 如果是禁用双因素认证
+                if (!request.Enable)
+                {
+                    // 验证用户提供的验证码
+                    if (string.IsNullOrEmpty(user.TwoFactorSecretKey))
+                    {
+                        return BadRequest(new { message = "未找到双因素认证密钥" });
+                    }
+
+                    if (string.IsNullOrEmpty(request.Code))
+                    {
+                        return BadRequest(new { message = "请提供验证码以确认身份" });
+                    }
+
+                    if (!_twoFactorAuthService.ValidateTwoFactorCode(user.TwoFactorSecretKey, request.Code))
+                    {
+                        return BadRequest(new { message = "验证码无效" });
+                    }
+
+                    // 禁用双因素认证
+                    await _userManager.SetTwoFactorEnabledAsync(user, false);
+                    user.TwoFactorEnabledDate = null;
+                    await _userManager.UpdateAsync(user);
+
+                    return Ok(new { message = "双因素认证已禁用", isTwoFactorEnabled = false });
+                }
+                else // 启用双因素认证
+                {
+                    // 如果用户已经启用了双因素认证
+                    if (await _userManager.GetTwoFactorEnabledAsync(user))
+                    {
+                        return BadRequest(new { message = "双因素认证已经启用" });
+                    }
+
+                    // 如果用户没有设置双因素认证密钥，生成新的密钥
+                    if (string.IsNullOrEmpty(user.TwoFactorSecretKey))
+                    {
+                        var (secretKey, qrCodeUrl) = _twoFactorAuthService.GenerateNewTwoFactorSecretKey(user);
+                        user.TwoFactorSecretKey = secretKey;
+                        await _userManager.UpdateAsync(user);
+
+                        return Ok(new
+                        {
+                            message = "请使用验证器应用扫描二维码，然后使用confirm-two-factor接口确认设置",
+                            secretKey = secretKey,
+                            qrCodeUrl = qrCodeUrl,
+                            isTwoFactorEnabled = false
+                        });
+                    }
+                    else
+                    {
+                        // 如果用户已经有密钥，但需要重新启用
+                        if (string.IsNullOrEmpty(request.Code))
+                        {
+                            // 如果没有提供验证码，返回密钥和二维码，让用户重新扫描
+                            var (secretKey, qrCodeUrl) = _twoFactorAuthService.GenerateNewTwoFactorSecretKey(user);
+                            user.TwoFactorSecretKey = secretKey;
+                            await _userManager.UpdateAsync(user);
+
+                            return Ok(new
+                            {
+                                message = "请使用验证器应用扫描二维码，然后使用confirm-two-factor接口确认设置",
+                                secretKey = secretKey,
+                                qrCodeUrl = qrCodeUrl,
+                                isTwoFactorEnabled = false
+                            });
+                        }
+
+                        if (!_twoFactorAuthService.ValidateTwoFactorCode(user.TwoFactorSecretKey, request.Code))
+                        {
+                            return BadRequest(new { message = "验证码无效" });
+                        }
+
+                        // 启用双因素认证
+                        await _userManager.SetTwoFactorEnabledAsync(user, true);
+                        user.TwoFactorEnabledDate = DateTime.UtcNow;
+                        await _userManager.UpdateAsync(user);
+
+                        return Ok(new { message = "双因素认证已启用", isTwoFactorEnabled = true });
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "切换双因素认证状态时发生错误");
+                return StatusCode(500, new { message = "服务器内部错误: " + ex.Message });
+            }
+        }
+
         // 绑定微信账号
         [HttpPost("bind-wechat")]
         [Authorize]
@@ -909,6 +1080,13 @@ namespace SlzrCrossGate.WebAdmin.Controllers
         {
             try
             {
+                // 检查系统设置是否启用微信登录
+                var systemSettings = await _settingsService.GetSettingsAsync();
+                if (!systemSettings.EnableWechatLogin)
+                {
+                    return BadRequest(new { message = "微信登录功能已被系统管理员禁用" });
+                }
+
                 // 获取当前用户
                 var userId = User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value;
                 if (string.IsNullOrEmpty(userId))
@@ -952,6 +1130,13 @@ namespace SlzrCrossGate.WebAdmin.Controllers
         {
             try
             {
+                // 检查系统设置是否启用微信登录
+                var systemSettings = await _settingsService.GetSettingsAsync();
+                if (!systemSettings.EnableWechatLogin)
+                {
+                    return BadRequest(new { message = "微信登录功能已被系统管理员禁用" });
+                }
+
                 // 获取当前用户
                 var userId = User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value;
                 if (string.IsNullOrEmpty(userId))
@@ -997,6 +1182,9 @@ namespace SlzrCrossGate.WebAdmin.Controllers
         {
             try
             {
+                // 检查系统设置是否启用微信登录
+                var systemSettings = await _settingsService.GetSettingsAsync();
+
                 // 获取当前用户
                 var userId = User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value;
                 if (string.IsNullOrEmpty(userId))
@@ -1015,7 +1203,8 @@ namespace SlzrCrossGate.WebAdmin.Controllers
                 {
                     isBound = !string.IsNullOrEmpty(user.WechatOpenId),
                     wechatNickname = user.WechatNickname,
-                    bindTime = user.WechatBindTime
+                    bindTime = user.WechatBindTime,
+                    isWechatLoginEnabled = systemSettings.EnableWechatLogin
                 });
             }
             catch (Exception ex)
@@ -1181,6 +1370,15 @@ namespace SlzrCrossGate.WebAdmin.Controllers
         public class SetupTwoFactorRequest
         {
             // 空类，因为我们现在从Authorization头中获取令牌
+        }
+
+        public class ToggleTwoFactorRequest
+        {
+            [Required]
+            public bool Enable { get; set; }
+
+            // 当禁用双因素认证或重新启用时需要提供验证码
+            public string? Code { get; set; }
         }
     }
 }

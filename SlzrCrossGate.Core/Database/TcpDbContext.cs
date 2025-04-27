@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using SlzrCrossGate.Core.Models;
 using System.Linq.Expressions;
+using Microsoft.AspNetCore.Identity;
 
 
 namespace SlzrCrossGate.Core.Database
@@ -31,12 +32,12 @@ namespace SlzrCrossGate.Core.Database
 
         public DbSet<ApplicationUser> ApplicationUsers { get; set; }
         public DbSet<ApplicationRole> ApplicationRoles { get; set; }
-        
+        public DbSet<SystemSettings> SystemSettings { get; set; }
+
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
-
 
             // FileType 定义复合主键
             modelBuilder.Entity<FileType>()

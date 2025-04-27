@@ -7,6 +7,7 @@ using SlzrCrossGate.Core.Models;
 using SlzrCrossGate.Core.Database;
 using SlzrCrossGate.Core;
 using SlzrCrossGate.WebAdmin.Services;
+using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -22,6 +23,7 @@ builder.Services.AddSwaggerGen();
 // 在 ConfigureServices 中添加
 builder.Services.AddScoped<TwoFactorAuthService>();
 builder.Services.AddScoped<WechatAuthService>();
+builder.Services.AddScoped<SystemSettingsService>();
 
 // 添加HttpClient
 builder.Services.AddHttpClient("WechatApi", client =>
@@ -152,10 +154,14 @@ builder.AddCoreWebAdminService();
 var app = builder.Build();
 
 
+// 应用数据库迁移
 using (var scope = app.Services.CreateScope())
 {
-   var services = scope.ServiceProvider;
-   await SeedData.InitializeUser(services);
+    var services = scope.ServiceProvider;
+    var dbContext = services.GetRequiredService<TcpDbContext>();
+    dbContext.Database.Migrate();
+
+    await SeedData.InitializeUser(services);
 }
 
 app.MapDefaultEndpoints();
