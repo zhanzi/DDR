@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SlzrCrossGate.Core.Database;
 using SlzrCrossGate.Core.Models;
+using SlzrCrossGate.Core.Repositories;
 
 
 namespace SlzrCrossGate.WebAdmin.Controllers
@@ -65,18 +66,16 @@ namespace SlzrCrossGate.WebAdmin.Controllers
                     .Take(pageSize)
                     .ToListAsync();
 
-                // 转换为DTO
-                var merchantDtos = merchants.Select(m => new MerchantDto
+                // 转换为前端期望的格式
+                var merchantItems = merchants.Select(m => new
                 {
-                    MerchantID = m.MerchantID,
-                    Name = m.Name,
-                    CompanyName = m.CompanyName,
-                    ContactPerson = m.ContactPerson,
-                    ContactInfo = m.ContactInfo,
-                    Remark = m.Remark,
-                    Operator = m.Operator,
-                    AutoRegister = m.AutoRegister,
-                    IsDelete = m.IsDelete
+                    merchantID = m.MerchantID,
+                    name = m.Name,
+                    companyName = m.CompanyName,
+                    contactName = m.ContactPerson,
+                    contactPhone = m.ContactInfo,
+                    remark = m.Remark,
+                    isActive = !m.IsDelete
                 }).ToList();
 
                 // 返回结果
@@ -86,7 +85,7 @@ namespace SlzrCrossGate.WebAdmin.Controllers
                     PageSize = pageSize,
                     CurrentPage = page,
                     TotalPages = (int)Math.Ceiling(totalCount / (double)pageSize),
-                    Items = merchantDtos
+                    Items = merchantItems
                 });
             }
             catch (Exception ex)
@@ -125,18 +124,16 @@ namespace SlzrCrossGate.WebAdmin.Controllers
                     return NotFound(new { message = "商户不存在" });
                 }
 
-                // 返回商户信息
-                return Ok(new MerchantDto
+                // 返回商户信息，将后端字段映射为前端期望的格式
+                return Ok(new
                 {
-                    MerchantID = merchant.MerchantID,
-                    Name = merchant.Name,
-                    CompanyName = merchant.CompanyName,
-                    ContactPerson = merchant.ContactPerson,
-                    ContactInfo = merchant.ContactInfo,
-                    Remark = merchant.Remark,
-                    Operator = merchant.Operator,
-                    AutoRegister = merchant.AutoRegister,
-                    IsDelete = merchant.IsDelete
+                    merchantID = merchant.MerchantID,
+                    name = merchant.Name,
+                    companyName = merchant.CompanyName,
+                    contactName = merchant.ContactPerson,
+                    contactPhone = merchant.ContactInfo,
+                    remark = merchant.Remark,
+                    isActive = !merchant.IsDelete
                 });
             }
             catch (Exception ex)

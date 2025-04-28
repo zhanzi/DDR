@@ -100,38 +100,38 @@ namespace SlzrCrossGate.Core.Database
                 .IsDescending([false, false, false, false]);
 
 
-            // 配置租户隔离
-            foreach (var entityType in modelBuilder.Model.GetEntityTypes())
-            {
-                if (typeof(ITenantEntity).IsAssignableFrom(entityType.ClrType))
-                {
-                    modelBuilder.Entity(entityType.ClrType)
-                        .HasQueryFilter(GetTenantFilter(entityType.ClrType));
-                }
-            }
+            //// 配置租户隔离
+            //foreach (var entityType in modelBuilder.Model.GetEntityTypes())
+            //{
+            //    if (typeof(ITenantEntity).IsAssignableFrom(entityType.ClrType))
+            //    {
+            //        modelBuilder.Entity(entityType.ClrType)
+            //            .HasQueryFilter(GetTenantFilter(entityType.ClrType));
+            //    }
+            //}
         }
 
-        // 租户隔离过滤器, 仅查询当前租户的数据,管理员可以查看所有数据
-        private LambdaExpression GetTenantFilter(Type entityType)
-        {
-            var parameter = Expression.Parameter(entityType, "e");
+        //// 租户隔离过滤器, 仅查询当前租户的数据,管理员可以查看所有数据
+        //private LambdaExpression GetTenantFilter(Type entityType)
+        //{
+        //    var parameter = Expression.Parameter(entityType, "e");
 
-            //如果是管理员，不过滤
-            if (IsAdmin) return Expression.Lambda(Expression.Constant(true), parameter);
+        //    //如果是管理员，不过滤
+        //    if (IsAdmin) return Expression.Lambda(Expression.Constant(true), parameter);
 
-            var property = Expression.Property(parameter, "MerchantID");
+        //    var property = Expression.Property(parameter, "MerchantID");
 
-            //不存在租户ID的数据，不过滤
-            if (property == null) return Expression.Lambda(Expression.Constant(true), parameter);
+        //    //不存在租户ID的数据，不过滤
+        //    if (property == null) return Expression.Lambda(Expression.Constant(true), parameter);
 
-            var currentTenantId = Expression.Constant(CurrentTenantId);
-            var condition = Expression.Equal(property, currentTenantId);
-            return Expression.Lambda(condition, parameter);
+        //    var currentTenantId = Expression.Constant(CurrentTenantId);
+        //    var condition = Expression.Equal(property, currentTenantId);
+        //    return Expression.Lambda(condition, parameter);
 
-        }
-        public string CurrentTenantId { get; set; }
-        public ApplicationUser CurrentUser { get; set; }
+        //}
+        //public string CurrentTenantId { get; set; }
+        //public ApplicationUser CurrentUser { get; set; }
 
-        public bool IsAdmin { get; set; } = false;
+        //public bool IsAdmin { get; set; } = false;
     }
 }

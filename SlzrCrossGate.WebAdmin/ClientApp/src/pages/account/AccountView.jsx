@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Box,
   Button,
@@ -31,7 +31,7 @@ import { useFormik } from 'formik';
 import * as Yup from 'yup';
 import { useSnackbar } from 'notistack';
 import { useAuth } from '../../contexts/AuthContext';
-import { userAPI, authAPI } from '../../services/api';
+import { userAPI, authAPI, systemSettingsAPI } from '../../services/api';
 import WechatBindingSection from './WechatBindingSection';
 
 function TabPanel(props) {
@@ -67,6 +67,7 @@ const AccountView = () => {
   const [twoFactorQrCode, setTwoFactorQrCode] = useState('');
   const [twoFactorSecretKey, setTwoFactorSecretKey] = useState('');
   const [userData, setUserData] = useState(null);
+  const [systemSettings, setSystemSettings] = useState(null);
 
   // 加载用户数据
   useEffect(() => {
@@ -77,13 +78,14 @@ const AccountView = () => {
         setLoading(true);
         const response = await userAPI.getUser(user.sub);
         setUserData(response);
-
-        // 设置表单初始值
-        formik.setValues({
-          userName: response.userName || '',
-          email: response.email || '',
-          realName: response.realName || '',
-        });
+        
+        // 加载系统设置，使用 systemSettingsAPI 而不是直接的 axios 调用
+        try {
+          const settingsResponse = await systemSettingsAPI.getSettings();
+          setSystemSettings(settingsResponse);
+        } catch (settingsError) {
+          console.error('加载系统设置失败:', settingsError);
+        }
       } catch (error) {
         enqueueSnackbar('加载用户数据失败', { variant: 'error' });
         console.error('加载用户数据失败:', error);
@@ -250,6 +252,19 @@ const AccountView = () => {
     }
   };
 
+  // 计算是否强制使用双因素认证
+  const isTwoFactorRequired = useMemo(() => {
+    if (!systemSettings || !userData) return false;
+    
+    // 如果系统设置强制使用双因素认证
+    if (systemSettings.forceTwoFactorAuth) return true;
+    
+    // 如果用户被特别设置为需要双因素认证
+    if (userData.isTwoFactorRequired) return true;
+    
+    return false;
+  }, [systemSettings, userData]);
+
   if (loading) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
@@ -382,14 +397,23 @@ const AccountView = () => {
                 </Typography>
 
                 {userData?.isTwoFactorEnabled ? (
-                  <Button
-                    variant="contained"
-                    color="error"
-                    onClick={() => setDisableTwoFactorDialogOpen(true)}
-                    disabled={saving}
-                  >
-                    禁用双因素认证
-                  </Button>
+                  <>
+                    <Button
+                      variant="contained"
+                      color="error"
+                      onClick={() => setDisableTwoFactorDialogOpen(true)}
+                      disabled={saving || isTwoFactorRequired}
+                    >
+                      禁用双因素认证
+                    </Button>
+                    {isTwoFactorRequired && (
+                      <Typography variant="caption" color="error" sx={{ display: 'block', mt: 1 }}>
+                        {systemSettings?.forceTwoFactorAuth 
+                          ? '系统设置要求所有用户必须使用双因素认证，无法禁用' 
+                          : '您的账户被管理员设置为必须使用双因素认证，无法禁用'}
+                      </Typography>
+                    )}
+                  </>
                 ) : (
                   <Button
                     variant="contained"

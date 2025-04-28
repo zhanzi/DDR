@@ -87,10 +87,10 @@ const MerchantDetailView = () => {
         formik.setValues({
           merchantID: merchantData.merchantID || '',
           name: merchantData.name || '',
+          companyName: merchantData.companyName || '',
           contactName: merchantData.contactName || '',
           contactPhone: merchantData.contactPhone || '',
-          contactEmail: merchantData.contactEmail || '',
-          address: merchantData.address || '',
+          remark: merchantData.remark || '',
           isActive: merchantData.isActive || false
         });
       } catch (error) {
@@ -158,23 +158,32 @@ const MerchantDetailView = () => {
     initialValues: {
       merchantID: '',
       name: '',
+      companyName: '',
       contactName: '',
       contactPhone: '',
-      contactEmail: '',
-      address: '',
+      remark: '',
       isActive: false
     },
     validationSchema: Yup.object({
       name: Yup.string().required('商户名称是必填项'),
       contactName: Yup.string().required('联系人是必填项'),
       contactPhone: Yup.string().required('联系电话是必填项'),
-      contactEmail: Yup.string().email('无效的邮箱格式').required('联系邮箱是必填项'),
-      address: Yup.string()
+      companyName: Yup.string(),
+      remark: Yup.string()
     }),
     onSubmit: async (values) => {
       try {
         setSaving(true);
-        await merchantAPI.updateMerchant(id, values);
+        // 将表单字段映射到后端DTO字段
+        const merchantDto = {
+          name: values.name,
+          companyName: values.companyName,
+          contactPerson: values.contactName,
+          contactInfo: values.contactPhone,
+          remark: values.remark,
+          isDelete: !values.isActive
+        };
+        await merchantAPI.updateMerchant(id, merchantDto);
         enqueueSnackbar('商户信息更新成功', { variant: 'success' });
         // 重新加载商户数据
         const updatedMerchant = await merchantAPI.getMerchant(id);
@@ -273,10 +282,18 @@ const MerchantDetailView = () => {
             <Box>
               <Button
                 variant="outlined"
-                color={merchant?.isActive ? "default" : "primary"}
+                color="inherit"
+                sx={{ 
+                  mr: 1,
+                  color: merchant?.isActive ? 'error.main' : 'primary.main',
+                  borderColor: merchant?.isActive ? 'error.main' : 'primary.main',
+                  '&:hover': {
+                    borderColor: merchant?.isActive ? 'error.dark' : 'primary.dark',
+                    backgroundColor: merchant?.isActive ? 'error.lighter' : 'primary.lighter',
+                  }
+                }}
                 startIcon={merchant?.isActive ? <InactiveIcon /> : <ActiveIcon />}
                 onClick={handleToggleActive}
-                sx={{ mr: 1 }}
                 disabled={loading || saving}
               >
                 {merchant?.isActive ? '停用商户' : '激活商户'}
@@ -345,6 +362,19 @@ const MerchantDetailView = () => {
                   <Grid item xs={12} md={6}>
                     <TextField
                       fullWidth
+                      label="公司名称"
+                      name="companyName"
+                      value={formik.values.companyName}
+                      onChange={formik.handleChange}
+                      error={formik.touched.companyName && Boolean(formik.errors.companyName)}
+                      helperText={formik.touched.companyName && formik.errors.companyName}
+                      disabled={loading || !isSystemAdmin}
+                      margin="normal"
+                    />
+                  </Grid>
+                  <Grid item xs={12} md={6}>
+                    <TextField
+                      fullWidth
                       label="联系人"
                       name="contactName"
                       value={formik.values.contactName}
@@ -373,27 +403,12 @@ const MerchantDetailView = () => {
                   <Grid item xs={12} md={6}>
                     <TextField
                       fullWidth
-                      label="联系邮箱"
-                      name="contactEmail"
-                      type="email"
-                      value={formik.values.contactEmail}
+                      label="备注"
+                      name="remark"
+                      value={formik.values.remark}
                       onChange={formik.handleChange}
-                      error={formik.touched.contactEmail && Boolean(formik.errors.contactEmail)}
-                      helperText={formik.touched.contactEmail && formik.errors.contactEmail}
-                      disabled={loading || !isSystemAdmin}
-                      margin="normal"
-                      required
-                    />
-                  </Grid>
-                  <Grid item xs={12} md={6}>
-                    <TextField
-                      fullWidth
-                      label="地址"
-                      name="address"
-                      value={formik.values.address}
-                      onChange={formik.handleChange}
-                      error={formik.touched.address && Boolean(formik.errors.address)}
-                      helperText={formik.touched.address && formik.errors.address}
+                      error={formik.touched.remark && Boolean(formik.errors.remark)}
+                      helperText={formik.touched.remark && formik.errors.remark}
                       disabled={loading || !isSystemAdmin}
                       margin="normal"
                     />

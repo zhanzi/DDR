@@ -25,10 +25,10 @@ const MerchantCreateDialog = ({ open, onClose, onMerchantCreated }) => {
     initialValues: {
       merchantID: '',
       name: '',
+      companyName: '',
       contactName: '',
       contactPhone: '',
-      contactEmail: '',
-      address: '',
+      remark: '',
       isActive: true
     },
     validationSchema: Yup.object({
@@ -36,13 +36,23 @@ const MerchantCreateDialog = ({ open, onClose, onMerchantCreated }) => {
       name: Yup.string().required('商户名称是必填项'),
       contactName: Yup.string().required('联系人是必填项'),
       contactPhone: Yup.string().required('联系电话是必填项'),
-      contactEmail: Yup.string().email('无效的邮箱格式').required('联系邮箱是必填项'),
-      address: Yup.string()
+      companyName: Yup.string(),
+      remark: Yup.string()
     }),
     onSubmit: async (values) => {
       try {
         setLoading(true);
-        await merchantAPI.createMerchant(values);
+        // 将表单字段映射到后端DTO字段
+        const merchantDto = {
+          merchantID: values.merchantID,
+          name: values.name,
+          companyName: values.companyName,
+          contactPerson: values.contactName,
+          contactInfo: values.contactPhone,
+          remark: values.remark,
+          isDelete: !values.isActive
+        };
+        await merchantAPI.createMerchant(merchantDto);
         enqueueSnackbar('商户创建成功', { variant: 'success' });
         formik.resetForm();
         onMerchantCreated();
@@ -96,6 +106,19 @@ const MerchantCreateDialog = ({ open, onClose, onMerchantCreated }) => {
             <Grid item xs={12} md={6}>
               <TextField
                 fullWidth
+                id="companyName"
+                name="companyName"
+                label="公司名称"
+                value={formik.values.companyName}
+                onChange={formik.handleChange}
+                error={formik.touched.companyName && Boolean(formik.errors.companyName)}
+                helperText={formik.touched.companyName && formik.errors.companyName}
+                margin="normal"
+              />
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <TextField
+                fullWidth
                 id="contactName"
                 name="contactName"
                 label="联系人"
@@ -124,28 +147,13 @@ const MerchantCreateDialog = ({ open, onClose, onMerchantCreated }) => {
             <Grid item xs={12} md={6}>
               <TextField
                 fullWidth
-                id="contactEmail"
-                name="contactEmail"
-                label="联系邮箱"
-                type="email"
-                value={formik.values.contactEmail}
+                id="remark"
+                name="remark"
+                label="备注"
+                value={formik.values.remark}
                 onChange={formik.handleChange}
-                error={formik.touched.contactEmail && Boolean(formik.errors.contactEmail)}
-                helperText={formik.touched.contactEmail && formik.errors.contactEmail}
-                margin="normal"
-                required
-              />
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                id="address"
-                name="address"
-                label="地址"
-                value={formik.values.address}
-                onChange={formik.handleChange}
-                error={formik.touched.address && Boolean(formik.errors.address)}
-                helperText={formik.touched.address && formik.errors.address}
+                error={formik.touched.remark && Boolean(formik.errors.remark)}
+                helperText={formik.touched.remark && formik.errors.remark}
                 margin="normal"
               />
             </Grid>

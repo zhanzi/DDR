@@ -15,17 +15,17 @@ public class TenantService
         _httpContextAccessor = httpContextAccessor;
     }
 
-    public async Task SetCurrentTenantAsync()
-    {
-        var httpContext = _httpContextAccessor.HttpContext;
-        if (httpContext == null) return;
+    //public async Task SetCurrentTenantAsync()
+    //{
+    //    var httpContext = _httpContextAccessor.HttpContext;
+    //    if (httpContext == null) return;
 
-        var user = await _userManager.GetUserAsync(httpContext.User);
-        if (user == null) return;
+    //    var user = await _userManager.GetUserAsync(httpContext.User);
+    //    if (user == null) return;
          
-        _context.CurrentTenantId = user.MerchantID ?? "";
-        _context.CurrentUser = user;
-        _context.IsAdmin = _userManager.GetRolesAsync(user).Result.Contains("SysAdmin");
+    //    _context.CurrentTenantId = user.MerchantID ?? "";
+    //    _context.CurrentUser = user;
+    //    _context.IsAdmin = _userManager.GetRolesAsync(user).Result.Contains("SystemAdmin");
          
-    }
+    //}
 }
