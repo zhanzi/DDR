@@ -26,6 +26,7 @@ import {
   Tab
 } from '@mui/material';
 import {
+  ChevronRight as ChevronRight,
   Refresh as RefreshIcon,
   Search as SearchIcon,
   Clear as ClearIcon,
@@ -188,22 +189,44 @@ const FilePublishList = () => {
   // 获取发布类型显示
   const getPublishTypeChip = (type) => {
     switch (type) {
-      case 0: // Merchant
+      case 1: // Merchant
         return <Chip label="商户级别" color="primary" size="small" />;
-      case 1: // Line
+      case 2: // Line
         return <Chip label="线路级别" color="secondary" size="small" />;
-      case 2: // Terminal
+      case 3: // Terminal
         return <Chip label="终端级别" color="success" size="small" />;
       default:
         return <Chip label="未知" color="default" size="small" />;
     }
   };
 
+  // 获取操作类型显示
+  const getOperationTypeChip = (type) => {
+    switch (type) {
+      case "Publish":
+        return <Chip label="发布" color="success" size="small" />;
+      case "Revoke":
+        return <Chip label="撤销" color="error" size="small" />;
+      default:
+        return <Chip label={type || "未知"} color="default" size="small" />;
+    }
+  };
+
   return (
     <Box sx={{ p: 3 }}>
-      <Typography variant="h4" gutterBottom>
+
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+        <Typography variant="h4">
         文件发布管理
-      </Typography>
+        </Typography>
+        <Button
+          variant="outlined"
+          startIcon={<ChevronRight />}
+          onClick={() => navigate('/app/files/versions')}
+        >
+          文件版本管理
+        </Button>
+      </Box>
 
       {/* 标签页 */}
       <Paper sx={{ mb: 3 }}>
@@ -270,9 +293,9 @@ const FilePublishList = () => {
               select
             >
               <MenuItem value="">全部</MenuItem>
-              <MenuItem value="0">商户级别</MenuItem>
-              <MenuItem value="1">线路级别</MenuItem>
-              <MenuItem value="2">终端级别</MenuItem>
+              <MenuItem value="1">商户级别</MenuItem>
+              <MenuItem value="2">线路级别</MenuItem>
+              <MenuItem value="3">终端级别</MenuItem>
             </TextField>
           </Grid>
           <Grid item xs={12} sm={6} md={2}>
@@ -337,6 +360,7 @@ const FilePublishList = () => {
                 <TableCell>发布目标</TableCell>
                 <TableCell>发布时间</TableCell>
                 <TableCell>操作人</TableCell>
+                {tabValue === 1 && <TableCell>操作类型</TableCell>}
                 {tabValue === 0 && <TableCell>操作</TableCell>}
                 {tabValue === 1 && <TableCell>备注</TableCell>}
               </TableRow>
@@ -358,19 +382,24 @@ const FilePublishList = () => {
                 filePublishes.map((filePublish) => (
                   <TableRow key={filePublish.id}>
                     <TableCell>{filePublish.id}</TableCell>
-                    <TableCell>{filePublish.merchantId}</TableCell>
                     <TableCell>
-                      <Tooltip title={filePublish.fileTypeName || ''}>
-                        <span>{filePublish.fileTypeId}</span>
+                    <Tooltip title={filePublish.merchantID || ''}>
+                        <span>{filePublish.merchantName}</span>
                       </Tooltip>
+                    </TableCell>
+                    <TableCell>
+                      {filePublish.fileTypeName}({filePublish.fileTypeID})
                     </TableCell>
                     <TableCell>{filePublish.filePara}</TableCell>
                     <TableCell>{filePublish.ver}</TableCell>
                     <TableCell>{formatFileSize(filePublish.fileSize)}</TableCell>
                     <TableCell>{getPublishTypeChip(filePublish.publishType)}</TableCell>
                     <TableCell>{filePublish.publishTarget || '-'}</TableCell>
-                    <TableCell>{format(new Date(filePublish.createTime), 'yyyy-MM-dd HH:mm:ss')}</TableCell>
+                    <TableCell>{format(new Date(filePublish.publishTime), 'yyyy-MM-dd HH:mm:ss')}</TableCell>
                     <TableCell>{filePublish.operator || '-'}</TableCell>
+                    {tabValue === 1 && (
+                      <TableCell>{getOperationTypeChip(filePublish.operationType)}</TableCell>
+                    )}
                     {tabValue === 0 && (
                       <TableCell>
                         <Tooltip title="下载">

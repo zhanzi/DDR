@@ -39,9 +39,9 @@ const FilePublish = () => {
 
   // 发布表单
   const [publishForm, setPublishForm] = useState({
-    merchantId: fileVersionFromState?.merchantId || '',
+    merchantId: fileVersionFromState?.merchantID || '',
     fileVersionId: fileVersionFromState?.id || '',
-    publishType: 'Merchant', // 默认为商户级别发布
+    publishType: 1, // 修改为数值0，对应Merchant类型
     publishTarget: '' // 发布目标（线路或终端）
   });
 
@@ -97,11 +97,18 @@ const FilePublish = () => {
   // 处理表单变更
   const handleFormChange = (event) => {
     const { name, value } = event.target;
-    setPublishForm(prev => ({ ...prev, [name]: value }));
-
-    // 如果切换了发布类型，清空发布目标
+    
+    // 确保publishType是数字类型
     if (name === 'publishType') {
-      setPublishForm(prev => ({ ...prev, publishTarget: '' }));
+      // 将值转换为数字
+      const numericValue = parseInt(value, 10);
+      setPublishForm(prev => ({ 
+        ...prev, 
+        [name]: numericValue,
+        publishTarget: '' // 清空发布目标
+      }));
+    } else {
+      setPublishForm(prev => ({ ...prev, [name]: value }));
     }
   };
 
@@ -165,8 +172,12 @@ const FilePublish = () => {
             </Typography>
             <Grid container spacing={2}>
               <Grid item xs={12} sm={6} md={3}>
+                <Typography variant="subtitle2" color="textSecondary">商户</Typography>
+                <Typography variant="body1">{fileVersion.merchantName || '-'}({fileVersion.merchantID || '-'})</Typography>
+              </Grid>
+              <Grid item xs={12} sm={6} md={3}>
                 <Typography variant="subtitle2" color="textSecondary">文件类型</Typography>
-                <Typography variant="body1">{fileVersion.fileTypeId} - {fileVersion.fileTypeName || ''}</Typography>
+                <Typography variant="body1"> {fileVersion.fileTypeName || ''}({fileVersion.fileTypeID})</Typography>
               </Grid>
               <Grid item xs={12} sm={6} md={3}>
                 <Typography variant="subtitle2" color="textSecondary">文件参数</Typography>
@@ -189,7 +200,7 @@ const FilePublish = () => {
                 <Typography variant="body1">{format(new Date(fileVersion.createTime), 'yyyy-MM-dd HH:mm:ss')}</Typography>
               </Grid>
               <Grid item xs={12} sm={6} md={3}>
-                <Typography variant="subtitle2" color="textSecondary">操作人</Typography>
+                <Typography variant="subtitle2" color="textSecondary">上传人</Typography>
                 <Typography variant="body1">{fileVersion.operator || '-'}</Typography>
               </Grid>
             </Grid>
@@ -245,14 +256,14 @@ const FilePublish = () => {
                   onChange={handleFormChange}
                   row
                 >
-                  <FormControlLabel value="Merchant" control={<Radio />} label="商户级别" />
-                  <FormControlLabel value="Line" control={<Radio />} label="线路级别" />
-                  <FormControlLabel value="Terminal" control={<Radio />} label="终端级别" />
+                  <FormControlLabel value={1} control={<Radio />} label="商户级别" />
+                  <FormControlLabel value={2} control={<Radio />} label="线路级别" />
+                  <FormControlLabel value={3} control={<Radio />} label="终端级别" />
                 </RadioGroup>
               </FormControl>
             </Grid>
 
-            {publishForm.publishType === 'Line' && (
+            {publishForm.publishType === 2 && (
               <Grid item xs={12}>
                 <FormControl fullWidth required error={!publishForm.publishTarget}>
                   <InputLabel>线路</InputLabel>
@@ -272,7 +283,7 @@ const FilePublish = () => {
               </Grid>
             )}
 
-            {publishForm.publishType === 'Terminal' && (
+            {publishForm.publishType === 3 && (
               <Grid item xs={12}>
                 <FormControl fullWidth required error={!publishForm.publishTarget}>
                   <InputLabel>终端</InputLabel>
@@ -315,7 +326,7 @@ const FilePublish = () => {
             disabled={
               loading ||
               !fileVersion ||
-              (publishForm.publishType !== 'Merchant' && !publishForm.publishTarget)
+              (publishForm.publishType !== 1 && !publishForm.publishTarget)
             }
           >
             {loading ? <CircularProgress size={24} /> : '发布文件'}

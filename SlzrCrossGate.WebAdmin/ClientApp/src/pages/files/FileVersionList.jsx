@@ -28,6 +28,7 @@ import {
   Chip
 } from '@mui/material';
 import {
+  ChevronRight as ChevronRight,
   Refresh as RefreshIcon,
   Search as SearchIcon,
   Clear as ClearIcon,
@@ -320,9 +321,19 @@ const FileVersionList = () => {
 
   return (
     <Box sx={{ p: 3 }}>
-      <Typography variant="h4" gutterBottom>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+        <Typography variant="h4">
         文件版本管理
-      </Typography>
+        </Typography>
+        <Button
+          variant="outlined"
+          startIcon={<ChevronRight />}
+          onClick={() => navigate('/app/files/publish-list')}
+        >
+          查看发布记录
+        </Button>
+      </Box>
+
 
       {/* 筛选条件 */}
       <Paper sx={{ p: 2, mb: 3 }}>
@@ -445,7 +456,7 @@ const FileVersionList = () => {
             <TableHead>
               <TableRow>
                 <TableCell>ID</TableCell>
-                <TableCell>商户ID</TableCell>
+                <TableCell>商户</TableCell>
                 <TableCell>文件类型</TableCell>
                 <TableCell>文件参数</TableCell>
                 <TableCell>版本号</TableCell>
@@ -473,8 +484,8 @@ const FileVersionList = () => {
                 fileVersions.map((fileVersion) => (
                   <TableRow key={fileVersion.id}>
                     <TableCell>{fileVersion.id}</TableCell>
-                    <TableCell>{fileVersion.merchantID}</TableCell>
-                    <TableCell>{fileVersion.fileTypeID}</TableCell>
+                    <TableCell>{fileVersion.merchantName}</TableCell>
+                    <TableCell>{fileVersion.fileTypeName}({fileVersion.fileTypeID})</TableCell>
                     <TableCell>{fileVersion.filePara}</TableCell>
                     <TableCell>{fileVersion.ver}</TableCell>
                     <TableCell>{formatFileSize(fileVersion.fileSize)}</TableCell>

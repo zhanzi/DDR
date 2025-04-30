@@ -202,13 +202,13 @@ export const fileAPI = {
     responseType: 'blob',
   }),
 
-  getFilePublishes: (params) => api.get('/FilePublishes', { params }),
-  getFilePublish: (id) => api.get(`/FilePublishes/${id}`),
-  createFilePublish: (data) => api.post('/FilePublishes', data),
-  updateFilePublish: (id, data) => api.put(`/FilePublishes/${id}`, data),
-  deleteFilePublish: (id) => api.delete(`/FilePublishes/${id}`),
+  getFilePublishes: (params) => api.get('/FilePublish', { params }),
+  getFilePublish: (id) => api.get(`/FilePublish/${id}`),
+  createFilePublish: (data) => api.post('/FilePublish', data),
+  updateFilePublish: (id, data) => api.put(`/FilePublish/${id}`, data),
+  deleteFilePublish: (id) => api.delete(`/FilePublish/${id}`),
 
-  getFilePublishHistory: (params) => api.get('/FilePublishHistory', { params }),
+  getFilePublishHistory: (params) => api.get('/FilePublish/History', { params }),
 
   // 获取所有文件类型(不分页，用于下拉框)
   getAllFileTypes: async (merchantId) => api.get('/FileTypes/all', { merchantId })

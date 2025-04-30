@@ -28,6 +28,7 @@ import {
   Autocomplete
 } from '@mui/material';
 import {
+  ChevronRight as ChevronRight,
   Refresh as RefreshIcon,
   Search as SearchIcon,
   Clear as ClearIcon,
@@ -35,11 +36,13 @@ import {
   Edit as EditIcon,
   Delete as DeleteIcon
 } from '@mui/icons-material';
+import { useNavigate } from 'react-router-dom';
 import { fileAPI, merchantAPI } from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
 import MerchantAutocomplete from '../../components/MerchantAutocomplete';
 
 const FileTypeList = () => {
+  const navigate = useNavigate();
   const { user } = useAuth();
   const [fileTypes, setFileTypes] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -286,9 +289,18 @@ const FileTypeList = () => {
 
   return (
     <Box sx={{ p: 3 }}>
-      <Typography variant="h4" gutterBottom>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+        <Typography variant="h4">
         文件类型管理
-      </Typography>
+        </Typography>
+        <Button
+          variant="outlined"
+          startIcon={<ChevronRight />}
+          onClick={() => navigate('/app/files/versions')}
+        >
+          文件版本管理
+        </Button>
+      </Box>
 
       {/* 筛选条件 */}
       <Paper sx={{ p: 2, mb: 3 }}>
@@ -303,7 +315,7 @@ const FileTypeList = () => {
                   merchantID: newValue ? newValue.merchantID : ''
                 }));
               }}
-              disabled={!isSystemAdmin && user?.merchantId}
+              disabled={Boolean(!isSystemAdmin && user?.merchantId)}
               merchants={merchants}
             />
           </Grid>
@@ -463,7 +475,7 @@ const FileTypeList = () => {
                   onChange={handleDialogInputChange}
                   disabled={dialogMode === 'edit'}
                   required
-                  error={dialogMode === 'create' && (currentFileType.code && !isValidCode(currentFileType.code))}
+                  error={Boolean(dialogMode === 'create' && currentFileType.code && !isValidCode(currentFileType.code))}
                   helperText={
                     dialogMode === 'create' 
                       ? (currentFileType.code && !isValidCode(currentFileType.code))
@@ -483,9 +495,9 @@ const FileTypeList = () => {
                       merchantID: newValue ? newValue.merchantID : ''
                     }));
                   }}
-                  disabled={dialogMode === 'edit' || (!isSystemAdmin && user?.merchantId)}
+                  disabled={Boolean(dialogMode === 'edit' || (!isSystemAdmin && user?.merchantId))}
                   required={true}
-                  error={!currentFileType.merchantID}
+                  error={Boolean(!currentFileType.merchantID)}
                   helperText={!currentFileType.merchantID ? '请选择商户' : ''}
                   merchants={merchants}
                 />
