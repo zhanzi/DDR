@@ -94,11 +94,23 @@ namespace SlzrCrossGate.Core.Database
                 .HasIndex(e => new { e.MerchantID, e.FileFullType, e.PublishType, e.PublishTarget })
                 .IsUnique();
 
+            modelBuilder.Entity<FilePublish>()
+                .HasIndex(e => new { e.MerchantID, e.FileTypeID, e.PublishTime });
+
             //配置MsgBox的联合索引
             modelBuilder.Entity<MsgBox>()
                 .HasIndex(e => new { e.MerchantID, e.Status, e.TerminalID, e.SendTime })
                 .IsDescending([false, false, false, false]);
 
+            //给FilePublishHistory的OperationType字段添加check约束，限制值只能为"Publish"或"Revoke"
+            modelBuilder.Entity<FilePublishHistory>()
+                .ToTable(t => t.HasCheckConstraint("CK_FilePublishHistory_OperationType", "OperationType IN ('Publish', 'Revoke')"));
+                
+            //给FilePublishHistory添加查询索引,按 publishtime 降序排列，并包含其他字段
+            modelBuilder.Entity<FilePublishHistory>()
+                .HasIndex(e => new { e.PublishTime })
+                .IsDescending([true])
+                .IncludeProperties(e => new { e.MerchantID, e.FileTypeID, e.Ver, e.FilePara, e.FileFullType, e.PublishTarget, e.OperationType });
 
             //// 配置租户隔离
             //foreach (var entityType in modelBuilder.Model.GetEntityTypes())

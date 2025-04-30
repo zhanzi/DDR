@@ -14,13 +14,11 @@ namespace SlzrCrossGate.Core.Models
         [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
         public int ID { get; set; }
 
-        [Column(TypeName = "char(4)")]
+        [MaxLength(8)]
         public required string MerchantID { get; set; }
-
 
         [StringLength(3)]
         public required string FileTypeID { get; set; }
-
 
         [MaxLength(8)]
         public required string FilePara { get; set; }
@@ -36,13 +34,25 @@ namespace SlzrCrossGate.Core.Models
 
         [StringLength(4),Column(TypeName ="char(4)")]
         public required string Ver { get; set; }
+        public int FileSize { get; set; }
 
+        [MaxLength(8)]
+        public required string Crc { get; set; }
         public DateTime PublishTime { get; set; }
 
+        public int FileVerID { get; set; }
+
+        [MaxLength(32)]
+        public required string UploadFileID { get; set; }
         //操作人员
         [MaxLength(20)]
         public string? Operator { get; set; }
 
+        //操作类型:发布/撤销
+        //给字段添加check约束，限制值只能为"Publish"或"Revoke"
+        [MaxLength(10)]
+        [Column(TypeName = "varchar(10)")]
+        public string OperationType { get; set; } = "Publish";
 
         //发布类型
         public PublishTypeOption PublishType { get; set; }//1:商户 2:线路 3:终端 

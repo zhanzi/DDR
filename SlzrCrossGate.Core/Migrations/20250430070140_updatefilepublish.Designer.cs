@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using SlzrCrossGate.Core.Database;
 
@@ -11,9 +12,11 @@ using SlzrCrossGate.Core.Database;
 namespace SlzrCrossGate.Core.Migrations
 {
     [DbContext(typeof(TcpDbContext))]
-    partial class TcpDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250430070140_updatefilepublish")]
+    partial class updatefilepublish
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -370,8 +373,6 @@ namespace SlzrCrossGate.Core.Migrations
 
                     b.HasKey("ID");
 
-                    b.HasIndex("MerchantID", "FileTypeID", "PublishTime");
-
                     b.HasIndex("MerchantID", "FileFullType", "PublishType", "PublishTarget")
                         .IsUnique();
 
@@ -417,11 +418,6 @@ namespace SlzrCrossGate.Core.Migrations
                         .HasMaxLength(8)
                         .HasColumnType("varchar(8)");
 
-                    b.Property<string>("OperationType")
-                        .IsRequired()
-                        .HasMaxLength(10)
-                        .HasColumnType("varchar(10)");
-
                     b.Property<string>("Operator")
                         .HasMaxLength(20)
                         .HasColumnType("varchar(20)");
@@ -453,14 +449,7 @@ namespace SlzrCrossGate.Core.Migrations
 
                     b.HasKey("ID");
 
-                    b.HasIndex("PublishTime")
-                        .IsDescending()
-                        .HasAnnotation("SqlServer:Include", new[] { "MerchantID", "FileTypeID", "Ver", "FilePara", "FileFullType", "PublishTarget", "OperationType" });
-
-                    b.ToTable("FilePublishHistories", t =>
-                        {
-                            t.HasCheckConstraint("CK_FilePublishHistory_OperationType", "OperationType IN ('Publish', 'Revoke')");
-                        });
+                    b.ToTable("FilePublishHistories");
                 });
 
             modelBuilder.Entity("SlzrCrossGate.Core.Models.FileType", b =>

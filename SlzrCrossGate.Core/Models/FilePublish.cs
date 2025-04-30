@@ -34,7 +34,7 @@ namespace SlzrCrossGate.Core.Models
         public required string FileFullType { get; set; }
 
 
-        [StringLength(4)]
+        [StringLength(4),Column(TypeName ="char(4)")]
         public required string Ver { get; set; }
 
         public int FileSize { get; set; }
@@ -42,13 +42,15 @@ namespace SlzrCrossGate.Core.Models
         [MaxLength(8)]
         public required string Crc { get; set; }
 
-        public DateTime CreateTime { get; set; }
-        public DateTime UpdateTime { get; set; }
+        public DateTime PublishTime { get; set; }
+
 
         /// <summary>
         /// 文件信息ID
         /// </summary>
         public int FileVerID { get; set; }
+        [MaxLength(32)]
+        public required string UploadFileID { get; set; }
 
         //操作人员
         [MaxLength(20)]
