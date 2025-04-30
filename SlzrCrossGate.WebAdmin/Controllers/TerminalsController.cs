@@ -395,7 +395,7 @@ namespace SlzrCrossGate.WebAdmin.Controllers
             // 获取当前用户的商户ID和用户名
             var currentUserMerchantId = await _userService.GetUserMerchantIdAsync(User);
             var isSystemAdmin = User.IsInRole("SystemAdmin");
-            var username = User.FindFirstValue(ClaimTypes.Name);
+            var username = UserService.GetUserNameForOperator(User);
 
             // 验证终端列表
             var terminals = await _dbContext.Terminals
@@ -472,7 +472,7 @@ namespace SlzrCrossGate.WebAdmin.Controllers
             // 获取当前用户的商户ID和用户名
             var currentUserMerchantId = await _userService.GetUserMerchantIdAsync(User);
             var isSystemAdmin = User.IsInRole("SystemAdmin");
-            var username = User.FindFirstValue(ClaimTypes.Name);
+            var username = UserService.GetUserNameForOperator(User);
 
             // 验证终端列表
             var terminals = await _dbContext.Terminals
@@ -508,9 +508,10 @@ namespace SlzrCrossGate.WebAdmin.Controllers
                 FileSize = fileVer.FileSize,
                 Crc = fileVer.Crc,
                 FileVerID = fileVer.ID,
+                UploadFileID = fileVer.UploadFileID,
                 PublishType = PublishTypeOption.Terminal,
                 PublishTarget = string.Join(",", model.TerminalIds),
-                CreateTime = DateTime.Now,
+                PublishTime = DateTime.Now,
                 Operator = username
             };
 
@@ -525,9 +526,13 @@ namespace SlzrCrossGate.WebAdmin.Controllers
                 FilePara = fileVer.FilePara,
                 FileFullType = fileVer.FileFullType,
                 Ver = fileVer.Ver,
+                FileSize = fileVer.FileSize,
+                Crc = fileVer.Crc,
+                FileVerID = fileVer.ID,
+                UploadFileID = fileVer.UploadFileID,
                 PublishType = PublishTypeOption.Terminal,
                 PublishTarget = string.Join(",", model.TerminalIds),
-                PublishTime = DateTime.Now,
+                PublishTime = filePublish.PublishTime,
                 Operator = username
             };
 

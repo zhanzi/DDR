@@ -49,7 +49,9 @@ namespace SlzrCrossGate.WebAdmin.Controllers
                         join fileType in _dbContext.FileTypes
                             on new { TypeId = filePublish.FileTypeID, MerchantId = filePublish.MerchantID }
                             equals new { TypeId = fileType.ID, MerchantId = fileType.MerchantID }
-                        select new { FilePublish = filePublish, FileTypeName = fileType.Name };
+                        join merchant in _dbContext.Merchants
+                            on filePublish.MerchantID equals merchant.MerchantID
+                        select new { FilePublish = filePublish, FileTypeName = fileType.Name, MerchantName = merchant.Name };
 
             // 应用筛选条件
             if (!string.IsNullOrEmpty(merchantId))
@@ -82,7 +84,7 @@ namespace SlzrCrossGate.WebAdmin.Controllers
 
             // 应用分页和排序
             var filePublishes = await query
-                .OrderByDescending(p => p.FilePublish.CreateTime)
+                .OrderByDescending(p => p.FilePublish.PublishTime)
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
                 .ToListAsync();
@@ -98,12 +100,13 @@ namespace SlzrCrossGate.WebAdmin.Controllers
                 Ver = p.FilePublish.Ver,
                 FileSize = p.FilePublish.FileSize,
                 Crc = p.FilePublish.Crc,
-                UploadFileID = string.Empty, // FilePublish 模型中没有 UploadFileID 属性
+                UploadFileID = p.FilePublish.UploadFileID,
                 PublishType = p.FilePublish.PublishType,
                 PublishTarget = p.FilePublish.PublishTarget,
-                CreateTime = p.FilePublish.CreateTime,
+                PublishTime = p.FilePublish.PublishTime,
                 Operator = p.FilePublish.Operator,
-                FileTypeName = p.FileTypeName
+                FileTypeName = p.FileTypeName,
+                MerchantName = p.MerchantName
             }).ToList();
 
             return new PaginatedResult<FilePublishDto>
@@ -128,8 +131,10 @@ namespace SlzrCrossGate.WebAdmin.Controllers
                                join ft in _dbContext.FileTypes
                                    on new { TypeId = fp.FileTypeID, MerchantId = fp.MerchantID }
                                    equals new { TypeId = ft.ID, MerchantId = ft.MerchantID }
+                                 join m in _dbContext.Merchants
+                                      on fp.MerchantID equals m.MerchantID
                                where fp.ID == id
-                               select new { FilePublish = fp, FileTypeName = ft.Name })
+                               select new { FilePublish = fp, FileTypeName = ft.Name, MerchantName = m.Name })
                               .FirstOrDefaultAsync();
 
             if (result == null)
@@ -155,12 +160,13 @@ namespace SlzrCrossGate.WebAdmin.Controllers
                 Ver = filePublish.Ver,
                 FileSize = filePublish.FileSize,
                 Crc = filePublish.Crc,
-                UploadFileID = string.Empty, // FilePublish 模型中没有 UploadFileID 属性
+                UploadFileID = filePublish.UploadFileID,
                 PublishType = filePublish.PublishType,
                 PublishTarget = filePublish.PublishTarget,
-                CreateTime = filePublish.CreateTime,
+                PublishTime = filePublish.PublishTime,
                 Operator = filePublish.Operator,
-                FileTypeName = result.FileTypeName
+                FileTypeName = result.FileTypeName,
+                MerchantName = result.MerchantName
             };
         }
 
@@ -171,7 +177,7 @@ namespace SlzrCrossGate.WebAdmin.Controllers
             // 获取当前用户的商户ID和用户名
             var currentUserMerchantId = await _userService.GetUserMerchantIdAsync(User);
             var isSystemAdmin = User.IsInRole("SystemAdmin");
-            var username = User.FindFirstValue(ClaimTypes.Name);
+            var username = UserService.GetUserNameForOperator(User);
 
             // 如果不是系统管理员，只能为自己的商户发布文件
             if (!isSystemAdmin && model.MerchantID != currentUserMerchantId)
@@ -184,8 +190,10 @@ namespace SlzrCrossGate.WebAdmin.Controllers
                                          join ft in _dbContext.FileTypes
                                              on new { TypeId = fv.FileTypeID, MerchantId = fv.MerchantID }
                                              equals new { TypeId = ft.ID, MerchantId = ft.MerchantID }
+                                         join m in _dbContext.Merchants
+                                             on fv.MerchantID equals m.MerchantID
                                          where fv.ID == model.FileVersionId && !fv.IsDelete
-                                         select new { FileVersion = fv, FileTypeName = ft.Name })
+                                         select new { FileVersion = fv, FileTypeName = ft.Name, MerchantName = m.Name })
                                         .FirstOrDefaultAsync();
 
             var fileVersion = fileVersionResult?.FileVersion;
@@ -200,6 +208,19 @@ namespace SlzrCrossGate.WebAdmin.Controllers
             {
                 return BadRequest("文件版本不属于指定商户");
             }
+            if(model.PublishType==PublishTypeOption.Merchant)
+            {
+                model.PublishTarget= fileVersion.MerchantID;
+            }
+
+            // 检查文件版本是否已发布
+            var existingFilePublish = await _dbContext.FilePublishs
+                .FirstOrDefaultAsync(p => p.FileVerID == fileVersion.ID && p.PublishType == model.PublishType && p.PublishTarget == model.PublishTarget && p.MerchantID == model.MerchantID);
+            if (existingFilePublish != null)
+            {
+                return Conflict("该发布已存在");
+            }
+            
 
             // 创建文件发布记录
             var filePublish = new FilePublish
@@ -211,10 +232,11 @@ namespace SlzrCrossGate.WebAdmin.Controllers
                 Ver = fileVersion.Ver,
                 FileSize = fileVersion.FileSize,
                 Crc = fileVersion.Crc,
-                //UploadFileID = fileVersion.UploadFileID,
+                FileVerID = fileVersion.ID,
+                UploadFileID = fileVersion.UploadFileID,
                 PublishType = model.PublishType,
                 PublishTarget = model.PublishTarget,
-                CreateTime = DateTime.Now,
+                PublishTime = DateTime.Now,
                 Operator = username
             };
 
@@ -227,17 +249,17 @@ namespace SlzrCrossGate.WebAdmin.Controllers
             var filePublishHistory = new FilePublishHistory
             {
                 MerchantID = model.MerchantID,
-                // FilePublishHistory 模型中没有 FilePublishID 属性
                 FileTypeID = fileVersion.FileTypeID,
                 FilePara = fileVersion.FilePara,
                 FileFullType = fileVersion.FileFullType,
                 Ver = fileVersion.Ver,
-                // FilePublishHistory 模型中没有 FileSize 属性
-                // FilePublishHistory 模型中没有 Crc 属性
-                // FilePublishHistory 模型中没有 UploadFileID 属性
+                FileSize = fileVersion.FileSize,
+                Crc = fileVersion.Crc,
+                 FileVerID = fileVersion.ID,
+                UploadFileID = fileVersion.UploadFileID,
                 PublishType = model.PublishType,
                 PublishTarget = model.PublishTarget,
-                PublishTime = DateTime.Now, // 使用 PublishTime 代替 CreateTime
+                PublishTime = filePublish.PublishTime,
                 Operator = username
             };
 
@@ -248,16 +270,17 @@ namespace SlzrCrossGate.WebAdmin.Controllers
             {
                 ID = filePublish.ID,
                 MerchantID = filePublish.MerchantID,
+                MerchantName = fileVersionResult!.MerchantName,
                 FileTypeID = filePublish.FileTypeID,
                 FilePara = filePublish.FilePara,
                 FileFullType = filePublish.FileFullType,
                 Ver = filePublish.Ver,
                 FileSize = filePublish.FileSize,
                 Crc = filePublish.Crc,
-                UploadFileID = string.Empty, // FilePublish 模型中没有 UploadFileID 属性
+                UploadFileID = filePublish.UploadFileID,
                 PublishType = filePublish.PublishType,
                 PublishTarget = filePublish.PublishTarget,
-                CreateTime = filePublish.CreateTime,
+                PublishTime = filePublish.PublishTime,
                 Operator = filePublish.Operator,
                 FileTypeName = fileVersionResult?.FileTypeName
             });
@@ -270,7 +293,7 @@ namespace SlzrCrossGate.WebAdmin.Controllers
             // 获取当前用户的商户ID和用户名
             var currentUserMerchantId = await _userService.GetUserMerchantIdAsync(User);
             var isSystemAdmin = User.IsInRole("SystemAdmin");
-            var username = User.FindFirstValue(ClaimTypes.Name);
+            var username = UserService.GetUserNameForOperator(User);
 
             var filePublish = await _dbContext.FilePublishs
                 .FirstOrDefaultAsync(p => p.ID == id);
@@ -293,19 +316,20 @@ namespace SlzrCrossGate.WebAdmin.Controllers
             var filePublishHistory = new FilePublishHistory
             {
                 MerchantID = filePublish.MerchantID,
-                // FilePublishHistory 模型中没有 FilePublishID 属性
                 FileTypeID = filePublish.FileTypeID,
                 FilePara = filePublish.FilePara,
                 FileFullType = filePublish.FileFullType,
                 Ver = filePublish.Ver,
-                // FilePublishHistory 模型中没有 FileSize 属性
-                // FilePublishHistory 模型中没有 Crc 属性
-                // FilePublishHistory 模型中没有 UploadFileID 属性
+                FileSize = filePublish.FileSize,
+                Crc = filePublish.Crc,
+                 FileVerID = filePublish.ID,
+                UploadFileID = filePublish.UploadFileID,
                 PublishType = filePublish.PublishType,
                 PublishTarget = filePublish.PublishTarget,
-                PublishTime = DateTime.Now, // 使用 PublishTime 代替 CreateTime
+                PublishTime = DateTime.Now,
                 Operator = username,
-                Remark = "取消发布"
+                OperationType = "Revoke", // 取消发布
+                Remark = "取消发布" // 取消发布时的备注
             };
 
             _dbContext.FilePublishHistories.Add(filePublishHistory);
@@ -342,33 +366,38 @@ namespace SlzrCrossGate.WebAdmin.Controllers
             }
 
             // 构建查询
-            var query = _dbContext.FilePublishHistories
-                .AsQueryable();
+            var query = from filePublishHistory in _dbContext.FilePublishHistories
+                        join fileType in _dbContext.FileTypes
+                            on new { TypeId = filePublishHistory.FileTypeID, MerchantId = filePublishHistory.MerchantID }
+                            equals new { TypeId = fileType.ID, MerchantId = fileType.MerchantID }
+                        join merchant in _dbContext.Merchants
+                            on filePublishHistory.MerchantID equals merchant.MerchantID
+                        select new { FilePublishHistory = filePublishHistory, FileTypeName = fileType.Name, MerchantName = merchant.Name };
 
             // 应用筛选条件
             if (!string.IsNullOrEmpty(merchantId))
             {
-                query = query.Where(p => p.MerchantID == merchantId);
+                query = query.Where(p => p.FilePublishHistory.MerchantID == merchantId);
             }
 
             if (!string.IsNullOrEmpty(fileTypeId))
             {
-                query = query.Where(p => p.FileTypeID == fileTypeId);
+                query = query.Where(p => p.FilePublishHistory.FileTypeID == fileTypeId);
             }
 
             if (!string.IsNullOrEmpty(filePara))
             {
-                query = query.Where(p => p.FilePara == filePara);
+                query = query.Where(p => p.FilePublishHistory.FilePara == filePara);
             }
 
             if (publishType.HasValue)
             {
-                query = query.Where(p => p.PublishType == publishType.Value);
+                query = query.Where(p => p.FilePublishHistory.PublishType == publishType.Value);
             }
 
             if (!string.IsNullOrEmpty(publishTarget))
             {
-                query = query.Where(p => p.PublishTarget.Contains(publishTarget));
+                query = query.Where(p => p.FilePublishHistory.PublishTarget.Contains(publishTarget));
             }
 
             // 获取总记录数
@@ -376,7 +405,7 @@ namespace SlzrCrossGate.WebAdmin.Controllers
 
             // 应用分页和排序
             var filePublishHistories = await query
-                .OrderByDescending(p => p.PublishTime) // 使用 PublishTime 代替 CreateTime
+                .OrderByDescending(p => p.FilePublishHistory.PublishTime) // 使用 PublishTime 代替 CreateTime
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
                 .ToListAsync();
@@ -384,21 +413,23 @@ namespace SlzrCrossGate.WebAdmin.Controllers
             // 转换为DTO
             var filePublishHistoryDtos = filePublishHistories.Select(p => new FilePublishHistoryDto
             {
-                ID = p.ID,
-                MerchantID = p.MerchantID,
-                FilePublishID = 0, // 注意：FilePublishHistory 模型中没有 FilePublishID 属性
-                FileTypeID = p.FileTypeID,
-                FilePara = p.FilePara,
-                FileFullType = p.FileFullType,
-                Ver = p.Ver,
-                FileSize = 0, // 注意：FilePublishHistory 模型中没有 FileSize 属性
-                Crc = string.Empty, // 注意：FilePublishHistory 模型中没有 Crc 属性
-                UploadFileID = string.Empty, // 注意：FilePublishHistory 模型中没有 UploadFileID 属性
-                PublishType = p.PublishType,
-                PublishTarget = p.PublishTarget,
-                CreateTime = p.PublishTime, // 使用 PublishTime 代替 CreateTime
-                Operator = p.Operator,
-                Remark = p.Remark
+                ID = p.FilePublishHistory.ID,
+                MerchantID = p.FilePublishHistory.MerchantID,
+                MerchantName = p.MerchantName,
+                FileTypeID = p.FilePublishHistory.FileTypeID,
+                FileTypeName = p.FileTypeName,
+                FilePara = p.FilePublishHistory.FilePara,
+                FileFullType = p.FilePublishHistory.FileFullType,
+                Ver = p.FilePublishHistory.Ver,
+                FileSize = p.FilePublishHistory.FileSize,
+                Crc = p.FilePublishHistory.Crc,
+                UploadFileID = p.FilePublishHistory.UploadFileID,
+                PublishType = p.FilePublishHistory.PublishType,
+                PublishTarget = p.FilePublishHistory.PublishTarget,
+                PublishTime = p.FilePublishHistory.PublishTime, 
+                Operator = p.FilePublishHistory.Operator,
+                OperationType= p.FilePublishHistory.OperationType,
+                Remark = p.FilePublishHistory.Remark
             }).ToList();
 
             return new PaginatedResult<FilePublishHistoryDto>

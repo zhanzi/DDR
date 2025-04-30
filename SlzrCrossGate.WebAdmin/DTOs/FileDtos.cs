@@ -30,6 +30,7 @@ namespace SlzrCrossGate.WebAdmin.DTOs
     {
         public int ID { get; set; }
         public string MerchantID { get; set; } = string.Empty;
+        public string MerchantName { get; set; } = string.Empty;
         public string FileTypeID { get; set; } = string.Empty;
         public string FilePara { get; set; } = string.Empty;
         public string FileFullType { get; set; } = string.Empty;
@@ -66,9 +67,11 @@ namespace SlzrCrossGate.WebAdmin.DTOs
         public string UploadFileID { get; set; } = string.Empty;
         public PublishTypeOption PublishType { get; set; }
         public string PublishTarget { get; set; } = string.Empty;
-        public DateTime CreateTime { get; set; }
+        public DateTime PublishTime { get; set; }
         public string? Operator { get; set; }
+        public string? OperationType { get; set; } = "Publish";
         public string? FileTypeName { get; set; }
+        public string MerchantName { get; set; } = string.Empty;
     }
 
     public class CreateFilePublishDto
@@ -84,8 +87,9 @@ namespace SlzrCrossGate.WebAdmin.DTOs
     {
         public int ID { get; set; }
         public string MerchantID { get; set; } = string.Empty;
-        public int FilePublishID { get; set; }
+        public string MerchantName { get; set; } = string.Empty;
         public string FileTypeID { get; set; } = string.Empty;
+        public string FileTypeName { get; set; } = string.Empty;
         public string FilePara { get; set; } = string.Empty;
         public string FileFullType { get; set; } = string.Empty;
         public string Ver { get; set; } = string.Empty;
@@ -94,8 +98,9 @@ namespace SlzrCrossGate.WebAdmin.DTOs
         public string UploadFileID { get; set; } = string.Empty;
         public PublishTypeOption PublishType { get; set; }
         public string PublishTarget { get; set; } = string.Empty;
-        public DateTime CreateTime { get; set; }
+        public DateTime PublishTime { get; set; }
         public string? Operator { get; set; }
+        public string? OperationType { get; set; } = "Publish";
         public string? Remark { get; set; }
     }
 }

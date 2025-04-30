@@ -52,8 +52,10 @@ namespace SlzrCrossGate.WebAdmin.Controllers
                         join fileType in _dbContext.FileTypes
                             on new { TypeId = fileVer.FileTypeID, MerchantId = fileVer.MerchantID }
                             equals new { TypeId = fileType.ID, MerchantId = fileType.MerchantID }
+                        join merchant in _dbContext.Merchants
+                            on fileVer.MerchantID equals merchant.MerchantID
                         where !fileVer.IsDelete
-                        select new { FileVer = fileVer, FileTypeName = fileType.Name };
+                        select new { FileVer = fileVer, FileTypeName = fileType.Name, MerchantName = merchant.Name };
 
             // 应用筛选条件
             if (!string.IsNullOrEmpty(merchantId))
@@ -91,6 +93,7 @@ namespace SlzrCrossGate.WebAdmin.Controllers
             {
                 ID = f.FileVer.ID,
                 MerchantID = f.FileVer.MerchantID,
+                MerchantName = f.MerchantName,
                 FileTypeID = f.FileVer.FileTypeID,
                 FilePara = f.FileVer.FilePara,
                 FileFullType = f.FileVer.FileFullType,
@@ -126,8 +129,10 @@ namespace SlzrCrossGate.WebAdmin.Controllers
                                join ft in _dbContext.FileTypes
                                    on new { TypeId = fv.FileTypeID, MerchantId = fv.MerchantID }
                                    equals new { TypeId = ft.ID, MerchantId = ft.MerchantID }
+                                join m in _dbContext.Merchants
+                                    on fv.MerchantID equals m.MerchantID
                                where fv.ID == id && !fv.IsDelete
-                               select new { FileVer = fv, FileTypeName = ft.Name })
+                               select new { FileVer = fv, FileTypeName = ft.Name, MerchantName = m.Name })
                               .FirstOrDefaultAsync();
 
             if (result == null)
@@ -147,6 +152,7 @@ namespace SlzrCrossGate.WebAdmin.Controllers
             {
                 ID = fileVer.ID,
                 MerchantID = fileVer.MerchantID,
+                MerchantName = result.MerchantName,
                 FileTypeID = fileVer.FileTypeID,
                 FilePara = fileVer.FilePara,
                 FileFullType = fileVer.FileFullType,
