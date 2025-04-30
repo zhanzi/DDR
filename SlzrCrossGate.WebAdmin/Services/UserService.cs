@@ -1,34 +1,56 @@
 using Microsoft.AspNetCore.Identity;
+using Microsoft.Data.SqlClient;
+using SlzrCrossGate.Core.Models;
 using System.Security.Claims;
 
 namespace SlzrCrossGate.WebAdmin.Services
 {
     public class UserService
     {
-        private readonly UserManager<IdentityUser> _userManager;
+        private readonly UserManager<ApplicationUser> _userManager;
 
-        public UserService(UserManager<IdentityUser> userManager)
+        public UserService(UserManager<ApplicationUser> userManager)
         {
             _userManager = userManager;
         }
 
         public async Task<string?> GetUserMerchantIdAsync(ClaimsPrincipal user)
         {
-            var userId = user.FindFirstValue(ClaimTypes.NameIdentifier);
-            if (string.IsNullOrEmpty(userId))
+            if (user == null)
             {
-                return null;
+                return null; 
             }
-
-            var identityUser = await _userManager.FindByIdAsync(userId);
-            if (identityUser == null)
+            // 获取当前用户的商户ID
+            var currentUser = await _userManager.GetUserAsync(user);
+            if (currentUser == null)
             {
-                return null;
+                return null; 
             }
-
-            // 假设商户ID存储在用户的MerchantId声明中
-            var merchantIdClaim = await _userManager.GetClaimsAsync(identityUser);
-            return merchantIdClaim.FirstOrDefault(c => c.Type == "MerchantId")?.Value;
+            return currentUser.MerchantID;
         }
+        public static string GetUserDisplayName(ClaimsPrincipal user)
+        {
+            return user.FindFirstValue("realName") 
+                ?? user.FindFirstValue(ClaimTypes.Name)
+                ?? "未知用户";
+        }
+
+        public static string GetUserName(ClaimsPrincipal user)
+        {
+            return user.FindFirstValue("name")??"";
+        }
+        
+        public static string GetUserNameForOperator(ClaimsPrincipal user)
+        {
+            return  $"{GetUserDisplayName(user)}({GetUserName(user)})";
+        }
+
+        public static string GetUserMerchantID(ClaimsPrincipal user)
+        {
+            return user.FindFirstValue("merchantId") 
+                ?? "";
+        }
+
+
     }
 }

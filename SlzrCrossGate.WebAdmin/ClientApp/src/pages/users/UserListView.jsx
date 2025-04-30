@@ -30,11 +30,13 @@ import {
   Lock as LockIcon,
   LockOpen as LockOpenIcon,
   Add as AddIcon,
-  Search as SearchIcon
+  Search as SearchIcon,
+  Refresh as RefreshIcon
 } from '@mui/icons-material';
 import { useSnackbar } from 'notistack';
 import { userAPI } from '../../services/api';
 import UserCreateDialog from './UserCreateDialog';
+import MerchantAutocomplete from '../../components/MerchantAutocomplete';
 
 const UserListView = () => {
   const { enqueueSnackbar } = useSnackbar();
@@ -43,21 +45,37 @@ const UserListView = () => {
   const [totalCount, setTotalCount] = useState(0);
   const [page, setPage] = useState(0);
   const [pageSize, setPageSize] = useState(10);
-  const [search, setSearch] = useState('');
-  const [searchInput, setSearchInput] = useState('');
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [userToDelete, setUserToDelete] = useState(null);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  
+  // 搜索条件
+  const [search, setSearch] = useState('');
+  const [searchInput, setSearchInput] = useState('');
+  const [selectedMerchant, setSelectedMerchant] = useState(null);
 
   // 加载用户数据
   const loadUsers = async () => {
     try {
       setLoading(true);
-      const response = await userAPI.getUsers({
-        search,
+      
+      // 构建查询参数
+      const params = {
         page: page + 1, // API使用1-based索引
         pageSize
-      });
+      };
+      
+      // 添加搜索参数
+      if (search) {
+        params.search = search;
+      }
+      
+      // 添加商户ID参数
+      if (selectedMerchant) {
+        params.merchantId = selectedMerchant.merchantID;
+      }
+      
+      const response = await userAPI.getUsers(params);
       setUsers(response.items);
       setTotalCount(response.totalCount);
     } catch (error) {
@@ -71,7 +89,7 @@ const UserListView = () => {
   // 首次加载和依赖项变化时重新加载数据
   useEffect(() => {
     loadUsers();
-  }, [page, pageSize, search]);
+  }, [page, pageSize, search, selectedMerchant]);
 
   // 处理页码变化
   const handleChangePage = (event, newPage) => {
@@ -95,6 +113,17 @@ const UserListView = () => {
     if (event.key === 'Enter') {
       handleSearch();
     }
+  };
+
+  // 处理商户选择
+  const handleMerchantChange = (event, newValue) => {
+    setSelectedMerchant(newValue);
+    setPage(0);
+  };
+  
+  // 处理刷新
+  const handleRefresh = () => {
+    loadUsers();
   };
 
   // 打开删除确认对话框
@@ -192,8 +221,8 @@ const UserListView = () => {
           </Button>
         </Box>
 
-        {/* 搜索框 */}
-        <Box sx={{ mb: 3, display: 'flex', alignItems: 'center' }}>
+        {/* 搜索区域 */}
+        <Box sx={{ mb: 3, display: 'flex', flexWrap: 'wrap', gap: 2 }}>
           <TextField
             label="搜索用户"
             variant="outlined"
@@ -201,8 +230,13 @@ const UserListView = () => {
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
             onKeyPress={handleSearchKeyPress}
-            sx={{ mr: 2, flexGrow: 1 }}
             placeholder="输入用户名、邮箱或真实姓名搜索"
+            sx={{ flexGrow: 1, minWidth: '200px' }}
+          />
+          <MerchantAutocomplete
+            value={selectedMerchant}
+            onChange={handleMerchantChange}
+            sx={{ minWidth: '250px', width: { xs: '100%', sm: 'auto' } }}
           />
           <Button
             variant="contained"
@@ -211,6 +245,14 @@ const UserListView = () => {
             startIcon={<SearchIcon />}
           >
             搜索
+          </Button>
+          <Button
+            variant="outlined"
+            color="primary"
+            onClick={handleRefresh}
+            startIcon={<RefreshIcon />}
+          >
+            刷新
           </Button>
         </Box>
 

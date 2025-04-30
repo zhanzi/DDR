@@ -199,9 +199,10 @@ const MerchantListView = () => {
                 <TableRow>
                   <TableCell>商户ID</TableCell>
                   <TableCell>商户名称</TableCell>
+                  <TableCell sx={{ display: { xs: 'none', sm: 'table-cell' } }}>公司名称</TableCell>
                   <TableCell sx={{ display: { xs: 'none', sm: 'table-cell' } }}>联系人</TableCell>
                   <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>联系电话</TableCell>
-                  <TableCell sx={{ display: { xs: 'none', lg: 'table-cell' } }}>联系邮箱</TableCell>
+                  <TableCell sx={{ display: { xs: 'none', lg: 'table-cell' } }}>备注</TableCell>
                   <TableCell>状态</TableCell>
                   <TableCell align="right" sx={{ minWidth: 120 }}>操作</TableCell>
                 </TableRow>
@@ -209,14 +210,14 @@ const MerchantListView = () => {
               <TableBody>
                 {loading && (
                   <TableRow>
-                    <TableCell colSpan={7} align="center">
+                    <TableCell colSpan={8} align="center">
                       <CircularProgress size={24} sx={{ my: 2 }} />
                     </TableCell>
                   </TableRow>
                 )}
                 {!loading && merchants.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={7} align="center">
+                    <TableCell colSpan={8} align="center">
                       没有找到商户
                     </TableCell>
                   </TableRow>
@@ -226,9 +227,10 @@ const MerchantListView = () => {
                     <TableRow key={merchant.merchantID}>
                       <TableCell>{merchant.merchantID}</TableCell>
                       <TableCell>{merchant.name}</TableCell>
+                      <TableCell sx={{ display: { xs: 'none', sm: 'table-cell' } }}>{merchant.companyName}</TableCell>
                       <TableCell sx={{ display: { xs: 'none', sm: 'table-cell' } }}>{merchant.contactName}</TableCell>
                       <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>{merchant.contactPhone}</TableCell>
-                      <TableCell sx={{ display: { xs: 'none', lg: 'table-cell' } }}>{merchant.contactEmail}</TableCell>
+                      <TableCell sx={{ display: { xs: 'none', lg: 'table-cell' } }}>{merchant.remark}</TableCell>
                       <TableCell>
                         {merchant.isActive ? (
                           <Chip label="激活" color="success" size="small" />

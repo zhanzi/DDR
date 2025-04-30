@@ -47,7 +47,7 @@ namespace SlzrCrossGate.WebAdmin.DTOs
     {
         public string MerchantID { get; set; } = string.Empty;
         public string FileTypeID { get; set; } = string.Empty;
-        public string FilePara { get; set; } = string.Empty;
+        public string? FilePara { get; set; } = string.Empty;
         public string Ver { get; set; } = string.Empty;
         public IFormFile? File { get; set; }
     }

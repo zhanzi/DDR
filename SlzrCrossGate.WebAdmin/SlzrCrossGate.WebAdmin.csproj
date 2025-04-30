@@ -22,6 +22,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\SlzrCrossGate.Common\SlzrCrossGate.Common.csproj" />
     <ProjectReference Include="..\SlzrCrossGate.Core\SlzrCrossGate.Core.csproj" />
     <ProjectReference Include="..\SlzrCrossGate.ServiceDefaults\SlzrCrossGate.ServiceDefaults.csproj" />
   </ItemGroup>

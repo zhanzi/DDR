@@ -236,5 +236,59 @@ namespace SlzrCrossGate.WebAdmin.Controllers
 
             return NoContent();
         }
+
+        // GET: api/FileTypes/all
+        // 获取所有文件类型（不分页），用于下拉框等需要完整数据的场景
+        [HttpGet("all")]
+        public async Task<ActionResult<FileTypeListResult>> GetAllFileTypes([FromQuery] string? merchantId = null)
+        {
+            // 获取当前用户的商户ID
+            var currentUserMerchantId = await _userService.GetUserMerchantIdAsync(User);
+            var isSystemAdmin = User.IsInRole("SystemAdmin");
+
+            // 如果不是系统管理员，只能查看自己商户的文件类型
+            if (!isSystemAdmin && merchantId != null && merchantId != currentUserMerchantId)
+            {
+                return Forbid();
+            }
+
+            // 如果不是系统管理员且未指定商户ID，则使用当前用户的商户ID
+            if (!isSystemAdmin && merchantId == null)
+            {
+                merchantId = currentUserMerchantId;
+            }
+
+            // 构建查询
+            var query = _dbContext.FileTypes.AsQueryable();
+
+            // 应用商户筛选条件
+            if (!string.IsNullOrEmpty(merchantId))
+            {
+                query = query.Where(t => t.MerchantID == merchantId);
+            }
+
+            // 获取所有符合条件的文件类型
+            var fileTypes = await query.ToListAsync();
+
+            // 转换为DTO
+            var fileTypeDtos = fileTypes.Select(t => new FileTypeDto
+            {
+                Code = t.ID,
+                MerchantID = t.MerchantID,
+                Name = t.Name,
+                Remark = t.Description ?? string.Empty
+            }).ToList();
+
+            return new FileTypeListResult
+            {
+                Items = fileTypeDtos
+            };
+        }
+    }
+
+    // 新增用于返回不分页文件类型列表的结果类
+    public class FileTypeListResult
+    {
+        public List<FileTypeDto> Items { get; set; } = new List<FileTypeDto>();
     }
 }

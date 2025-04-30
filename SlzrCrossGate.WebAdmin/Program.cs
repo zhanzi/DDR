@@ -24,6 +24,8 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddScoped<TwoFactorAuthService>();
 builder.Services.AddScoped<WechatAuthService>();
 builder.Services.AddScoped<SystemSettingsService>();
+builder.Services.AddScoped<UserService>();
+
 
 // 添加HttpClient
 builder.Services.AddHttpClient("WechatApi", client =>

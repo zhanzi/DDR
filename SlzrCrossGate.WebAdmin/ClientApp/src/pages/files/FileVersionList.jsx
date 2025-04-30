@@ -22,6 +22,7 @@ import {
   CircularProgress,
   MenuItem,
   FormControl,
+  FormHelperText,
   InputLabel,
   Select,
   Chip
@@ -36,17 +37,23 @@ import {
   Publish as PublishIcon
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
-import { fileAPI } from '../../services/api';
+import { fileAPI, merchantAPI } from '../../services/api';
 import { format } from 'date-fns';
+import MerchantAutocomplete from '../../components/MerchantAutocomplete';
+import { useAuth } from '../../contexts/AuthContext';
 
 const FileVersionList = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [fileVersions, setFileVersions] = useState([]);
   const [fileTypes, setFileTypes] = useState([]);
+  const [merchants, setMerchants] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMerchants, setLoadingMerchants] = useState(false);
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [totalCount, setTotalCount] = useState(0);
+  const [isSystemAdmin, setIsSystemAdmin] = useState(false);
 
   // 筛选条件
   const [filters, setFilters] = useState({
@@ -55,6 +62,9 @@ const FileVersionList = () => {
     filePara: '',
     ver: ''
   });
+  
+  // 选中的商户对象（用于MerchantAutocomplete）
+  const [selectedMerchant, setSelectedMerchant] = useState(null);
 
   // 上传对话框状态
   const [openUploadDialog, setOpenUploadDialog] = useState(false);
@@ -67,6 +77,7 @@ const FileVersionList = () => {
   });
   const [uploadError, setUploadError] = useState('');
   const [uploadLoading, setUploadLoading] = useState(false);
+  const [selectedUploadMerchant, setSelectedUploadMerchant] = useState(null);
 
   // 删除确认对话框
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
@@ -99,17 +110,38 @@ const FileVersionList = () => {
   // 加载文件类型列表
   const loadFileTypes = async () => {
     try {
-      const response = await fileAPI.getFileTypes();
-      setFileTypes(response.items);
+      // 使用不分页API获取所有文件类型，确保下拉框中包含所有数据
+      const response = await fileAPI.getAllFileTypes();
+      setFileTypes(response.items || []);
     } catch (error) {
       console.error('Error loading file types:', error);
+    }
+  };
+
+  // 加载商户列表
+  const loadMerchants = async () => {
+    try {
+      setLoadingMerchants(true);
+      const response = await merchantAPI.getMerchants({ pageSize: 100 }); // 获取足够多的商户数据
+      setMerchants(response.items || []);
+      console.log("商户数据加载成功:", response.items);
+    } catch (error) {
+      console.error('Error loading merchants:', error);
+    } finally {
+      setLoadingMerchants(false);
     }
   };
 
   useEffect(() => {
     loadFileVersions();
     loadFileTypes();
-  }, [page, rowsPerPage]);
+    
+    // 页面加载时加载商户数据
+    loadMerchants();
+    
+    // 检查当前用户是否是系统管理员
+    setIsSystemAdmin(user?.roles?.includes('SystemAdmin'));
+  }, []);
 
   // 处理筛选条件变更
   const handleFilterChange = (event) => {
@@ -125,12 +157,18 @@ const FileVersionList = () => {
 
   // 清除筛选
   const clearFilters = () => {
+    // 重置所有筛选条件
     setFilters({
       merchantId: '',
       fileTypeId: '',
       filePara: '',
       ver: ''
     });
+    
+    // 重置选中的商户
+    setSelectedMerchant(null);
+    
+    // 重置页码并重新加载数据
     setPage(0);
     loadFileVersions();
   };
@@ -146,7 +184,12 @@ const FileVersionList = () => {
   };
 
   // 打开上传对话框
-  const openUploadFileDialog = () => {
+  const openUploadFileDialog = async () => {
+    // 如果商户列表为空，先加载商户数据
+    if (merchants.length === 0) {
+      await loadMerchants();
+    }
+    
     setUploadForm({
       merchantId: '',
       fileTypeId: '',
@@ -154,6 +197,7 @@ const FileVersionList = () => {
       ver: '',
       file: null
     });
+    setSelectedUploadMerchant(null); // 重置选中的商户
     setUploadError('');
     setOpenUploadDialog(true);
   };
@@ -161,7 +205,19 @@ const FileVersionList = () => {
   // 处理上传表单变更
   const handleUploadFormChange = (event) => {
     const { name, value } = event.target;
-    setUploadForm(prev => ({ ...prev, [name]: value }));
+    
+    // 根据字段类型进行特殊处理
+    if (name === 'filePara') {
+      // 文件参数：只允许字母和数字，不超过8位
+      const sanitizedValue = value.replace(/[^a-zA-Z0-9]/g, '').slice(0, 8);
+      setUploadForm(prev => ({ ...prev, [name]: sanitizedValue }));
+    } else if (name === 'ver') {
+      // 版本号：只允许16进制字符(0-9, A-F, a-f)，自动转为大写，限制4位
+      const sanitizedValue = value.replace(/[^0-9a-fA-F]/g, '').slice(0, 4).toUpperCase();
+      setUploadForm(prev => ({ ...prev, [name]: sanitizedValue }));
+    } else {
+      setUploadForm(prev => ({ ...prev, [name]: value }));
+    }
   };
 
   // 处理文件选择
@@ -218,8 +274,34 @@ const FileVersionList = () => {
   };
 
   // 下载文件
-  const downloadFile = (fileVersion) => {
-    window.open(`/api/file-versions/${fileVersion.id}/download`, '_blank');
+  const downloadFile = async (fileVersion) => {
+    try {
+      // 使用fileAPI服务发送带有认证令牌的请求
+      const response = await fileAPI.downloadFileVersion(fileVersion.id);
+      
+      // 创建blob URL并触发下载
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      
+      // 设置下载文件名，组合文件类型、文件参数和版本号
+      const merchantId = fileVersion.merchantID;
+      const fileTypeId = fileVersion.fileTypeID;
+      const filePara = fileVersion.filePara;
+      const ver = fileVersion.ver;
+      const fileName = `${merchantId}_${fileTypeId}${filePara}_${ver}.bin`;
+      
+      link.href = url;
+      link.setAttribute('download', fileName);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      // 记录下载日志
+      console.log(`下载文件成功: ID=${fileVersion.id}, 文件名=${fileName}`);
+    } catch (error) {
+      console.error('下载文件失败:', error);
+      alert('下载文件失败，请检查网络连接或联系管理员。');
+    }
   };
 
   // 跳转到发布页面
@@ -246,12 +328,18 @@ const FileVersionList = () => {
       <Paper sx={{ p: 2, mb: 3 }}>
         <Grid container spacing={2} alignItems="center">
           <Grid item xs={12} sm={6} md={3}>
-            <TextField
-              fullWidth
-              label="商户ID"
-              name="merchantId"
-              value={filters.merchantId}
-              onChange={handleFilterChange}
+            <MerchantAutocomplete
+              value={selectedMerchant}
+              onChange={(event, newValue) => {
+                setSelectedMerchant(newValue);
+                // 商户变更时，清空文件类型选择
+                setFilters(prev => ({ 
+                  ...prev, 
+                  merchantId: newValue ? newValue.merchantID : '',  // 确保使用merchantID而非id
+                  fileTypeId: '' // 清空文件类型选择
+                }));
+                console.log("商户变更:", newValue ? `ID:${newValue.merchantID}, 名称:${newValue.name}` : "未选择");
+              }}
               size="small"
             />
           </Grid>
@@ -264,13 +352,25 @@ const FileVersionList = () => {
               onChange={handleFilterChange}
               size="small"
               select
+              disabled={!selectedMerchant} // 未选择商户时禁用
             >
               <MenuItem value="">全部</MenuItem>
-              {fileTypes.map((type) => (
-                <MenuItem key={`${type.code}-${type.merchantId}`} value={type.code}>
-                  {type.code} - {type.name || '未命名'}
-                </MenuItem>
-              ))}
+              {fileTypes
+                // 只显示选中商户的文件类型，尝试多种可能的字段名匹配
+                .filter(type => {
+                  if (!selectedMerchant) return false;
+                  
+                  // 添加日志，帮助调试字段匹配问题
+                  console.log("文件类型:", type);
+                  console.log("当前选中商户:", selectedMerchant);
+                   
+                  return type.merchantID && type.merchantID === selectedMerchant.merchantID;
+                })
+                .map((type) => (
+                  <MenuItem key={`${type.code}-${type.merchantId || type.merchantID || type.MerchantId || type.MerchantID}`} value={type.code}>
+                    {type.code} - {type.name || '未命名'}
+                  </MenuItem>
+                ))}
             </TextField>
           </Grid>
           <Grid item xs={12} sm={6} md={2}>
@@ -373,12 +473,8 @@ const FileVersionList = () => {
                 fileVersions.map((fileVersion) => (
                   <TableRow key={fileVersion.id}>
                     <TableCell>{fileVersion.id}</TableCell>
-                    <TableCell>{fileVersion.merchantId}</TableCell>
-                    <TableCell>
-                      <Tooltip title={fileVersion.fileTypeName || ''}>
-                        <span>{fileVersion.fileTypeId}</span>
-                      </Tooltip>
-                    </TableCell>
+                    <TableCell>{fileVersion.merchantID}</TableCell>
+                    <TableCell>{fileVersion.fileTypeID}</TableCell>
                     <TableCell>{fileVersion.filePara}</TableCell>
                     <TableCell>{fileVersion.ver}</TableCell>
                     <TableCell>{formatFileSize(fileVersion.fileSize)}</TableCell>
@@ -440,15 +536,20 @@ const FileVersionList = () => {
           <Box sx={{ mt: 2 }}>
             <Grid container spacing={2}>
               <Grid item xs={12}>
-                <TextField
-                  fullWidth
-                  label="商户ID"
-                  name="merchantId"
-                  value={uploadForm.merchantId}
-                  onChange={handleUploadFormChange}
+                <MerchantAutocomplete
+                  value={selectedUploadMerchant}
+                  onChange={(event, newValue) => {
+                    setSelectedUploadMerchant(newValue);
+                    // 清空文件类型选择
+                    setUploadForm(prev => ({ 
+                      ...prev, 
+                      merchantId: newValue ? newValue.merchantID : '',  // 确保使用merchantID
+                      fileTypeId: '' // 清空文件类型选择
+                    }));
+                  }}
                   required
                   error={!uploadForm.merchantId}
-                  helperText={!uploadForm.merchantId ? '请输入商户ID' : ''}
+                  helperText={!uploadForm.merchantId ? '请选择商户' : ''}
                 />
               </Grid>
               <Grid item xs={12} sm={6}>
@@ -459,15 +560,36 @@ const FileVersionList = () => {
                     value={uploadForm.fileTypeId}
                     onChange={handleUploadFormChange}
                     label="文件类型"
+                    disabled={!selectedUploadMerchant} // 未选择商户时禁用
                   >
                     {fileTypes
-                      .filter(type => !uploadForm.merchantId || type.merchantId === uploadForm.merchantId)
+                      // 只显示选中商户的文件类型，使用正确的selectedUploadMerchant变量
+                      .filter(type => {
+                        if (!selectedUploadMerchant) return false;
+                        
+                        // 添加日志，帮助调试字段匹配问题
+                        console.log("上传对话框 - 文件类型:", type);
+                        console.log("上传对话框 - 当前选中商户:", selectedUploadMerchant);
+                        
+                        // 尝试多种可能的字段名匹配
+                        return (
+                          // 尝试merchantId字段
+                          (type.merchantId && type.merchantId === selectedUploadMerchant.merchantID) ||
+                          // 尝试merchantID字段
+                          (type.merchantID && type.merchantID === selectedUploadMerchant.merchantID) ||
+                          // 尝试MerchantId字段
+                          (type.MerchantId && type.MerchantId === selectedUploadMerchant.merchantID) ||
+                          // 尝试MerchantID字段
+                          (type.MerchantID && type.MerchantID === selectedUploadMerchant.merchantID)
+                        );
+                      })
                       .map((type) => (
-                        <MenuItem key={`${type.code}-${type.merchantId}`} value={type.code}>
+                        <MenuItem key={`${type.code}-${type.merchantId || type.merchantID || type.MerchantId || type.MerchantID}`} value={type.code}>
                           {type.code} - {type.name || '未命名'}
                         </MenuItem>
                       ))}
                   </Select>
+                  {!uploadForm.fileTypeId && <FormHelperText>请选择文件类型</FormHelperText>}
                 </FormControl>
               </Grid>
               <Grid item xs={12} sm={6}>
@@ -477,9 +599,12 @@ const FileVersionList = () => {
                   name="filePara"
                   value={uploadForm.filePara}
                   onChange={handleUploadFormChange}
-                  required
-                  error={!uploadForm.filePara}
-                  helperText={!uploadForm.filePara ? '请输入文件参数' : ''}
+                  // 文件参数不是必填项
+                  helperText="选填，仅允许字母和数字，最多8位"
+                  inputProps={{
+                    maxLength: 8,
+                    pattern: '[A-Za-z0-9]*'
+                  }}
                 />
               </Grid>
               <Grid item xs={12}>
@@ -490,8 +615,12 @@ const FileVersionList = () => {
                   value={uploadForm.ver}
                   onChange={handleUploadFormChange}
                   required
-                  error={!uploadForm.ver}
-                  helperText={!uploadForm.ver ? '请输入版本号' : ''}
+                  error={!uploadForm.ver || uploadForm.ver.length !== 4}
+                  helperText={!uploadForm.ver ? '请输入版本号' : uploadForm.ver.length !== 4 ? '版本号必须为4位16进制字符' : ''}
+                  inputProps={{
+                    maxLength: 4,
+                    pattern: '[0-9A-Fa-f]{4}'
+                  }}
                 />
               </Grid>
               <Grid item xs={12}>
@@ -532,8 +661,8 @@ const FileVersionList = () => {
               uploadLoading ||
               !uploadForm.merchantId ||
               !uploadForm.fileTypeId ||
-              !uploadForm.filePara ||
               !uploadForm.ver ||
+              uploadForm.ver.length !== 4 || // 版本号必须为4位
               !uploadForm.file
             }
           >

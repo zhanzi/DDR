@@ -166,67 +166,74 @@ export const merchantAPI = {
 
 // 终端相关API
 export const terminalAPI = {
-  getTerminals: (params) => api.get('/terminals', { params }),
-  getTerminal: (id) => api.get(`/terminals/${id}`),
-  updateTerminal: (id, data) => api.put(`/terminals/${id}`, data),
-  deleteTerminal: (id) => api.delete(`/terminals/${id}`),
-  getTerminalEvents: (params) => api.get('/terminal-events', { params }),
-  getTerminalTypes: (params) => api.get('/terminal-types', { params }),
-  createTerminalType: (data) => api.post('/terminal-types', data),
-  updateTerminalType: (id, data) => api.put(`/terminal-types/${id}`, data),
-  deleteTerminalType: (id) => api.delete(`/terminal-types/${id}`),
+  getTerminals: (params) => api.get('/Terminals', { params }),
+  getTerminal: (id) => api.get(`/Terminals/${id}`),
+  updateTerminal: (id, data) => api.put(`/Terminals/${id}`, data),
+  deleteTerminal: (id) => api.delete(`/Terminals/${id}`),
+  getTerminalEvents: (id, params) => api.get(`/Terminals/${id}/events`, { params }),
+  getTerminalTypes: (params) => api.get('/TerminalTypes', { params }),
+  createTerminalType: (data) => api.post('/TerminalTypes', data),
+  updateTerminalType: (id, data) => api.put(`/TerminalTypes/${id}`, data),
+  deleteTerminalType: (id) => api.delete(`/TerminalTypes/${id}`),
   sendMessage: (terminalIds, messageTypeId, content) =>
-    api.post('/terminals/send-message', { terminalIds, messageTypeId, content }),
+    api.post('/Terminals/SendMessage', { terminalIds, messageTypeId, content }),
   publishFile: (terminalIds, fileVersionId) =>
-    api.post('/terminals/publish-file', { terminalIds, fileVersionId }),
+    api.post('/Terminals/PublishFile', { terminalIds, fileVersionId }),
 };
 
 // 文件相关API
 export const fileAPI = {
-  getFileTypes: (params) => api.get('/file-types', { params }),
-  getFileType: (id) => api.get(`/file-types/${id}`),
-  createFileType: (data) => api.post('/file-types', data),
-  updateFileType: (id, data) => api.put(`/file-types/${id}`, data),
-  deleteFileType: (id) => api.delete(`/file-types/${id}`),
+  getFileTypes: (params) => api.get('/FileTypes', { params }),
+  getFileType: (id) => api.get(`/FileTypes/${id}`),
+  createFileType: (data) => api.post('/FileTypes', data),
+  updateFileType: (code, merchantId, data) => api.put(`/FileTypes/${code}/${merchantId}`, data),
+  deleteFileType: (id) => api.delete(`/FileTypes/${id}`),
 
-  getFileVersions: (params) => api.get('/file-versions', { params }),
-  getFileVersion: (id) => api.get(`/file-versions/${id}`),
-  uploadFile: (formData) => api.post('/file-versions/upload', formData, {
+  getFileVersions: (params) => api.get('/FileVersions', { params }),
+  getFileVersion: (id) => api.get(`/FileVersions/${id}`),
+  uploadFile: (formData) => api.post('/FileVersions', formData, {
     headers: {
       'Content-Type': 'multipart/form-data',
     },
   }),
-  deleteFileVersion: (id) => api.delete(`/file-versions/${id}`),
+  deleteFileVersion: (id) => api.delete(`/FileVersions/${id}`),
+  // 下载文件版本，使用响应类型blob接收二进制数据
+  downloadFileVersion: (id) => api.get(`/FileVersions/download/${id}`, {
+    responseType: 'blob',
+  }),
 
-  getFilePublishes: (params) => api.get('/file-publishes', { params }),
-  getFilePublish: (id) => api.get(`/file-publishes/${id}`),
-  createFilePublish: (data) => api.post('/file-publishes', data),
-  updateFilePublish: (id, data) => api.put(`/file-publishes/${id}`, data),
-  deleteFilePublish: (id) => api.delete(`/file-publishes/${id}`),
+  getFilePublishes: (params) => api.get('/FilePublishes', { params }),
+  getFilePublish: (id) => api.get(`/FilePublishes/${id}`),
+  createFilePublish: (data) => api.post('/FilePublishes', data),
+  updateFilePublish: (id, data) => api.put(`/FilePublishes/${id}`, data),
+  deleteFilePublish: (id) => api.delete(`/FilePublishes/${id}`),
 
-  getFilePublishHistory: (params) => api.get('/file-publish-history', { params }),
+  getFilePublishHistory: (params) => api.get('/FilePublishHistory', { params }),
+
+  // 获取所有文件类型(不分页，用于下拉框)
+  getAllFileTypes: async (merchantId) => api.get('/FileTypes/all', { merchantId })
 };
 
 // 消息相关API
 export const messageAPI = {
-  getMessageTypes: (params) => api.get('/message-types', { params }),
-  getMessageType: (id) => api.get(`/message-types/${id}`),
-  createMessageType: (data) => api.post('/message-types', data),
-  updateMessageType: (id, data) => api.put(`/message-types/${id}`, data),
-  deleteMessageType: (id) => api.delete(`/message-types/${id}`),
+  getMessageTypes: (params) => api.get('/MessageTypes', { params }),
+  getMessageType: (id) => api.get(`/MessageTypes/${id}`),
+  createMessageType: (data) => api.post('/MessageTypes', data),
+  updateMessageType: (id, data) => api.put(`/MessageTypes/${id}`, data),
+  deleteMessageType: (id) => api.delete(`/MessageTypes/${id}`),
 
-  getMessages: (params) => api.get('/messages', { params }),
-  getMessage: (id) => api.get(`/messages/${id}`),
-  createMessage: (data) => api.post('/messages', data),
-  deleteMessage: (id) => api.delete(`/messages/${id}`),
+  getMessages: (params) => api.get('/Messages', { params }),
+  getMessage: (id) => api.get(`/Messages/${id}`),
+  createMessage: (data) => api.post('/Messages', data),
+  deleteMessage: (id) => api.delete(`/Messages/${id}`),
 };
 
 // 仪表盘相关API
 export const dashboardAPI = {
-  getStats: () => api.get('/dashboard/stats'),
-  getMerchantDashboard: () => api.get('/dashboard/merchant'),
-  getPlatformDashboard: () => api.get('/dashboard/platform'),
-  getServerLogs: (params) => api.get('/dashboard/server-logs', { params }),
+  getStats: () => api.get('/Dashboard/Stats'),
+  getMerchantDashboard: () => api.get('/Dashboard/Merchant'),
+  getPlatformDashboard: () => api.get('/Dashboard/Platform'),
+  getServerLogs: (params) => api.get('/Dashboard/ServerLogs', { params }),
 };
 
 // 系统设置相关API

@@ -1,4 +1,3 @@
-
 # 遵循以下内容：
 1. 使用中文回答 
 2. 每个会话开始前，请先查看开发备忘录，如不存在请创建。
@@ -1010,6 +1009,59 @@ app.MapControllers();
      - 点击按钮后弹出确认对话框，确认后重置用户的双因素认证设置
      - 重置后，用户的双因素认证将被禁用，用户需要重新设置才能继续使用
 
+## 最近添加的组件
+
+1. **商户下拉框通用组件(MerchantAutocomplete)**
+   - 路径: `src/components/MerchantAutocomplete.jsx`
+   - 功能:
+     - 商户选择器，支持按ID和名称快速筛选
+     - 自动加载商户数据或使用外部提供的数据源
+     - 支持表单验证、错误提示和禁用状态
+     - 显示加载状态指示器
+   - 属性:
+     - `value`: 当前选中的商户对象
+     - `onChange`: 选择变更回调函数，签名为 `(event, newValue) => void`
+     - `merchants`: [可选] 外部提供的商户列表数据
+     - `label`: [可选] 输入框标签，默认为"商户"
+     - `placeholder`: [可选] 占位符文本，默认为"输入商户ID或名称筛选"
+     - `size`: [可选] 输入框大小，可选值: "small", "medium"，默认为"small"
+     - `disabled`: [可选] 是否禁用，默认为false
+     - `required`: [可选] 是否必填，默认为false
+     - `error`: [可选] 是否显示错误状态，默认为false
+     - `helperText`: [可选] 辅助文本/错误提示，默认为""
+     - `sx`: [可选] MUI sx 样式属性，默认为{}
+   - 使用示例:
+     ```jsx
+     // 基本用法
+     <MerchantAutocomplete
+       value={selectedMerchant}
+       onChange={handleMerchantChange}
+     />
+     
+     // 带验证的用法
+     <MerchantAutocomplete
+       value={selectedMerchant}
+       onChange={handleMerchantChange}
+       required={true}
+       error={!selectedMerchant}
+       helperText={!selectedMerchant ? "请选择商户" : ""}
+     />
+     
+     // 带自定义样式
+     <MerchantAutocomplete
+       value={selectedMerchant}
+       onChange={handleMerchantChange}
+       sx={{ minWidth: '250px', width: { xs: '100%', sm: 'auto' } }}
+     />
+     ```
+   - 已应用页面:
+     - 用户管理页面 (`src/pages/users/UserListView.jsx`)
+     - 文件类型管理页面 (`src/pages/files/FileTypeList.jsx`)
+   - 建议:
+     - **在所有需要选择商户的页面中统一使用此组件**，保持用户体验一致性
+     - 为其他实体(如终端、角色等)创建类似的通用组件，提高代码复用性
+     - 考虑创建其他常用通用组件，如日期选择器、状态切换开关等
+
 ## 未来改进计划
 1. 添加更多的单元测试和集成测试
 2. 实现更完善的错误处理和日志记录
@@ -1023,3 +1075,7 @@ app.MapControllers();
    - 确保操作按钮在移动端可见且可点击
    - 添加水平滚动支持，防止表格溢出容器
 9. 实现微信扫码登录功能
+10. 在项目中持续推广使用通用组件，如MerchantAutocomplete，提高代码复用性和用户体验一致性
+   - 识别可复用的UI模式，将其抽象为通用组件
+   - 确保通用组件具有良好的文档和示例
+   - 为常用实体(用户、角色、终端等)创建类似组件

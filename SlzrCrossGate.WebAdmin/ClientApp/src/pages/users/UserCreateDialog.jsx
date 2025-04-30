@@ -14,7 +14,9 @@ import {
   Grid,
   Checkbox,
   FormControlLabel,
-  CircularProgress
+  CircularProgress,
+  Typography,
+  Box
 } from '@mui/material';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
@@ -67,7 +69,11 @@ const UserCreateDialog = ({ open, onClose, onUserCreated }) => {
       userName: Yup.string().required('用户名是必填项'),
       email: Yup.string().email('无效的邮箱格式').required('邮箱是必填项'),
       password: Yup.string()
-        .min(6, '密码至少6个字符')
+        .min(8, '密码至少8个字符')
+        .matches(/[0-9]/, '密码必须包含至少1个数字')
+        .matches(/[a-z]/, '密码必须包含至少1个小写字母')
+        .matches(/[A-Z]/, '密码必须包含至少1个大写字母')
+        .matches(/[^a-zA-Z0-9]/, '密码必须包含至少1个特殊字符')
         .required('密码是必填项'),
       confirmPassword: Yup.string()
         .oneOf([Yup.ref('password'), null], '两次输入的密码不匹配')
@@ -84,7 +90,7 @@ const UserCreateDialog = ({ open, onClose, onUserCreated }) => {
         formik.resetForm();
         onUserCreated();
       } catch (error) {
-        enqueueSnackbar(`创建用户失败: ${error.message}`, { variant: 'error' });
+        enqueueSnackbar(`创建用户失败: ${error.response?.data?.message || error.message}`, { variant: 'error' });
       } finally {
         setLoading(false);
       }
@@ -145,6 +151,11 @@ const UserCreateDialog = ({ open, onClose, onUserCreated }) => {
                 margin="normal"
                 required
               />
+              <Box mt={1}>
+                <Typography variant="caption" color="textSecondary">
+                  密码必须满足：至少8个字符，包含大小写字母、数字和特殊字符
+                </Typography>
+              </Box>
             </Grid>
             <Grid item xs={12} md={6}>
               <TextField

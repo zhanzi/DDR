@@ -71,7 +71,7 @@ namespace SlzrCrossGate.WebAdmin.Controllers
         // GET: api/users
         [HttpGet]
         [Authorize(Roles = "SystemAdmin,MerchantAdmin")]
-        public async Task<ActionResult<IEnumerable<UserDto>>> GetUsers([FromQuery] string? search, [FromQuery] int page = 1, [FromQuery] int pageSize = 10)
+        public async Task<ActionResult<IEnumerable<UserDto>>> GetUsers([FromQuery] string? search,[FromQuery] string? merchantId, [FromQuery] int page = 1, [FromQuery] int pageSize = 10)
         {
             try
             {
@@ -92,6 +92,11 @@ namespace SlzrCrossGate.WebAdmin.Controllers
                 if (!isSystemAdmin && !string.IsNullOrEmpty(currentUser.MerchantID))
                 {
                     query = query.Where(u => u.MerchantID == currentUser.MerchantID);
+                }
+                // 如果指定了商户ID，则过滤
+                if(isSystemAdmin && !string.IsNullOrEmpty(merchantId))
+                {
+                    query = query.Where(u => u.MerchantID == merchantId);
                 }
 
                 // 搜索条件

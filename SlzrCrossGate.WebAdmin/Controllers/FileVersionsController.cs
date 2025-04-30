@@ -1,8 +1,10 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
 using SlzrCrossGate.Core.Database;
 using SlzrCrossGate.Core.Models;
+using SlzrCrossGate.Core.Service.FileStorage;
 using SlzrCrossGate.WebAdmin.DTOs;
 using SlzrCrossGate.WebAdmin.Services;
 using System.Security.Claims;
@@ -12,10 +14,12 @@ namespace SlzrCrossGate.WebAdmin.Controllers
     [Route("api/[controller]")]
     [ApiController]
     [Authorize]
-    public class FileVersionsController(TcpDbContext dbContext, UserService userService) : ControllerBase
+    public class FileVersionsController(TcpDbContext dbContext, UserService userService,FileService fileService) : ControllerBase
     {
         private readonly TcpDbContext _dbContext = dbContext;
         private readonly UserService _userService = userService;
+
+        private readonly FileService _fileService= fileService;
 
         // GET: api/FileVersions
         [HttpGet]
@@ -164,7 +168,7 @@ namespace SlzrCrossGate.WebAdmin.Controllers
             // 获取当前用户的商户ID和用户名
             var currentUserMerchantId = await _userService.GetUserMerchantIdAsync(User);
             var isSystemAdmin = User.IsInRole("SystemAdmin");
-            var username = User.FindFirstValue(ClaimTypes.Name);
+            var username = UserService.GetUserNameForOperator(User);
 
             // 如果不是系统管理员，只能为自己的商户创建文件版本
             if (!isSystemAdmin && model.MerchantID != currentUserMerchantId)
@@ -200,18 +204,9 @@ namespace SlzrCrossGate.WebAdmin.Controllers
             }
 
             // 保存文件
-            var uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "Uploads");
-            if (!Directory.Exists(uploadsFolder))
-            {
-                Directory.CreateDirectory(uploadsFolder);
-            }
+            var filePath=await _fileService.UploadFileAsync(model.File, username);
 
-            var filePath = Path.Combine(uploadsFolder, fileId);
-            using (var stream = new FileStream(filePath, FileMode.Create))
-            {
-                await model.File.CopyToAsync(stream);
-            }
-
+ 
             // 创建上传文件记录
             var uploadFile = new UploadFile
             {
@@ -220,12 +215,16 @@ namespace SlzrCrossGate.WebAdmin.Controllers
                 FileSize = (int)fileSize, // 显式转换为 int
                 FilePath = filePath,
                 UploadTime = DateTime.Now,
-                Crc = crc // 添加必要的 Crc 属性
-                // 移除 Operator 属性，因为 UploadFile 模型中没有该属性
-            };
+                Crc = crc, // 添加必要的 Crc 属性
+                UploadedBy= username,
+                ContentType= model.File.ContentType
+             };
 
             _dbContext.UploadFiles.Add(uploadFile);
 
+            if(string.IsNullOrEmpty(  model.FilePara)){
+                model.FilePara = "";
+            }
             // 创建文件版本记录
             var fileFullType = $"{model.FileTypeID}{model.FilePara}";
             var fileVersion = new FileVer
@@ -272,7 +271,7 @@ namespace SlzrCrossGate.WebAdmin.Controllers
             // 获取当前用户的商户ID和用户名
             var currentUserMerchantId = await _userService.GetUserMerchantIdAsync(User);
             var isSystemAdmin = User.IsInRole("SystemAdmin");
-            var username = User.FindFirstValue(ClaimTypes.Name);
+            var username = UserService.GetUserNameForOperator(User);
 
             var fileVersion = await _dbContext.FileVers
                 .FirstOrDefaultAsync(f => f.ID == id && !f.IsDelete);
@@ -335,14 +334,8 @@ namespace SlzrCrossGate.WebAdmin.Controllers
                 return NotFound("文件不存在");
             }
 
-            // 检查文件是否存在
-            if (!System.IO.File.Exists(uploadFile.FilePath))
-            {
-                return NotFound("文件不存在");
-            }
+            var fileBytes = await _fileService.GetFileContentAsync(uploadFile.FilePath);
 
-            // 返回文件
-            var fileBytes = await System.IO.File.ReadAllBytesAsync(uploadFile.FilePath);
             return File(fileBytes, "application/octet-stream", uploadFile.FileName);
         }
 
@@ -350,57 +343,8 @@ namespace SlzrCrossGate.WebAdmin.Controllers
         private static string CalculateCrc32(Stream stream)
         {
             // 这里使用简化的CRC32计算方法，实际应用中可能需要更复杂的实现
-            var crc32 = new Crc32();
-            var hash = crc32.ComputeHash(stream);
-            return BitConverter.ToString(hash).Replace("-", "").ToLowerInvariant();
+            return SlzrCrossGate.Common.CRC.calStreamCRC(stream).ToString("X2").PadLeft(8, '0');
         }
     }
 
-    // 简化的CRC32实现
-    public class Crc32 : System.Security.Cryptography.HashAlgorithm
-    {
-        private uint _crc32 = 0xFFFFFFFF;
-        private readonly uint[] _crc32Table;
-
-        public Crc32()
-        {
-            _crc32Table = new uint[256];
-            for (uint i = 0; i < 256; i++)
-            {
-                uint crc = i;
-                for (int j = 0; j < 8; j++)
-                {
-                    if ((crc & 1) == 1)
-                    {
-                        crc = (crc >> 1) ^ 0xEDB88320;
-                    }
-                    else
-                    {
-                        crc >>= 1;
-                    }
-                }
-                _crc32Table[i] = crc;
-            }
-        }
-
-        protected override void HashCore(byte[] array, int ibStart, int cbSize)
-        {
-            for (int i = ibStart; i < ibStart + cbSize; i++)
-            {
-                _crc32 = ((_crc32 >> 8) & 0x00FFFFFF) ^ _crc32Table[(_crc32 ^ array[i]) & 0xFF];
-            }
-        }
-
-        protected override byte[] HashFinal()
-        {
-            byte[] hashBuffer = BitConverter.GetBytes(~_crc32);
-            HashValue = hashBuffer;
-            return HashValue;
-        }
-
-        public override void Initialize()
-        {
-            _crc32 = 0xFFFFFFFF;
-        }
-    }
 }

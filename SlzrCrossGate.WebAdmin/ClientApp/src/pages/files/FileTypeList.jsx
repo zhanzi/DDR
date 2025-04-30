@@ -19,7 +19,13 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
-  CircularProgress
+  CircularProgress,
+  MenuItem,
+  FormControl,
+  InputLabel,
+  Select,
+  FormHelperText,
+  Autocomplete
 } from '@mui/material';
 import {
   Refresh as RefreshIcon,
@@ -29,18 +35,24 @@ import {
   Edit as EditIcon,
   Delete as DeleteIcon
 } from '@mui/icons-material';
-import { fileAPI } from '../../services/api';
+import { fileAPI, merchantAPI } from '../../services/api';
+import { useAuth } from '../../contexts/AuthContext';
+import MerchantAutocomplete from '../../components/MerchantAutocomplete';
 
 const FileTypeList = () => {
+  const { user } = useAuth();
   const [fileTypes, setFileTypes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [totalCount, setTotalCount] = useState(0);
+  const [merchants, setMerchants] = useState([]);
+  const [loadingMerchants, setLoadingMerchants] = useState(false);
+  const [isSystemAdmin, setIsSystemAdmin] = useState(false);
 
   // 筛选条件
   const [filters, setFilters] = useState({
-    merchantId: '',
+    merchantID: '',
     code: '',
     name: ''
   });
@@ -50,7 +62,7 @@ const FileTypeList = () => {
   const [dialogMode, setDialogMode] = useState('create'); // 'create' or 'edit'
   const [currentFileType, setCurrentFileType] = useState({
     code: '',
-    merchantId: '',
+    merchantID: '',
     name: '',
     remark: ''
   });
@@ -89,6 +101,41 @@ const FileTypeList = () => {
     loadFileTypes();
   }, [page, rowsPerPage]);
 
+  // 初始化：加载商户列表和检查用户角色
+  useEffect(() => {
+    const initializeComponent = async () => {
+      // 检查当前用户是否为系统管理员
+      if (user?.roles) {
+        const admin = user.roles.includes('SystemAdmin');
+        setIsSystemAdmin(admin);
+        
+        // 如果不是系统管理员且有商户ID，则将筛选条件和当前文件类型的商户ID设为当前用户的商户ID
+        if (!admin && user.merchantId) {
+          setFilters(prev => ({ ...prev, merchantID: user.merchantId }));
+          setCurrentFileType(prev => ({ ...prev, merchantID: user.merchantId }));
+        }
+      }
+      
+      // 加载商户列表
+      await loadMerchants();
+    };
+    
+    initializeComponent();
+  }, [user]);
+  
+  // 加载商户列表
+  const loadMerchants = async () => {
+    try {
+      setLoadingMerchants(true);
+      const response = await merchantAPI.getMerchants();
+      setMerchants(response.items || []);
+    } catch (error) {
+      console.error('Error loading merchants:', error);
+    } finally {
+      setLoadingMerchants(false);
+    }
+  };
+
   // 处理筛选条件变更
   const handleFilterChange = (event) => {
     const { name, value } = event.target;
@@ -104,7 +151,7 @@ const FileTypeList = () => {
   // 清除筛选
   const clearFilters = () => {
     setFilters({
-      merchantId: '',
+      merchantID: '',
       code: '',
       name: ''
     });
@@ -125,12 +172,22 @@ const FileTypeList = () => {
   // 打开创建对话框
   const openCreateDialog = () => {
     setDialogMode('create');
-    setCurrentFileType({
-      code: '',
-      merchantId: '',
-      name: '',
-      remark: ''
-    });
+    // 如果不是系统管理员且用户有商户ID，则自动设置
+    if (!isSystemAdmin && user?.merchantId) {
+      setCurrentFileType({
+        code: '',
+        merchantID: user.merchantId,
+        name: '',
+        remark: ''
+      });
+    } else {
+      setCurrentFileType({
+        code: '',
+        merchantID: '',
+        name: '',
+        remark: ''
+      });
+    }
     setDialogError('');
     setOpenDialog(true);
   };
@@ -140,7 +197,7 @@ const FileTypeList = () => {
     setDialogMode('edit');
     setCurrentFileType({
       code: fileType.code,
-      merchantId: fileType.merchantId,
+      merchantID: fileType.merchantID,
       name: fileType.name || '',
       remark: fileType.remark || ''
     });
@@ -151,7 +208,26 @@ const FileTypeList = () => {
   // 处理对话框输入变更
   const handleDialogInputChange = (event) => {
     const { name, value } = event.target;
-    setCurrentFileType(prev => ({ ...prev, [name]: value }));
+    
+    // 对code字段进行特殊处理，限制为三位字母或数字
+    if (name === 'code') {
+      // 只允许字母和数字
+      const regex = /^[a-zA-Z0-9]*$/;
+      if (!regex.test(value) && value !== '') {
+        return; // 如果包含非法字符，不更新状态
+      }
+      // 限制最多输入3个字符
+      const limitedValue = value.slice(0, 3);
+      setCurrentFileType(prev => ({ ...prev, [name]: limitedValue.toUpperCase() }));
+    } else {
+      setCurrentFileType(prev => ({ ...prev, [name]: value }));
+    }
+  };
+
+  // 验证类型代码是否有效（三位字母或数字）
+  const isValidCode = (code) => {
+    const regex = /^[a-zA-Z0-9]{3}$/;
+    return regex.test(code);
   };
 
   // 保存文件类型
@@ -167,8 +243,8 @@ const FileTypeList = () => {
         // 更新文件类型
         await fileAPI.updateFileType(
           currentFileType.code,
+          currentFileType.merchantID,
           {
-            merchantId: currentFileType.merchantId,
             name: currentFileType.name,
             remark: currentFileType.remark
           }
@@ -218,13 +294,17 @@ const FileTypeList = () => {
       <Paper sx={{ p: 2, mb: 3 }}>
         <Grid container spacing={2} alignItems="center">
           <Grid item xs={12} sm={6} md={3}>
-            <TextField
-              fullWidth
-              label="商户ID"
-              name="merchantId"
-              value={filters.merchantId}
-              onChange={handleFilterChange}
+            <MerchantAutocomplete
               size="small"
+              value={merchants.find(m => m.merchantID === filters.merchantID) || null}
+              onChange={(event, newValue) => {
+                setFilters(prev => ({
+                  ...prev,
+                  merchantID: newValue ? newValue.merchantID : ''
+                }));
+              }}
+              disabled={!isSystemAdmin && user?.merchantId}
+              merchants={merchants}
             />
           </Grid>
           <Grid item xs={12} sm={6} md={3}>
@@ -322,9 +402,9 @@ const FileTypeList = () => {
                 </TableRow>
               ) : (
                 fileTypes.map((fileType) => (
-                  <TableRow key={`${fileType.code}-${fileType.merchantId}`}>
+                  <TableRow key={`${fileType.code}-${fileType.merchantID}`}>
                     <TableCell>{fileType.code}</TableCell>
-                    <TableCell>{fileType.merchantId}</TableCell>
+                    <TableCell>{fileType.merchantID}</TableCell>
                     <TableCell>{fileType.name || '-'}</TableCell>
                     <TableCell>{fileType.remark || '-'}</TableCell>
                     <TableCell>
@@ -383,21 +463,31 @@ const FileTypeList = () => {
                   onChange={handleDialogInputChange}
                   disabled={dialogMode === 'edit'}
                   required
-                  error={!currentFileType.code}
-                  helperText={!currentFileType.code ? '请输入类型代码' : ''}
+                  error={dialogMode === 'create' && (currentFileType.code && !isValidCode(currentFileType.code))}
+                  helperText={
+                    dialogMode === 'create' 
+                      ? (currentFileType.code && !isValidCode(currentFileType.code))
+                        ? '类型代码必须为3位字母或数字'
+                        : '请输入3位字母或数字（将自动转为大写）'
+                      : ''
+                  }
+                  inputProps={{ maxLength: 3 }}
                 />
               </Grid>
               <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  label="商户ID"
-                  name="merchantId"
-                  value={currentFileType.merchantId}
-                  onChange={handleDialogInputChange}
-                  disabled={dialogMode === 'edit'}
-                  required
-                  error={!currentFileType.merchantId}
-                  helperText={!currentFileType.merchantId ? '请输入商户ID' : ''}
+                <MerchantAutocomplete
+                  value={merchants.find(m => m.merchantID === currentFileType.merchantID) || null}
+                  onChange={(event, newValue) => {
+                    setCurrentFileType(prev => ({
+                      ...prev,
+                      merchantID: newValue ? newValue.merchantID : ''
+                    }));
+                  }}
+                  disabled={dialogMode === 'edit' || (!isSystemAdmin && user?.merchantId)}
+                  required={true}
+                  error={!currentFileType.merchantID}
+                  helperText={!currentFileType.merchantID ? '请选择商户' : ''}
+                  merchants={merchants}
                 />
               </Grid>
               <Grid item xs={12}>
@@ -434,7 +524,7 @@ const FileTypeList = () => {
             onClick={saveFileType}
             variant="contained"
             color="primary"
-            disabled={dialogLoading || !currentFileType.code || !currentFileType.merchantId}
+            disabled={dialogLoading || !currentFileType.code || !currentFileType.merchantID || (dialogMode === 'create' && !isValidCode(currentFileType.code))}
           >
             {dialogLoading ? <CircularProgress size={24} /> : '保存'}
           </Button>
