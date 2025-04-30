@@ -97,6 +97,17 @@ const AccountView = () => {
     loadUserData();
   }, [user, enqueueSnackbar]);
 
+  // 当用户数据加载完成后，更新表单值
+  useEffect(() => {
+    if (userData) {
+      formik.setValues({
+        userName: userData.userName || '',
+        email: userData.email || '',
+        realName: userData.realName || '',
+      });
+    }
+  }, [userData]);
+
   // 个人信息表单
   const formik = useFormik({
     initialValues: {
