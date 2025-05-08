@@ -30,6 +30,6 @@ export default defineConfig({
   build: {
     outDir: '../wwwroot',
     emptyOutDir: true,
-    sourcemap: true
+    sourcemap: process.env.NODE_ENV !== 'production'
   }
 });

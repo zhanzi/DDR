@@ -9,6 +9,7 @@ namespace SlzrCrossGate.WebAdmin.DTOs
         public string MerchantID { get; set; } = string.Empty;
         public string? Name { get; set; }
         public string? Remark { get; set; }
+        public string MerchantName { get; set; } = string.Empty;
     }
 
     public class CreateFileTypeDto
@@ -57,6 +58,7 @@ namespace SlzrCrossGate.WebAdmin.DTOs
     public class FilePublishDto
     {
         public int ID { get; set; }
+        public int FileVerID { get; set; }
         public string MerchantID { get; set; } = string.Empty;
         public string FileTypeID { get; set; } = string.Empty;
         public string FilePara { get; set; } = string.Empty;

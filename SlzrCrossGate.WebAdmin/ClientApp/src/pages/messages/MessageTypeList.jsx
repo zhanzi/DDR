@@ -19,19 +19,29 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
-  CircularProgress
+  CircularProgress,
+  Select,
+  Chip,
+  MenuItem,
+  FormControl,
+  InputLabel,
+  FormHelperText
 } from '@mui/material';
+import { useNavigate } from 'react-router-dom';
 import {
   Refresh as RefreshIcon,
+  ArrowBack as ArrowBackIcon,
   Search as SearchIcon,
   Clear as ClearIcon,
   Add as AddIcon,
   Edit as EditIcon,
   Delete as DeleteIcon
 } from '@mui/icons-material';
-import axios from 'axios';
+import { messageAPI } from '../../services/api';
+import MerchantAutocomplete from '../../components/MerchantAutocomplete';
 
 const MessageTypeList = () => {
+  const navigate = useNavigate();
   const [messageTypes, setMessageTypes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(0);
@@ -45,6 +55,9 @@ const MessageTypeList = () => {
     name: ''
   });
 
+  // 选中的商户对象（用于MerchantAutocomplete）
+  const [selectedMerchant, setSelectedMerchant] = useState(null);
+
   // 对话框状态
   const [openDialog, setOpenDialog] = useState(false);
   const [dialogMode, setDialogMode] = useState('create'); // 'create' or 'edit'
@@ -52,8 +65,12 @@ const MessageTypeList = () => {
     code: '',
     merchantId: '',
     name: '',
-    remark: ''
+    remark: '',
+    codeType: 2, // 默认为HEX编码(枚举值2)
+    exampleMessage: '' // 消息示例
   });
+  // 对话框中选中的商户对象
+  const [dialogSelectedMerchant, setDialogSelectedMerchant] = useState(null);
   const [dialogError, setDialogError] = useState('');
   const [dialogLoading, setDialogLoading] = useState(false);
 
@@ -75,9 +92,9 @@ const MessageTypeList = () => {
         )
       };
 
-      const response = await axios.get('/api/MessageTypes', { params });
-      setMessageTypes(response.data.items);
-      setTotalCount(response.data.totalCount);
+      const response = await messageAPI.getMessageTypes(params);
+      setMessageTypes(response.items);
+      setTotalCount(response.totalCount);
     } catch (error) {
       console.error('Error loading message types:', error);
     } finally {
@@ -108,6 +125,7 @@ const MessageTypeList = () => {
       code: '',
       name: ''
     });
+    setSelectedMerchant(null); // 重置商户下拉框选择状态
     setPage(0);
     loadMessageTypes();
   };
@@ -125,25 +143,44 @@ const MessageTypeList = () => {
   // 打开创建对话框
   const openCreateDialog = () => {
     setDialogMode('create');
+    setDialogSelectedMerchant(null); // 重置对话框商户选择状态
     setCurrentMessageType({
       code: '',
       merchantId: '',
       name: '',
-      remark: ''
+      remark: '',
+      codeType: 2, // 默认为HEX编码(枚举值2)
+      exampleMessage: '' // 消息示例
     });
     setDialogError('');
     setOpenDialog(true);
   };
 
   // 打开编辑对话框
-  const openEditDialog = (messageType) => {
+  const openEditDialog = async (messageType) => {
     setDialogMode('edit');
     setCurrentMessageType({
       code: messageType.code,
-      merchantId: messageType.merchantId,
+      merchantId: messageType.merchantID,
       name: messageType.name || '',
-      remark: messageType.remark || ''
+      remark: messageType.remark || '',
+      codeType: messageType.codeType || 2, // 使用数字枚举值，默认为2(HEX)
+      exampleMessage: messageType.exampleMessage || '' // 消息示例
     });
+    
+    // 当打开编辑对话框时，需要加载并设置当前选中的商户
+    try {
+      const response = await merchantAPI.getMerchants({ 
+        pageSize: 1,
+        merchantID: messageType.merchantId 
+      });
+      if (response.items && response.items.length > 0) {
+        setDialogSelectedMerchant(response.items[0]);
+      }
+    } catch (error) {
+      console.error('Error loading merchant for edit:', error);
+    }
+    
     setDialogError('');
     setOpenDialog(true);
   };
@@ -151,7 +188,15 @@ const MessageTypeList = () => {
   // 处理对话框输入变更
   const handleDialogInputChange = (event) => {
     const { name, value } = event.target;
-    setCurrentMessageType(prev => ({ ...prev, [name]: value }));
+    
+    // 针对类型代码字段进行特殊处理
+    if (name === 'code') {
+      // 类型代码：只允许16进制字符(0-9, A-F, a-f)，自动转为大写，限制4位
+      const sanitizedValue = value.replace(/[^0-9a-fA-F]/g, '').slice(0, 4).toUpperCase();
+      setCurrentMessageType(prev => ({ ...prev, [name]: sanitizedValue }));
+    } else {
+      setCurrentMessageType(prev => ({ ...prev, [name]: value }));
+    }
   };
 
   // 保存消息类型
@@ -162,14 +207,17 @@ const MessageTypeList = () => {
     try {
       if (dialogMode === 'create') {
         // 创建新消息类型
-        await axios.post('/api/MessageTypes', currentMessageType);
+        await messageAPI.createMessageType(currentMessageType);
       } else {
         // 更新消息类型
-        await axios.put(
-          `/api/MessageTypes/${currentMessageType.code}/${currentMessageType.merchantId}`,
+        await messageAPI.updateMessageType(
+          currentMessageType.code,
+          currentMessageType.merchantId,
           {
             name: currentMessageType.name,
-            remark: currentMessageType.remark
+            remark: currentMessageType.remark,
+            codeType: currentMessageType.codeType,
+            exampleMessage: currentMessageType.exampleMessage
           }
         );
       }
@@ -196,7 +244,7 @@ const MessageTypeList = () => {
 
     setDeleteLoading(true);
     try {
-      await axios.delete(`/api/MessageTypes/${messageTypeToDelete.code}/${messageTypeToDelete.merchantId}`);
+      await messageAPI.deleteMessageType(messageTypeToDelete.code, messageTypeToDelete.merchantId);
       setOpenDeleteDialog(false);
       loadMessageTypes();
     } catch (error) {
@@ -207,8 +255,29 @@ const MessageTypeList = () => {
     }
   };
 
+   // 获取消息编码
+    const getMessageCodeTypeChip = (type) => {
+      switch (type) {
+        case 1: // ASCII
+          return <Chip label="文本" color="primary" size="small" />;
+        case 2: // HEX
+          return <Chip label="HEX" color="secondary" size="small" />;
+        default:
+          return <Chip label="未知" color="default" size="small" />;
+      }
+    };
+
   return (
     <Box sx={{ p: 3 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3 }}>
+          <Button
+            startIcon={<ArrowBackIcon />}
+            onClick={() => navigate('/app/messages')}
+          >
+            返回消息列表
+          </Button>
+        </Box>
+
       <Typography variant="h4" gutterBottom>
         消息类型管理
       </Typography>
@@ -217,12 +286,15 @@ const MessageTypeList = () => {
       <Paper sx={{ p: 2, mb: 3 }}>
         <Grid container spacing={2} alignItems="center">
           <Grid item xs={12} sm={6} md={3}>
-            <TextField
-              fullWidth
-              label="商户ID"
-              name="merchantId"
-              value={filters.merchantId}
-              onChange={handleFilterChange}
+            <MerchantAutocomplete
+              value={selectedMerchant}
+              onChange={(event, newValue) => {
+                setSelectedMerchant(newValue);
+                setFilters(prev => ({ 
+                  ...prev, 
+                  merchantId: newValue ? newValue.merchantID : '' 
+                }));
+              }}
               size="small"
             />
           </Grid>
@@ -300,8 +372,9 @@ const MessageTypeList = () => {
             <TableHead>
               <TableRow>
                 <TableCell>类型代码</TableCell>
-                <TableCell>商户ID</TableCell>
+                <TableCell>商户</TableCell>
                 <TableCell>类型名称</TableCell>
+                <TableCell>消息编码</TableCell>
                 <TableCell>备注</TableCell>
                 <TableCell>操作</TableCell>
               </TableRow>
@@ -309,13 +382,13 @@ const MessageTypeList = () => {
             <TableBody>
               {loading ? (
                 <TableRow>
-                  <TableCell colSpan={5} align="center">
+                  <TableCell colSpan={6} align="center">
                     <CircularProgress size={24} />
                   </TableCell>
                 </TableRow>
               ) : messageTypes.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={5} align="center">
+                  <TableCell colSpan={6} align="center">
                     没有找到消息类型
                   </TableCell>
                 </TableRow>
@@ -323,8 +396,13 @@ const MessageTypeList = () => {
                 messageTypes.map((messageType) => (
                   <TableRow key={`${messageType.code}-${messageType.merchantId}`}>
                     <TableCell>{messageType.code}</TableCell>
-                    <TableCell>{messageType.merchantId}</TableCell>
+                    <TableCell>
+                      <Tooltip title={messageType.merchantID || ''}>
+                        <span>{messageType.merchantName}</span>
+                      </Tooltip>
+                    </TableCell>
                     <TableCell>{messageType.name || '-'}</TableCell>
+                    <TableCell>{getMessageCodeTypeChip(messageType.codeType)}</TableCell>
                     <TableCell>{messageType.remark || '-'}</TableCell>
                     <TableCell>
                       <Tooltip title="编辑">
@@ -382,21 +460,35 @@ const MessageTypeList = () => {
                   onChange={handleDialogInputChange}
                   disabled={dialogMode === 'edit'}
                   required
-                  error={!currentMessageType.code}
-                  helperText={!currentMessageType.code ? '请输入类型代码' : ''}
+                  error={!currentMessageType.code || (currentMessageType.code.length > 0 && currentMessageType.code.length < 4)}
+                  helperText={
+                    !currentMessageType.code 
+                      ? '请输入类型代码' 
+                      : currentMessageType.code.length > 0 && currentMessageType.code.length < 4 
+                        ? '类型代码必须为4位16进制字符(0-9,A-F)' 
+                        : '输入4位16进制字符，自动转为大写'
+                  }
+                  inputProps={{
+                    maxLength: 4,
+                    style: { textTransform: 'uppercase' }
+                  }}
                 />
               </Grid>
               <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  label="商户ID"
-                  name="merchantId"
-                  value={currentMessageType.merchantId}
-                  onChange={handleDialogInputChange}
+                <MerchantAutocomplete
+                  value={dialogSelectedMerchant}
+                  onChange={(event, newValue) => {
+                    setDialogSelectedMerchant(newValue);
+                    setCurrentMessageType(prev => ({ 
+                      ...prev, 
+                      merchantId: newValue ? newValue.merchantID : '' 
+                    }));
+                  }}
                   disabled={dialogMode === 'edit'}
                   required
                   error={!currentMessageType.merchantId}
-                  helperText={!currentMessageType.merchantId ? '请输入商户ID' : ''}
+                  helperText={!currentMessageType.merchantId ? '请选择商户' : ''}
+                  size="medium" // 将 size 调整为 medium
                 />
               </Grid>
               <Grid item xs={12}>
@@ -419,6 +511,40 @@ const MessageTypeList = () => {
                   rows={3}
                 />
               </Grid>
+              {/* 消息编码类型 */}
+              <Grid item xs={12} sm={6}>
+                <FormControl fullWidth>
+                  <InputLabel>消息编码</InputLabel>
+                  <Select
+                    name="codeType"
+                    value={currentMessageType.codeType || 2}
+                    onChange={handleDialogInputChange}
+                    label="消息编码"
+                  >
+                    <MenuItem value={1}>UTF8 (文本)</MenuItem>
+                    <MenuItem value={2}>HEX (十六进制)</MenuItem>
+                  </Select>
+                  <FormHelperText>选择消息内容的编码方式</FormHelperText>
+                </FormControl>
+              </Grid>
+              {/* 消息示例 */}
+              <Grid item xs={12}>
+                <TextField
+                  fullWidth
+                  label="消息示例"
+                  name="exampleMessage"
+                  value={currentMessageType.exampleMessage || ''}
+                  onChange={handleDialogInputChange}
+                  multiline
+                  rows={4}
+                  placeholder={currentMessageType.codeType === 1 ? 
+                    '例如：{"command":"get_status"}' : 
+                    '例如：01020304AABBCCDD'}
+                  helperText={`消息示例格式：${currentMessageType.codeType === 1 ? 
+                    '文本内容，如JSON格式' : 
+                    '十六进制字符串，如01020304'}`}
+                />
+              </Grid>
             </Grid>
             {dialogError && (
               <Typography color="error" sx={{ mt: 2 }}>
@@ -433,7 +559,12 @@ const MessageTypeList = () => {
             onClick={saveMessageType}
             variant="contained"
             color="primary"
-            disabled={dialogLoading || !currentMessageType.code || !currentMessageType.merchantId}
+            disabled={
+              dialogLoading || 
+              !currentMessageType.code || 
+              currentMessageType.code.length !== 4 || 
+              !currentMessageType.merchantId
+            }
           >
             {dialogLoading ? <CircularProgress size={24} /> : '保存'}
           </Button>

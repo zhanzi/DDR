@@ -4,6 +4,7 @@
     <TargetFramework>net8.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <SpaRoot>ClientApp\</SpaRoot>
   </PropertyGroup>
 
   <ItemGroup>
@@ -26,5 +27,25 @@
     <ProjectReference Include="..\SlzrCrossGate.Core\SlzrCrossGate.Core.csproj" />
     <ProjectReference Include="..\SlzrCrossGate.ServiceDefaults\SlzrCrossGate.ServiceDefaults.csproj" />
   </ItemGroup>
+
+<!-- 自动构建前端项目并将输出复制到wwwroot目录 
+  <ItemGroup>
+    <Folder Include="wwwroot\" />
+  </ItemGroup>
+  
+  <Target Name="PublishRunWebpack" AfterTargets="ComputeFilesToPublish">
+    <Exec WorkingDirectory="$(SpaRoot)" Command="npm install" />
+    <Exec WorkingDirectory="$(SpaRoot)" Command="npm run build" />
+    
+    <ItemGroup>
+      <DistFiles Include="$(SpaRoot)dist\**" />
+      <ResolvedFileToPublish Include="@(DistFiles->'%(FullPath)')" Exclude="@(ResolvedFileToPublish)">
+        <RelativePath>%(DistFiles.Identity)</RelativePath>
+        <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+        <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
+      </ResolvedFileToPublish>
+    </ItemGroup>
+  </Target>
+-->
 
 </Project>

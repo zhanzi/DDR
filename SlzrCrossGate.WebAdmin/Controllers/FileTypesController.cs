@@ -43,22 +43,28 @@ namespace SlzrCrossGate.WebAdmin.Controllers
             }
 
             // 构建查询
-            var query = _dbContext.FileTypes.AsQueryable();
+            var query = from m in  _dbContext.FileTypes
+                        join t in _dbContext.Merchants on m.MerchantID equals t.MerchantID 
+                        select new
+                        {
+                            FileType = m,
+                            MerchantName = t.Name
+                        };
 
             // 应用筛选条件
             if (!string.IsNullOrEmpty(merchantId))
             {
-                query = query.Where(t => t.MerchantID == merchantId);
+                query = query.Where(t => t.FileType.MerchantID == merchantId);
             }
 
             if (!string.IsNullOrEmpty(code))
             {
-                query = query.Where(t => t.ID.Contains(code));
+                query = query.Where(t => t.FileType.ID.Contains(code));
             }
 
             if (!string.IsNullOrEmpty(name))
             {
-                query = query.Where(t => t.Name != null && t.Name.Contains(name));
+                query = query.Where(t => t.FileType.Name != null && t.FileType.Name.Contains(name));
             }
 
             // 获取总记录数
@@ -73,10 +79,11 @@ namespace SlzrCrossGate.WebAdmin.Controllers
             // 转换为DTO
             var fileTypeDtos = fileTypes.Select(t => new FileTypeDto
             {
-                Code = t.ID,
-                MerchantID = t.MerchantID,
-                Name = t.Name,
-                Remark = t.Description ?? string.Empty
+                Code = t.FileType.ID,
+                MerchantID = t.FileType.MerchantID,
+                MerchantName = t.MerchantName,
+                Name = t.FileType.Name,
+                Remark = t.FileType.Description ?? string.Empty
             }).ToList();
 
             return new PaginatedResult<FileTypeDto>

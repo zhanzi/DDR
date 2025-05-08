@@ -1,8 +1,11 @@
 import axios from 'axios';
 
+// 使用环境变量获取API基础URL
+const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || '/api';
+
 // 创建axios实例
 const api = axios.create({
-  baseURL: 'https://localhost:7296/api',
+  baseURL: apiBaseUrl,
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json',
@@ -219,13 +222,36 @@ export const messageAPI = {
   getMessageTypes: (params) => api.get('/MessageTypes', { params }),
   getMessageType: (id) => api.get(`/MessageTypes/${id}`),
   createMessageType: (data) => api.post('/MessageTypes', data),
-  updateMessageType: (id, data) => api.put(`/MessageTypes/${id}`, data),
-  deleteMessageType: (id) => api.delete(`/MessageTypes/${id}`),
+  updateMessageType: (code, merchantId, data) => api.put(`/MessageTypes/${code}/${merchantId}`, data),
+  deleteMessageType: (code, merchantId) => api.delete(`/MessageTypes/${code}/${merchantId}`),
+  
+  // 获取所有消息类型(不分页，用于下拉框)
+  getAllMessageTypes: async (merchantId) => {
+    const params = merchantId ? { merchantId } : {};
+    const response = await api.get('/MessageTypes/all', { params });
+    // 处理不同的响应格式，确保返回一个数组
+    if (response && Array.isArray(response)) {
+      return response;
+    } else if (response && Array.isArray(response.items)) {
+      return response.items;
+    } else if (response && typeof response === 'object') {
+      // 尝试查找任何可能的数组属性
+      for (const key in response) {
+        if (Array.isArray(response[key])) {
+          return response[key];
+        }
+      }
+    }
+    // 如果找不到任何有效数组，返回空数组
+    console.warn('getAllMessageTypes: 无法从响应中提取有效数组', response);
+    return [];
+  },
 
   getMessages: (params) => api.get('/Messages', { params }),
   getMessage: (id) => api.get(`/Messages/${id}`),
   createMessage: (data) => api.post('/Messages', data),
   deleteMessage: (id) => api.delete(`/Messages/${id}`),
+  getMessageStats: () => api.get('/Messages/Stats'),
 };
 
 // 仪表盘相关API

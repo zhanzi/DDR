@@ -104,7 +104,7 @@ namespace SlzrCrossGate.Core
 
 
             //builder.Services.AddSingleton<TerminalManager>();
-            //builder.Services.AddSingleton<TerminalEventService>();
+            builder.Services.AddSingleton<TerminalEventPublishService>();
             builder.Services.AddSingleton<MsgboxEventService>();
 
 

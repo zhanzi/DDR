@@ -19,18 +19,18 @@ namespace SlzrCrossGate.WebAdmin.Controllers
     public class TerminalsController : ControllerBase
     {
         private readonly TcpDbContext _dbContext;
-        private readonly TerminalEventService _terminalEventService;
+        private readonly TerminalEventPublishService _terminalEventPublishService;
         private readonly UserService _userService;
         private readonly ILogger<TerminalsController> _logger;
 
         public TerminalsController(
             TcpDbContext dbContext,
-            TerminalEventService terminalEventService,
+            TerminalEventPublishService terminalEventPublishService,
             UserService userService,
             ILogger<TerminalsController> logger)
         {
             _dbContext = dbContext;
-            _terminalEventService = terminalEventService;
+            _terminalEventPublishService = terminalEventPublishService;
             _userService = userService;
             _logger = logger;
         }
@@ -138,12 +138,7 @@ namespace SlzrCrossGate.WebAdmin.Controllers
                         FileVersionMetadata = t.Status.FileVersionMetadata,
                         PropertyMetadata = t.Status.PropertyMetadata
                     } : null,
-
-                    // 兼容属性
                     TerminalID = t.ID,
-                    DeviceID = t.MachineID,
-                    DeviceNo = t.DeviceNO,
-                    LineNo = t.LineNO,
                     TerminalTypeID = t.TerminalType,
                     IsActive = t.Status?.ActiveStatus == DeviceActiveStatus.Active,
                     CreatedTime = t.CreateTime,
@@ -190,9 +185,6 @@ namespace SlzrCrossGate.WebAdmin.Controllers
 
                 // 兼容属性
                 TerminalID = t.ID,
-                DeviceID = t.MachineID,
-                DeviceNo = t.DeviceNO,
-                LineNo = t.LineNO,
                 TerminalTypeID = t.TerminalType,
                 IsActive = t.Status?.ActiveStatus == DeviceActiveStatus.Active,
                 CreatedTime = t.CreateTime,
@@ -252,9 +244,6 @@ namespace SlzrCrossGate.WebAdmin.Controllers
 
                 // 兼容属性
                 TerminalID = terminal.ID,
-                DeviceID = terminal.MachineID,
-                DeviceNo = terminal.DeviceNO,
-                LineNo = terminal.LineNO,
                 TerminalTypeID = terminal.TerminalType,
                 IsActive = terminal.Status?.ActiveStatus == DeviceActiveStatus.Active,
                 CreatedTime = terminal.CreateTime,
@@ -450,16 +439,15 @@ namespace SlzrCrossGate.WebAdmin.Controllers
             // 记录事件
             foreach (var terminal in terminals)
             {
-                await _terminalEventService.RecordTerminalEventAsync(new TerminalEvent
+                await _terminalEventPublishService.PublishTerminalEventAsync(new TerminalEventMessage
                 {
                     MerchantID = terminal.MerchantID,
                     TerminalID = terminal.ID,
                     EventType = TerminalEventType.MessageSent,
                     Severity = EventSeverity.Info,
                     Remark = $"Message sent: Type={model.MsgTypeCode}, Content={model.Content}",
-                    Operator = ""
+                    Operator = username
                 });
-
             }
 
             return Ok(new { MessageId = msgContent.ID, TerminalCount = terminals.Count });
@@ -474,9 +462,16 @@ namespace SlzrCrossGate.WebAdmin.Controllers
             var isSystemAdmin = User.IsInRole("SystemAdmin");
             var username = UserService.GetUserNameForOperator(User);
 
-            // 验证终端列表
+            // 验证文件版本
+            var fileVer = await _dbContext.FileVers.FirstOrDefaultAsync(f => f.ID == model.FileVerId && !f.IsDelete);
+            if (fileVer == null)
+            {
+                return BadRequest("Invalid file version");
+            }
+
+            // 验证终端列表(文件版本的商户需要和终端的商户ID一致)
             var terminals = await _dbContext.Terminals
-                .Where(t => model.TerminalIds.Contains(t.ID) && !t.IsDeleted)
+                .Where(t => model.TerminalIds.Contains(t.ID) && t.MerchantID == fileVer.MerchantID && !t.IsDeleted)
                 .ToListAsync();
 
             if (terminals.Count == 0)
@@ -490,17 +485,11 @@ namespace SlzrCrossGate.WebAdmin.Controllers
                 return Forbid();
             }
 
-            // 验证文件版本
-            var fileVer = await _dbContext.FileVers.FirstOrDefaultAsync(f => f.ID == model.FileVerId && !f.IsDelete);
-            if (fileVer == null)
-            {
-                return BadRequest("Invalid file version");
-            }
-
+            
             // 创建文件发布记录
             var filePublish = new FilePublish
             {
-                MerchantID = terminals.First().MerchantID,
+                MerchantID = fileVer.MerchantID,
                 FileTypeID = fileVer.FileTypeID,
                 FilePara = fileVer.FilePara,
                 FileFullType = fileVer.FileFullType,
@@ -542,14 +531,14 @@ namespace SlzrCrossGate.WebAdmin.Controllers
             // 记录事件
             foreach (var terminal in terminals)
             {
-                await _terminalEventService.RecordTerminalEventAsync(new TerminalEvent
+                await _terminalEventPublishService.PublishTerminalEventAsync(new TerminalEventMessage
                 {
                     MerchantID = terminal.MerchantID,
                     TerminalID = terminal.ID,
                     EventType = TerminalEventType.FilePublished,
                     Severity = EventSeverity.Info,
                     Remark = $"File published: Type={fileVer.FileFullType}, Version={fileVer.Ver}",
-                    Operator = ""
+                    Operator = username
                 });
 
             }

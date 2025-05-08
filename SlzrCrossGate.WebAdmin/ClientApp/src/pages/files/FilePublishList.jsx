@@ -173,8 +173,34 @@ const FilePublishList = () => {
   };
 
   // 下载文件
-  const downloadFile = (filePublish) => {
-    window.open(`/api/file-versions/${filePublish.id}/download`, '_blank');
+  const downloadFile = async (fileVersion) => {
+      try {
+        // 使用fileAPI服务发送带有认证令牌的请求
+        const response = await fileAPI.downloadFileVersion(fileVersion.fileVerID);
+        
+        // 创建blob URL并触发下载
+        const url = window.URL.createObjectURL(new Blob([response.data]));
+        const link = document.createElement('a');
+        
+        // 设置下载文件名，组合文件类型、文件参数和版本号
+        const merchantId = fileVersion.merchantID;
+        const fileTypeId = fileVersion.fileTypeID;
+        const filePara = fileVersion.filePara;
+        const ver = fileVersion.ver;
+        const fileName = `${merchantId}_${fileTypeId}${filePara}_${ver}.bin`;
+        
+        link.href = url;
+        link.setAttribute('download', fileName);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        // 记录下载日志
+        console.log(`下载文件成功: ID=${fileVersion.id}, 文件名=${fileName}`);
+      } catch (error) {
+        console.error('下载文件失败:', error);
+        alert('下载文件失败，请检查网络连接或联系管理员。');
+      }
   };
 
   // 格式化文件大小
@@ -351,7 +377,7 @@ const FilePublishList = () => {
             <TableHead>
               <TableRow>
                 <TableCell>ID</TableCell>
-                <TableCell>商户ID</TableCell>
+                <TableCell>商户</TableCell>
                 <TableCell>文件类型</TableCell>
                 <TableCell>文件参数</TableCell>
                 <TableCell>版本号</TableCell>
@@ -383,9 +409,9 @@ const FilePublishList = () => {
                   <TableRow key={filePublish.id}>
                     <TableCell>{filePublish.id}</TableCell>
                     <TableCell>
-                    <Tooltip title={filePublish.merchantID || ''}>
-                        <span>{filePublish.merchantName}</span>
-                      </Tooltip>
+                      <Tooltip title={filePublish.merchantID || ''}>
+                          <span>{filePublish.merchantName}</span>
+                        </Tooltip>
                     </TableCell>
                     <TableCell>
                       {filePublish.fileTypeName}({filePublish.fileTypeID})

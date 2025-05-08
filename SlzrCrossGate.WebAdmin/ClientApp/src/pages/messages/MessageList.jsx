@@ -26,21 +26,25 @@ import {
   CardContent,
   FormControl,
   InputLabel,
-  Select
+  Select,
+  Stack
 } from '@mui/material';
 import {
   Refresh as RefreshIcon,
   Search as SearchIcon,
   Clear as ClearIcon,
   Visibility as VisibilityIcon,
-  Send as SendIcon
+  Send as SendIcon,
+  List as ListIcon,
+  Message as MessageIcon
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
 import { format } from 'date-fns';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
+import { messageAPI, merchantAPI,terminalAPI } from '../../services/api';
+import MerchantAutocomplete from '../../components/MerchantAutocomplete';
 
 const MessageList = () => {
   const navigate = useNavigate();
@@ -62,6 +66,9 @@ const MessageList = () => {
     startDate: null,
     endDate: null
   });
+  
+  // 选中的商户对象（用于MerchantAutocomplete）
+  const [selectedMerchant, setSelectedMerchant] = useState(null);
 
   // 消息详情对话框
   const [openDetailDialog, setOpenDetailDialog] = useState(false);
@@ -87,9 +94,9 @@ const MessageList = () => {
         )
       };
 
-      const response = await axios.get('/api/Messages', { params });
-      setMessages(response.data.items);
-      setTotalCount(response.data.totalCount);
+      const response = await messageAPI.getMessages(params);
+      setMessages(response.items);
+      setTotalCount(response.totalCount);
     } catch (error) {
       console.error('Error loading messages:', error);
     } finally {
@@ -98,10 +105,17 @@ const MessageList = () => {
   };
 
   // 加载消息类型列表
-  const loadMessageTypes = async () => {
+  const loadMessageTypes = async (merchantId = '') => {
     try {
-      const response = await axios.get('/api/MessageTypes');
-      setMessageTypes(response.data.items);
+      // 只有在提供了商户ID时才加载消息类型
+      if (merchantId) {
+        const params = { merchantId };
+        const response = await messageAPI.getMessageTypes(params);
+        setMessageTypes(response.items);
+      } else {
+        // 当没有提供商户ID时，清空消息类型列表
+        setMessageTypes([]);
+      }
     } catch (error) {
       console.error('Error loading message types:', error);
     }
@@ -110,8 +124,8 @@ const MessageList = () => {
   // 加载终端列表
   const loadTerminals = async () => {
     try {
-      const response = await axios.get('/api/Terminals', { params: { pageSize: 100 } });
-      setTerminals(response.data.items);
+      const response = await terminalAPI.getTerminals({ pageSize: 100 });
+      setTerminals(response.items);
     } catch (error) {
       console.error('Error loading terminals:', error);
     }
@@ -120,8 +134,8 @@ const MessageList = () => {
   // 加载消息统计
   const loadMessageStats = async () => {
     try {
-      const response = await axios.get('/api/Messages/Stats');
-      setStats(response.data);
+      const response = await messageAPI.getMessageStats();
+      setStats(response);
     } catch (error) {
       console.error('Error loading message stats:', error);
     }
@@ -129,7 +143,7 @@ const MessageList = () => {
 
   useEffect(() => {
     loadMessages();
-    loadMessageTypes();
+    // 初始不加载消息类型，等待用户选择商户后再加载
     loadTerminals();
     loadMessageStats();
   }, [page, rowsPerPage]);
@@ -161,6 +175,8 @@ const MessageList = () => {
       startDate: null,
       endDate: null
     });
+    setSelectedMerchant(null); // 重置商户下拉框选择状态
+    setMessageTypes([]); // 直接清空消息类型列表，而不是调用loadMessageTypes()
     setPage(0);
     loadMessages();
   };
@@ -236,12 +252,19 @@ const MessageList = () => {
       <Paper sx={{ p: 2, mb: 3 }}>
         <Grid container spacing={2} alignItems="center">
           <Grid item xs={12} sm={6} md={2}>
-            <TextField
-              fullWidth
-              label="商户ID"
-              name="merchantId"
-              value={filters.merchantId}
-              onChange={handleFilterChange}
+            <MerchantAutocomplete
+              value={selectedMerchant}
+              onChange={(event, newValue) => {
+                setSelectedMerchant(newValue);
+                const merchantId = newValue ? newValue.merchantID : '';
+                setFilters(prev => ({ 
+                  ...prev, 
+                  merchantId: merchantId,
+                  msgTypeId: '' // 重置消息类型选择
+                }));
+                // 重新加载所选商户的消息类型
+                loadMessageTypes(merchantId);
+              }}
               size="small"
             />
           </Grid>
@@ -348,19 +371,33 @@ const MessageList = () => {
               刷新
             </Button>
           </Grid>
-          <Grid item xs={12} sm={6} md={2}>
-            <Button
-              fullWidth
-              variant="contained"
-              color="secondary"
-              startIcon={<SendIcon />}
-              onClick={goToSendMessage}
-            >
-              发送消息
-            </Button>
-          </Grid>
         </Grid>
       </Paper>
+
+      {/* 操作按钮 - 单独放置在标题下方 */}
+      <Box sx={{ 
+        display: 'flex', 
+        justifyContent: 'flex-end', 
+        gap: 2, 
+        mb: 3
+      }}>
+        <Button
+          variant="outlined"
+          color="secondary" // 由 "info" 修改为 "secondary"
+          startIcon={<ListIcon />}
+          onClick={() => navigate('/app/messages/types')}
+        >
+          消息类型管理
+        </Button>
+        <Button
+          variant="contained"
+          color="secondary"
+          startIcon={<MessageIcon />}
+          onClick={goToSendMessage}
+        >
+          发送消息
+        </Button>
+      </Box>
 
       {/* 消息列表 */}
       <Paper>
@@ -369,7 +406,7 @@ const MessageList = () => {
             <TableHead>
               <TableRow>
                 <TableCell>ID</TableCell>
-                <TableCell>商户ID</TableCell>
+                <TableCell>商户</TableCell>
                 <TableCell>终端ID</TableCell>
                 <TableCell>终端设备号</TableCell>
                 <TableCell>消息类型</TableCell>
@@ -397,7 +434,11 @@ const MessageList = () => {
                 messages.map((message) => (
                   <TableRow key={message.id}>
                     <TableCell>{message.id}</TableCell>
-                    <TableCell>{message.merchantID}</TableCell>
+                    <TableCell>
+                      <Tooltip title={message.merchantID || ''}>
+                        <span>{message.merchantName}</span>
+                      </Tooltip>
+                    </TableCell>
                     <TableCell>{message.terminalID}</TableCell>
                     <TableCell>{message.terminalDeviceNO || '-'}</TableCell>
                     <TableCell>{message.msgTypeName || message.msgTypeID || '-'}</TableCell>

@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using SlzrCrossGate.Core.Models;
 using SlzrCrossGate.Core.Repositories;
+using SlzrCrossGate.Core.Services;
 using SlzrCrossGate.Core.Services.BusinessServices;
 using System;
 using System.Collections.Concurrent;
@@ -18,23 +19,33 @@ namespace SlzrCrossGate.Core.Service.BusinessServices
         private readonly IServiceProvider _serviceProvider;
         private readonly ILogger<TerminalEventService> _logger;
         private readonly ConcurrentQueue<TerminalEvent> _eventQueue;
+        private readonly IRabbitMQService _rabbitMQService;
         private readonly Timer _timer;
         private readonly int _batchSize;
         private readonly TimeSpan _interval;
         private readonly SemaphoreSlim _semaphore = new SemaphoreSlim(1, 1);
 
+        private readonly string EXCHANGE_NAME = "SlzrCrossGate.Event";
+        private readonly string QUEUE_NAME = "SlzrCrossGate.Event.Queue.TerminalEvent";
+        private readonly string ROUTING_KEY = "Event.TerminalEvent";
+
         public TerminalEventService(IServiceProvider serviceProvider,
             ILogger<TerminalEventService> logger,
+            IRabbitMQService rabbitMQService,
             int batchSize = 100,
             TimeSpan? interval = null)
         {
             _serviceProvider = serviceProvider;
             _logger = logger;
             _eventQueue = new ConcurrentQueue<TerminalEvent>();
+            _rabbitMQService = rabbitMQService;
             _batchSize = batchSize;
             _interval = interval ?? TimeSpan.FromSeconds(10);
 
+
             _timer = new Timer(async _ => await ProcessQueueAsync(), null, _interval, _interval);
+
+            _ = Task.Run(Subscribe);
         }
 
         public async Task RecordTerminalEventAsync(TerminalEvent terminalEvent)
@@ -46,6 +57,29 @@ namespace SlzrCrossGate.Core.Service.BusinessServices
             {
                 await ProcessQueueAsync();
             }
+        }
+
+
+        public async Task Subscribe()
+        {
+            await _rabbitMQService.SubscribeAsync<TerminalEventMessage>(EXCHANGE_NAME, QUEUE_NAME, ROUTING_KEY, (message)=>{
+
+                return Task.Run(async () =>
+                {
+                    var terminalEvent = new TerminalEvent
+                    {
+                        MerchantID = message.MerchantID,
+                        TerminalID = message.TerminalID,
+                        EventType = message.EventType,
+                        Severity = message.Severity,
+                        Remark = message.Remark,
+                        Operator = message.Operator,
+                        EventTime = DateTime.UtcNow
+                    };
+
+                    await RecordTerminalEventAsync(terminalEvent);
+                });
+            }, true);
         }
 
         public async Task ProcessQueueAsync()
@@ -88,5 +122,24 @@ namespace SlzrCrossGate.Core.Service.BusinessServices
 
     }
 
+    public class TerminalEventPublishService
+    {
+        private readonly IRabbitMQService _rabbitMQService;
+        private readonly ILogger<TerminalEventPublishService> _logger;
 
+        private readonly string EXCHANGE_NAME = "SlzrCrossGate.Event";
+        private readonly string ROUTING_KEY = "Event.TerminalEvent";
+
+        public TerminalEventPublishService(IRabbitMQService rabbitMQService, ILogger<TerminalEventPublishService> logger)
+        {
+            _rabbitMQService = rabbitMQService;
+            _logger = logger;
+        }
+
+        public async Task PublishTerminalEventAsync(TerminalEventMessage message)
+        {
+            await _rabbitMQService.PublishAsync(EXCHANGE_NAME,ROUTING_KEY,message);
+            _logger.LogInformation("Published terminal event: {MerchantID} {TerminalID} {EventName} {Severity} {Remark}", message.MerchantID, message.TerminalID, message.EventName, message.Severity, message.Remark);
+        }
+    }
 }

@@ -834,51 +834,64 @@ app.MapControllers();
 
 ## 最近修复的功能问题
 
-1. **管理员重置用户密码失败问题**
-   - 问题：在用户管理页面，管理员尝试重置用户密码时返回400错误
-   - 原因：
-     1. 前端使用了`changePassword`接口，该接口需要当前密码，而管理员不知道用户的当前密码
-     2. 后端`UsersController`中的`ChangePasswordDto`要求提供`CurrentPassword`字段
-   - 解决方案：
-     1. 修改前端代码，使用`resetPassword`接口而不是`changePassword`接口
-     2. 在`AuthController`中增强`ResetPassword`方法，支持管理员重置密码的特殊标记
-     3. 添加权限检查，确保只有系统管理员和商户管理员可以重置密码
-     4. 商户管理员只能重置自己商户下用户的密码
-   - 影响范围：用户管理页面中的密码重置功能
+1.  **管理员重置用户密码失败问题**
+    - 问题：在用户管理页面，管理员尝试重置用户密码时返回400错误
+    - 原因：
+      1. 前端使用了`changePassword`接口，该接口需要当前密码，而管理员不知道用户的当前密码
+      2. 后端`UsersController`中的`ChangePasswordDto`要求提供`CurrentPassword`字段
+    - 解决方案：
+      1. 修改前端代码，使用`resetPassword`接口而不是`changePassword`接口
+      2. 在`AuthController`中增强`ResetPassword`方法，支持管理员重置密码的特殊标记
+      3. 添加权限检查，确保只有系统管理员和商户管理员可以重置密码
+      4. 商户管理员只能重置自己商户下用户的密码
+    - 影响范围：用户管理页面中的密码重置功能
 
-2. **密码重置功能安全性问题**
-   - 问题：普通用户可以通过重置密码接口重置任何用户的密码
-   - 原因：
-     1. `ResetPassword`方法没有检查当前用户是否只能重置自己的密码
-     2. 忘记密码页面没有真正调用后端API，只是模拟了API调用
-     3. 缺少重置密码页面，用于用户点击邮件中的链接后重置密码
-   - 解决方案：
-     1. 修改`ResetPassword`方法，添加权限检查，确保普通用户只能重置自己的密码
-     2. 修改`ForgotPassword.jsx`，使其真正调用后端API
-     3. 创建`ResetPassword.jsx`页面，用于用户点击邮件中的链接后重置密码
-     4. 更新路由配置，添加重置密码页面的路由
-   - 影响范围：密码重置功能的安全性和用户体验
+2.  **密码重置功能安全性问题**
+    - 问题：普通用户可以通过重置密码接口重置任何用户的密码
+    - 原因：
+      1. `ResetPassword`方法没有检查当前用户是否只能重置自己的密码
+      2. 忘记密码页面没有真正调用后端API，只是模拟了API调用
+      3. 缺少重置密码页面，用于用户点击邮件中的链接后重置密码
+    - 解决方案：
+      1. 修改`ResetPassword`方法，添加权限检查，确保普通用户只能重置自己的密码
+      2. 修改`ForgotPassword.jsx`，使其真正调用后端API
+      3. 创建`ResetPassword.jsx`页面，用于用户点击邮件中的链接后重置密码
+      4. 更新路由配置，添加重置密码页面的路由
+    - 影响范围：密码重置功能的安全性和用户体验
 
-3. **管理员重置用户密码时authAPI未定义问题**
-   - 问题：在用户详情页面，管理员尝试重置用户密码时出现"authAPI is not defined"错误
-   - 原因：
-     1. 在`UserDetailView.jsx`中使用了`authAPI`，但没有导入它
-     2. 导入语句中只包含了`userAPI`, `roleAPI`和`merchantAPI`，缺少`authAPI`
-   - 解决方案：
-     1. 修改导入语句，添加`authAPI`：`import { userAPI, roleAPI, merchantAPI, authAPI } from '../../services/api';`
-   - 影响范围：用户管理页面中的密码重置功能
+3.  **管理员重置用户密码时authAPI未定义问题**
+    - 问题：在用户详情页面，管理员尝试重置用户密码时出现"authAPI is not defined"错误
+    - 原因：
+      1. 在`UserDetailView.jsx`中使用了`authAPI`，但没有导入它
+      2. 导入语句中只包含了`userAPI`, `roleAPI`和`merchantAPI`，缺少`authAPI`
+    - 解决方案：
+      1. 修改导入语句，添加`authAPI`：`import { userAPI, roleAPI, merchantAPI, authAPI } from '../../services/api';`
+    - 影响范围：用户管理页面中的密码重置功能
 
-4. **移动端表格操作按钮无法点击问题**
-   - 问题：在移动设备上访问用户管理、角色管理、商户管理等页面时，表格右侧的操作按钮无法点击
-   - 原因：
-     1. 表格在小屏幕上溢出容器，导致右侧内容被截断或无法操作
-     2. 缺少针对移动端的响应式设计，表格列数过多导致内容挤压
-   - 解决方案：
-     1. 为表格容器添加水平滚动支持：`<TableContainer component={Paper} sx={{ overflowX: 'auto' }}>`
-     2. 设置表格最小宽度，确保内容不会过度压缩：`<Table sx={{ minWidth: 650 }}>`
-     3. 在小屏幕上隐藏次要列，只保留关键信息：`<TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>`
-     4. 为操作列添加固定宽度和不换行属性：`<TableCell align="right" sx={{ minWidth: 120, whiteSpace: 'nowrap' }}>`
-   - 影响范围：所有包含表格的页面，包括用户管理、角色管理、商户管理等
+4.  **移动端表格操作按钮无法点击问题**
+    - 问题：在移动设备上访问用户管理、角色管理、商户管理等页面时，表格右侧的操作按钮无法点击
+    - 原因：
+      1. 表格在小屏幕上溢出容器，导致右侧内容被截断或无法操作
+      2. 缺少针对移动端的响应式设计，表格列数过多导致内容挤压
+    - 解决方案：
+      1. 为表格容器添加水平滚动支持：`<TableContainer component={Paper} sx={{ overflowX: 'auto' }}>`
+      2. 设置表格最小宽度，确保内容不会过度压缩：`<Table sx={{ minWidth: 650 }}>`
+      3. 在小屏幕上隐藏次要列，只保留关键信息：`<TableCell sx={{ display: { xs: 'none', md: 'table-cell' }}>`
+      4. 为操作列添加固定宽度和不换行属性：`<TableCell align="right" sx={{ minWidth: 120, whiteSpace: 'nowrap' }}>`
+    - 影响范围：所有包含表格的页面，包括用户管理、角色管理、商户管理等
+
+5.  **文件发布类型处理及用户体验优化 (FilePublish.jsx)**
+    -   **问题/背景**: 文件发布类型 `publishType` 的初始值和类型处理存在不一致，可能导致后端接收到错误类型的数据。切换发布类型时，之前的发布目标没有清空，可能导致用户误操作。
+    -   **解决方案**:
+        -   将 `publishType` 的初始值明确设置为 `1` (对应商户级别)。
+        -   在 `handleFormChange` 方法中，确保 `publishType` 的值始终为数字类型。
+        -   当 `publishType` 发生变化时，自动清空 `publishTarget` 字段，避免用户提交无效的组合。
+    -   **影响范围**: 文件发布页面 (`src/pages/files/FilePublish.jsx`)。
+
+6.  **消息类型表单商户下拉框样式调整 (MessageTypeList.jsx)**
+    -   **问题/背景**: 在消息类型的新建/编辑表单中，商户选择下拉框 (`MerchantAutocomplete`) 的高度与其他标准输入框不一致，视觉上不够协调。
+    -   **解决方案**: 将 `MerchantAutocomplete` 组件的 `size` 属性从默认的 `small` 调整为 `medium`，使其高度与 `TextField` 等标准表单控件保持一致。筛选区域的商户下拉框保持 `small` 尺寸。
+    -   **影响范围**: 消息类型管理页面 (`src/pages/messages/MessageTypeList.jsx`) 的新建/编辑表单。
 
 ## 最近修复的安全问题
 

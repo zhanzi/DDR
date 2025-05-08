@@ -16,9 +16,6 @@ namespace SlzrCrossGate.WebAdmin.DTOs
 
         // 兼容属性
         public string TerminalID { get; set; } = string.Empty;
-        public string DeviceID { get; set; } = string.Empty;
-        public string DeviceNo { get; set; } = string.Empty;
-        public string LineNo { get; set; } = string.Empty;
         public string TerminalTypeID { get; set; } = string.Empty;
         public bool IsActive { get; set; }
         public DateTime CreatedTime { get; set; }

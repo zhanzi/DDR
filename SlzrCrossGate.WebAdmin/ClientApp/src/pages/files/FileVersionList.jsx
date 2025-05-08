@@ -484,7 +484,11 @@ const FileVersionList = () => {
                 fileVersions.map((fileVersion) => (
                   <TableRow key={fileVersion.id}>
                     <TableCell>{fileVersion.id}</TableCell>
-                    <TableCell>{fileVersion.merchantName}</TableCell>
+                    <TableCell>
+                      <Tooltip title={fileVersion.merchantID || ''}>
+                        <span>{fileVersion.merchantName}</span>
+                      </Tooltip>
+                    </TableCell>
                     <TableCell>{fileVersion.fileTypeName}({fileVersion.fileTypeID})</TableCell>
                     <TableCell>{fileVersion.filePara}</TableCell>
                     <TableCell>{fileVersion.ver}</TableCell>
@@ -560,6 +564,7 @@ const FileVersionList = () => {
                   }}
                   required
                   error={!uploadForm.merchantId}
+                  size="medium"
                   helperText={!uploadForm.merchantId ? '请选择商户' : ''}
                 />
               </Grid>

@@ -203,5 +203,6 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+app.MapFallbackToFile("index.html");//SPA回退路由
 
 app.Run();

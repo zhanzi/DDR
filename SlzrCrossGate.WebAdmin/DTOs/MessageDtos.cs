@@ -1,3 +1,5 @@
+using SlzrCrossGate.Core.Models;
+
 namespace SlzrCrossGate.WebAdmin.DTOs
 {
     // 消息类型DTO
@@ -7,13 +9,19 @@ namespace SlzrCrossGate.WebAdmin.DTOs
         public string MerchantID { get; set; } = string.Empty;
         public string? Name { get; set; }
         public string? Remark { get; set; }
-    }
+        public MessageCodeType CodeType { get; set; } = MessageCodeType.HEX;
 
+        public string? ExampleMessage { get; set; }
+        public string? MerchantName { get; set; }
+    }
     public class CreateMessageTypeDto
     {
         public string Code { get; set; } = string.Empty;
         public string MerchantID { get; set; } = string.Empty;
         public string? Name { get; set; }
+        public MessageCodeType CodeType { get; set; } = MessageCodeType.HEX;
+
+        public string? ExampleMessage { get; set; }
         public string? Remark { get; set; }
     }
 
@@ -21,6 +29,9 @@ namespace SlzrCrossGate.WebAdmin.DTOs
     {
         public string? Name { get; set; }
         public string? Remark { get; set; }
+        public MessageCodeType CodeType { get; set; } = MessageCodeType.HEX;
+
+        public string? ExampleMessage { get; set; }
     }
 
     // 消息DTO

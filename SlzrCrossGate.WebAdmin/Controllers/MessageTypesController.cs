@@ -43,22 +43,28 @@ namespace SlzrCrossGate.WebAdmin.Controllers
             }
 
             // 构建查询
-            var query = _dbContext.MsgTypes.AsQueryable();
+            var query = from t in _dbContext.MsgTypes
+                        join m in _dbContext.Merchants on t.MerchantID equals m.MerchantID
+                        select new
+                        {
+                            MsgType = t,
+                            MerchantName = m.Name
+                        };
 
             // 应用筛选条件
             if (!string.IsNullOrEmpty(merchantId))
             {
-                query = query.Where(t => t.MerchantID == merchantId);
+                query = query.Where(t => t.MsgType.MerchantID == merchantId);
             }
 
             if (!string.IsNullOrEmpty(code))
             {
-                query = query.Where(t => t.ID.Contains(code));
+                query = query.Where(t => t.MsgType.ID.Contains(code));
             }
 
             if (!string.IsNullOrEmpty(name))
             {
-                query = query.Where(t => t.Name != null && t.Name.Contains(name));
+                query = query.Where(t => t.MsgType.Name != null && t.MsgType.Name.Contains(name));
             }
 
             // 获取总记录数
@@ -73,10 +79,13 @@ namespace SlzrCrossGate.WebAdmin.Controllers
             // 转换为DTO
             var messageTypeDtos = messageTypes.Select(t => new MessageTypeDto
             {
-                Code = t.ID,
-                MerchantID = t.MerchantID,
-                Name = t.Name,
-                Remark = t.Description
+                Code = t.MsgType.ID,
+                MerchantID = t.MsgType.MerchantID,
+                CodeType = t.MsgType.CodeType,
+                ExampleMessage = t.MsgType.ExampleMessage,
+                Name = t.MsgType.Name,
+                Remark = t.MsgType.Description,
+                MerchantName = t.MerchantName
             }).ToList();
 
             return new PaginatedResult<MessageTypeDto>
@@ -114,6 +123,8 @@ namespace SlzrCrossGate.WebAdmin.Controllers
             {
                 Code = messageType.ID,
                 MerchantID = messageType.MerchantID,
+                CodeType = messageType.CodeType,
+                ExampleMessage = messageType.ExampleMessage,
                 Name = messageType.Name,
                 Remark = messageType.Description
             };
@@ -149,6 +160,8 @@ namespace SlzrCrossGate.WebAdmin.Controllers
                 ID = model.Code,
                 MerchantID = model.MerchantID,
                 Name = model.Name,
+                CodeType = model.CodeType,
+                ExampleMessage = model.ExampleMessage,
                 Description = model.Remark
             };
 
@@ -160,6 +173,8 @@ namespace SlzrCrossGate.WebAdmin.Controllers
                 Code = messageType.ID,
                 MerchantID = messageType.MerchantID,
                 Name = messageType.Name,
+                CodeType = messageType.CodeType,
+                ExampleMessage = messageType.ExampleMessage,
                 Remark = messageType.Description
             });
         }
@@ -191,6 +206,8 @@ namespace SlzrCrossGate.WebAdmin.Controllers
             // 更新消息类型
             messageType.Name = model.Name;
             messageType.Description = model.Remark;
+            messageType.CodeType = model.CodeType;
+            messageType.ExampleMessage = model.ExampleMessage;
 
             await _dbContext.SaveChangesAsync();
 
@@ -236,5 +253,61 @@ namespace SlzrCrossGate.WebAdmin.Controllers
 
             return NoContent();
         }
+
+
+        // GET: api/MessageTypes/all
+        // 获取所有消息类型（不分页），用于下拉框等需要完整数据的场景
+        [HttpGet("all")]
+        public async Task<ActionResult<MsgTypeListResult>> GetAllMessageTypes([FromQuery] string? merchantId = null)
+        {
+            // 获取当前用户的商户ID
+            var currentUserMerchantId = await _userService.GetUserMerchantIdAsync(User);
+            var isSystemAdmin = User.IsInRole("SystemAdmin");
+
+            // 如果不是系统管理员，只能查看自己商户的文件类型
+            if (!isSystemAdmin && merchantId != null && merchantId != currentUserMerchantId)
+            {
+                return Forbid();
+            }
+
+            // 如果不是系统管理员且未指定商户ID，则使用当前用户的商户ID
+            if (!isSystemAdmin && merchantId == null)
+            {
+                merchantId = currentUserMerchantId;
+            }
+
+            // 构建查询
+            var query = _dbContext.MsgTypes.AsQueryable();
+
+            // 应用商户筛选条件
+            if (!string.IsNullOrEmpty(merchantId))
+            {
+                query = query.Where(t => t.MerchantID == merchantId);
+            }
+
+            // 获取所有符合条件的消息类型
+            var messageTypes = await query.ToListAsync();
+
+            // 转换为DTO
+            var messageTypeDtos = messageTypes.Select(t => new MessageTypeDto
+            {
+                Code = t.ID,
+                MerchantID = t.MerchantID,
+                 ExampleMessage= t.ExampleMessage,
+                  CodeType = t.CodeType,
+                Remark = t.Description,
+                Name = t.Name
+            }).ToList();
+
+            return new MsgTypeListResult
+            {
+                Items = messageTypeDtos
+            };
+        }
+
+    }
+    public class MsgTypeListResult
+    {
+        public List<MessageTypeDto> Items { get; set; } = new List<MessageTypeDto>();
     }
 }

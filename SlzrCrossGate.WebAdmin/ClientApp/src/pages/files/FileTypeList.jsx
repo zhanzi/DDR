@@ -393,7 +393,7 @@ const FileTypeList = () => {
             <TableHead>
               <TableRow>
                 <TableCell>类型代码</TableCell>
-                <TableCell>商户ID</TableCell>
+                <TableCell>商户</TableCell>
                 <TableCell>类型名称</TableCell>
                 <TableCell>备注</TableCell>
                 <TableCell>操作</TableCell>
@@ -416,7 +416,11 @@ const FileTypeList = () => {
                 fileTypes.map((fileType) => (
                   <TableRow key={`${fileType.code}-${fileType.merchantID}`}>
                     <TableCell>{fileType.code}</TableCell>
-                    <TableCell>{fileType.merchantID}</TableCell>
+                    <TableCell>  
+                      <Tooltip title={fileType.merchantID || ''}>
+                        <span>{fileType.merchantName}</span>
+                      </Tooltip>
+                    </TableCell>
                     <TableCell>{fileType.name || '-'}</TableCell>
                     <TableCell>{fileType.remark || '-'}</TableCell>
                     <TableCell>
@@ -498,6 +502,7 @@ const FileTypeList = () => {
                   disabled={Boolean(dialogMode === 'edit' || (!isSystemAdmin && user?.merchantId))}
                   required={true}
                   error={Boolean(!currentFileType.merchantID)}
+                  size="medium"
                   helperText={!currentFileType.merchantID ? '请选择商户' : ''}
                   merchants={merchants}
                 />

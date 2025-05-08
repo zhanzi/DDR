@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using SlzrCrossGate.Core.Models;
 using System.Linq.Expressions;
 using Microsoft.AspNetCore.Identity;
+using Minio.DataModel;
 
 
 namespace SlzrCrossGate.Core.Database
@@ -39,78 +40,119 @@ namespace SlzrCrossGate.Core.Database
         {
             base.OnModelCreating(modelBuilder);
 
-            // FileType 定义复合主键
-            modelBuilder.Entity<FileType>()
-                .HasKey(e => new {e.ID,e.MerchantID }).IsClustered();
 
-
-            modelBuilder.Entity<MsgType>()
-                .HasKey(e => new { e.ID, e.MerchantID }).IsClustered();
-
-            // 配置ConsumeData的 ReceiveTime 作为非聚集索引
-            modelBuilder.Entity<ConsumeData>()
-                .HasIndex(c => c.ReceiveTime)
-                .IncludeProperties(c => new { c.MerchantID,c.MachineID });
-
-            // 配置TerminalEvent的联合索引（e.MerchantID, e.TerminalID, e.EventType, e.EventTime）,并按EventTime倒序排列
-            modelBuilder.Entity<TerminalEvent>()
-                .HasIndex(e => new { e.MerchantID, e.TerminalID, e.EventType, e.EventTime })
-                .IsDescending([false, false, false, true]);
-            // 配置TerminalEvent的联合索引（e.MerchantID, e.TerminalID, e.EventTime）,并按EventTime倒序排列
-            modelBuilder.Entity<TerminalEvent>()
-                .HasIndex(e => new { e.MerchantID, e.TerminalID, e.EventTime })
-                .IsDescending([false, false, true]);
-
-            //json字段配置
-            modelBuilder.Entity<TerminalStatus>(entity =>
+            modelBuilder.Entity<ConsumeData>(builder=>
             {
-                // MySQL 配置
+                builder.HasKey(e => new { e.Id }).IsClustered();
+                builder.HasIndex(c => c.ReceiveTime)
+                    .IncludeProperties(c => new { c.MerchantID,c.MachineID,c.MachineNO });
+                
+            });
+            
+            modelBuilder.Entity<FilePublish>(builder=>
+            {
+                builder.HasKey(e => new { e.ID }).IsClustered();
+                builder.HasIndex(e => new { e.MerchantID, e.FileTypeID, e.FilePara, e.Ver }).IsUnique();
+                builder.HasIndex(e => new { e.MerchantID, e.FileFullType, e.Ver }).IsUnique();
+                builder.HasIndex(e => new { e.MerchantID, e.FileTypeID, e.PublishTime });
+            });
+
+            modelBuilder.Entity<FilePublishHistory>(builder=>
+            {
+                builder.HasKey(e => new { e.ID }).IsClustered();
+                //给FilePublishHistory的OperationType字段添加check约束，限制值只能为"Publish"或"Revoke"
+                builder.ToTable(t => t.HasCheckConstraint("CK_FilePublishHistory_OperationType", "OperationType IN ('Publish', 'Revoke')"));
+                builder.HasIndex(e => new { e.MerchantID, e.FileTypeID, e.FilePara, e.Ver }).IsUnique();
+                builder.HasIndex(e => new { e.PublishTime })
+                    .IsDescending([true])
+                    .IncludeProperties(e => new { e.MerchantID, e.FileTypeID, e.Ver, e.FilePara, e.FileFullType, e.PublishTarget, e.OperationType });
+            });
+
+            modelBuilder.Entity<FileVer>(builder=>
+            {
+                builder.HasKey(e => new { e.ID }).IsClustered();
+                builder.HasIndex(e => new { e.MerchantID, e.FileFullType, e.Ver }).IsUnique();
+                builder.HasIndex(e => new { e.MerchantID, e.FileTypeID, e.FilePara, e.Ver }).IsUnique();
+            });
+            
+
+            modelBuilder.Entity<FileType>(builder=>{
+                builder.HasKey(e => new { e.ID, e.MerchantID }).IsClustered();
+            });
+            
+
+            modelBuilder.Entity<IncrementContent>(builder=>
+            {
+                builder.HasKey(e => new { e.MerchantID, e.IncrementType, e.SerialNum })
+                    .IsClustered();
+            });  
+
+            modelBuilder.Entity<MsgType>(builder=>{
+                builder.HasKey(e => new { e.ID, e.MerchantID }).IsClustered();
+            });
+            
+            modelBuilder.Entity<Merchant>(builder=>{
+                builder.HasKey(e=>e.MerchantID).IsClustered();
+            });
+
+            modelBuilder.Entity<MsgContent>(builder=>{
+                builder.HasKey(e=>e.ID).IsClustered();
+            });
+            
+            modelBuilder.Entity<MsgBox>(builder=>
+            {
+                builder.HasKey(e => new { e.ID }).IsClustered();
+                builder.HasIndex(e => new { e.MerchantID, e.Status, e.TerminalID, e.SendTime })
+                    .IsDescending([false, false, false, false]);
+            });
+
+
+            modelBuilder.Entity<Terminal>(builder=>
+            {
+                builder.HasKey(e => new { e.ID }).IsClustered();
+                builder.HasIndex(e => new { e.MerchantID, e.MachineID });
+                builder.HasIndex(e => new { e.MerchantID, e.DeviceNO });
+            });
+
+            modelBuilder.Entity<TerminalEvent>(builder=>{
+                builder.HasKey(e => e.ID).IsClustered();
+                builder.HasIndex(e => new { e.MerchantID, e.TerminalID, e.EventType, e.EventTime })
+                    .IsDescending([false, false, false, true]);
+                builder.HasIndex(e => new { e.MerchantID, e.TerminalID, e.EventTime })
+                    .IsDescending([false, false, true]);
+                builder.HasIndex(e => new { e.EventTime  })
+                    .IsDescending([true]);
+            });
+            
+            modelBuilder.Entity<TerminalStatus>(builder =>
+            {
+                builder.HasKey(e => new { e.ID }).IsClustered();
+                // MySQL 配置 json字段配置
                 if (Database.IsMySql())
                 {
-                    entity.Property(e => e.FileVersions)
+                    builder.Property(e => e.FileVersions)
                         .HasColumnType("json");
-                    entity.Property(e => e.Properties)
+                    builder.Property(e => e.Properties)
                         .HasColumnType("json");
                 }
             });
 
-            // 配置 TerminalEvent 的联合索引
-            modelBuilder.Entity<TerminalEvent>()
-                .HasIndex(e => new { e.MerchantID, e.TerminalID, e.EventType });
+            modelBuilder.Entity<UploadFile>(builder=>
+            {
+                builder.HasKey(e => new { e.ID }).IsClustered();
+            });
 
-            // 配置UnionPayTerminalKey的索引
-            modelBuilder.Entity<UnionPayTerminalKey>()
-                .HasIndex(e => new { e.MerchantID, e.MachineID });
-            modelBuilder.Entity<UnionPayTerminalKey>()
-                .HasIndex(e => new { e.MerchantID, e.IsInUse });
+            modelBuilder.Entity<UnionPayTerminalKey>(builder=>
+            {
+                builder.HasKey(e => new { e.ID }).IsClustered();
+                builder.HasIndex(e => new { e.MerchantID, e.MachineID });
+                builder.HasIndex(e => new { e.MerchantID, e.IsInUse });
+            });    
 
-            //配置IncrementContent的联合主键
-            modelBuilder.Entity<IncrementContent>()
-                .HasKey(e => new { e.MerchantID, e.IncrementType, e.SerialNum })
-                .IsClustered();
-
-            //配置filepublish的唯一索引
-            modelBuilder.Entity<FilePublish>()
-                .HasIndex(e => new { e.MerchantID, e.FileFullType, e.PublishType, e.PublishTarget })
-                .IsUnique();
-
-            modelBuilder.Entity<FilePublish>()
-                .HasIndex(e => new { e.MerchantID, e.FileTypeID, e.PublishTime });
-
-            //配置MsgBox的联合索引
-            modelBuilder.Entity<MsgBox>()
-                .HasIndex(e => new { e.MerchantID, e.Status, e.TerminalID, e.SendTime })
-                .IsDescending([false, false, false, false]);
-
-            //给FilePublishHistory的OperationType字段添加check约束，限制值只能为"Publish"或"Revoke"
-            modelBuilder.Entity<FilePublishHistory>()
-                .ToTable(t => t.HasCheckConstraint("CK_FilePublishHistory_OperationType", "OperationType IN ('Publish', 'Revoke')"));
-                
-            //给FilePublishHistory添加查询索引,按 publishtime 降序排列，并包含其他字段
-            modelBuilder.Entity<FilePublishHistory>()
-                .HasIndex(e => new { e.PublishTime })
-                .IsDescending([true])
-                .IncludeProperties(e => new { e.MerchantID, e.FileTypeID, e.Ver, e.FilePara, e.FileFullType, e.PublishTarget, e.OperationType });
+            modelBuilder.Entity<SystemSettings>(builder=>
+            {
+                builder.HasKey(e => new { e.Id }).IsClustered();
+            });
 
             //// 配置租户隔离
             //foreach (var entityType in modelBuilder.Model.GetEntityTypes())

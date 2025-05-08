@@ -19,18 +19,18 @@ namespace SlzrCrossGate.WebAdmin.Controllers
     {
         private readonly TcpDbContext _dbContext;
         private readonly UserService _userService;
-        private readonly TerminalEventService _terminalEventService;
+        private readonly TerminalEventPublishService _terminalEventPublishService;
         private readonly ILogger<MessagesController> _logger;
 
         public MessagesController(
             TcpDbContext dbContext,
             UserService userService,
-            TerminalEventService terminalEventService,
+            TerminalEventPublishService terminalEventPublishService,
             ILogger<MessagesController> logger)
         {
             _dbContext = dbContext;
             _userService = userService;
-            _terminalEventService = terminalEventService;
+            _terminalEventPublishService = terminalEventPublishService;
             _logger = logger;
         }
 
@@ -225,7 +225,7 @@ namespace SlzrCrossGate.WebAdmin.Controllers
             // 获取当前用户的商户ID和用户名
             var currentUserMerchantId = await _userService.GetUserMerchantIdAsync(User);
             var isSystemAdmin = User.IsInRole("SystemAdmin");
-            var username = User.FindFirstValue(ClaimTypes.Name);
+            var username = UserService.GetUserNameForOperator(User);
 
             // 验证终端列表
             var terminals = await _dbContext.Terminals
@@ -280,14 +280,14 @@ namespace SlzrCrossGate.WebAdmin.Controllers
             // 记录事件
             foreach (var terminal in terminals)
             {
-                await _terminalEventService.RecordTerminalEventAsync(new TerminalEvent
+                 await _terminalEventPublishService.PublishTerminalEventAsync(new TerminalEventMessage
                 {
                     MerchantID = terminal.MerchantID,
                     TerminalID = terminal.ID,
                     EventType = TerminalEventType.MessageSent,
                     Severity = EventSeverity.Info,
                     Remark = $"Message sent: Type={model.MsgTypeCode}, Content={model.Content}",
-                    Operator = ""
+                    Operator = username
                 });
                 
             }
@@ -309,7 +309,7 @@ namespace SlzrCrossGate.WebAdmin.Controllers
             // 获取当前用户的商户ID和用户名
             var currentUserMerchantId = await _userService.GetUserMerchantIdAsync(User);
             var isSystemAdmin = User.IsInRole("SystemAdmin");
-            var username = User.FindFirstValue(ClaimTypes.Name);
+            var username = UserService.GetUserNameForOperator(User);
 
             // 如果不是系统管理员，只能向自己商户的终端发送消息
             if (!isSystemAdmin && model.MerchantId != currentUserMerchantId)
@@ -364,15 +364,15 @@ namespace SlzrCrossGate.WebAdmin.Controllers
             // 记录事件
             foreach (var terminal in terminals)
             {
-                await _terminalEventService.RecordTerminalEventAsync(new TerminalEvent
+                 await _terminalEventPublishService.PublishTerminalEventAsync(new TerminalEventMessage
                 {
                     MerchantID = terminal.MerchantID,
                     TerminalID = terminal.ID,
                     EventType = TerminalEventType.MessageSent,
                     Severity = EventSeverity.Info,
-                    Remark = $"Message sent to line {model.LineNo}: Type={model.MsgTypeCode}, Content={model.Content}",
-                    Operator = ""
-                }); 
+                    Remark = $"Message sent to line: Type={model.MsgTypeCode}, Content={model.Content}",
+                    Operator = username
+                });
             }
 
             return new MessageSendResultDto
@@ -392,7 +392,7 @@ namespace SlzrCrossGate.WebAdmin.Controllers
             // 获取当前用户的商户ID和用户名
             var currentUserMerchantId = await _userService.GetUserMerchantIdAsync(User);
             var isSystemAdmin = User.IsInRole("SystemAdmin");
-            var username = User.FindFirstValue(ClaimTypes.Name);
+            var username = UserService.GetUserNameForOperator(User);
 
             // 如果不是系统管理员，只能向自己商户的终端发送消息
             if (!isSystemAdmin && model.MerchantId != currentUserMerchantId)
@@ -447,15 +447,15 @@ namespace SlzrCrossGate.WebAdmin.Controllers
             // 记录事件
             foreach (var terminal in terminals)
             {
-                await _terminalEventService.RecordTerminalEventAsync(new TerminalEvent
+                 await _terminalEventPublishService.PublishTerminalEventAsync(new TerminalEventMessage
                 {
                     MerchantID = terminal.MerchantID,
                     TerminalID = terminal.ID,
                     EventType = TerminalEventType.MessageSent,
                     Severity = EventSeverity.Info,
                     Remark = $"Message sent to merchant: Type={model.MsgTypeCode}, Content={model.Content}",
-                    Operator = ""
-                }); 
+                    Operator = username
+                });
             }
 
             return new MessageSendResultDto
