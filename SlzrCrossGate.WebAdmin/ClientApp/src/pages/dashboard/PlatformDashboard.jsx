@@ -30,7 +30,7 @@ import {
   Timer as TimerIcon
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import { dashboardAPI } from '../../services/api'; // 使用统一的API服务
 import { format } from 'date-fns';
 import {
   BarChart,
@@ -61,11 +61,12 @@ const PlatformDashboard = () => {
     setError('');
 
     try {
-      const dashboardResponse = await axios.get('/api/Dashboard/PlatformStats');
-      setDashboardData(dashboardResponse.data);
+      // 使用dashboardAPI替换直接的axios调用
+      const dashboardResponse = await dashboardAPI.getPlatformStats();
+      setDashboardData(dashboardResponse);
 
-      const systemResponse = await axios.get('/api/Dashboard/SystemInfo');
-      setSystemInfo(systemResponse.data);
+      const systemResponse = await dashboardAPI.getSystemInfo();
+      setSystemInfo(systemResponse);
     } catch (error) {
       console.error('Error loading dashboard data:', error);
       setError('加载仪表盘数据失败');

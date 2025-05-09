@@ -30,7 +30,7 @@ import {
   Visibility as VisibilityIcon
 } from '@mui/icons-material';
 import { useParams, useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import { terminalAPI } from '../../services/api'; // 使用API服务代替直接的axios
 import { format } from 'date-fns';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
@@ -57,8 +57,8 @@ const TerminalEvents = () => {
   // 加载终端信息
   const loadTerminal = async () => {
     try {
-      const response = await axios.get(`/api/Terminals/${id}`);
-      setTerminal(response.data);
+      const response = await terminalAPI.getTerminal(id); // 使用terminalAPI代替axios
+      setTerminal(response);
     } catch (error) {
       console.error('Error loading terminal:', error);
       setError('加载终端信息失败');
@@ -78,9 +78,9 @@ const TerminalEvents = () => {
         endDate: filters.endDate ? format(filters.endDate, 'yyyy-MM-dd') : undefined
       };
 
-      const response = await axios.get(`/api/Terminals/${id}/events`, { params });
-      setEvents(response.data.items);
-      setTotalCount(response.data.totalCount);
+      const response = await terminalAPI.getTerminalEvents(id, params); // 使用terminalAPI代替axios
+      setEvents(response.items);
+      setTotalCount(response.totalCount);
     } catch (error) {
       console.error('Error loading events:', error);
       setError('加载事件记录失败');

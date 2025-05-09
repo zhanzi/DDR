@@ -3,6 +3,7 @@ import { Navigate } from 'react-router-dom';
 import AuthLayout from './layouts/AuthLayout';
 import DashboardLayout from './layouts/DashboardLayout';
 import TwoFactorGuard from './components/TwoFactorGuard';
+import RoleGuard from './components/RoleGuard';
 
 import Login from './pages/auth/Login';
 import VerifyCode from './pages/auth/VerifyCode';
@@ -46,24 +47,150 @@ const routes = [
     children: [
       { path: 'dashboard', element: <DashboardView /> },
       { path: 'account', element: <AccountView /> },
-      { path: 'users', element: <UserListView /> },
-      { path: 'users/:id', element: <UserDetailView /> },
-      { path: 'roles', element: <RoleListView /> },
-      { path: 'roles/:id', element: <RoleDetailView /> },
-      { path: 'merchants', element: <MerchantListView /> },
-      { path: 'merchants/:id', element: <MerchantDetailView /> },
-      { path: 'terminals', element: <TerminalList /> },
-      { path: 'terminals/:id', element: <TerminalDetail /> },
-      { path: 'terminals/:id/events', element: <TerminalEvents /> },
-      { path: 'files', element: <FileManagementView /> },
-      { path: 'files/types', element: <FileTypeList /> },
-      { path: 'files/versions', element: <FileVersionList /> },
-      { path: 'files/publish', element: <FilePublish /> },
-      { path: 'files/publish-list', element: <FilePublishList /> },
-      { path: 'messages/types', element: <MessageTypeList /> },
-      { path: 'messages/send', element: <MessageSend /> },
-      { path: 'messages', element: <MessageList /> },
-      { path: 'settings', element: <SystemSettings /> },
+      { 
+        path: 'users', 
+        element: (
+          <RoleGuard roles={['SystemAdmin', 'MerchantAdmin']}>
+            <UserListView />
+          </RoleGuard>
+        ) 
+      },
+      { 
+        path: 'users/:id', 
+        element: (
+          <RoleGuard roles={['SystemAdmin', 'MerchantAdmin']}>
+            <UserDetailView />
+          </RoleGuard>
+        ) 
+      },
+      { 
+        path: 'roles', 
+        element: (
+          <RoleGuard roles={['SystemAdmin']}>
+            <RoleListView />
+          </RoleGuard>
+        ) 
+      },
+      { 
+        path: 'roles/:id', 
+        element: (
+          <RoleGuard roles={['SystemAdmin']}>
+            <RoleDetailView />
+          </RoleGuard>
+        ) 
+      },
+      { 
+        path: 'merchants', 
+        element: (
+          <RoleGuard roles={['SystemAdmin']}>
+            <MerchantListView />
+          </RoleGuard>
+        ) 
+      },
+      { 
+        path: 'merchants/:id', 
+        element: (
+          <RoleGuard roles={['SystemAdmin']}>
+            <MerchantDetailView />
+          </RoleGuard>
+        ) 
+      },
+      { 
+        path: 'terminals', 
+        element: (
+          <RoleGuard roles={['SystemAdmin', 'MerchantAdmin']}>
+            <TerminalList />
+          </RoleGuard>
+        ) 
+      },
+      { 
+        path: 'terminals/:id', 
+        element: (
+          <RoleGuard roles={['SystemAdmin', 'MerchantAdmin']}>
+            <TerminalDetail />
+          </RoleGuard>
+        ) 
+      },
+      { 
+        path: 'terminals/:id/events', 
+        element: (
+          <RoleGuard roles={['SystemAdmin', 'MerchantAdmin']}>
+            <TerminalEvents />
+          </RoleGuard>
+        ) 
+      },
+      { 
+        path: 'files', 
+        element: (
+          <RoleGuard roles={['SystemAdmin', 'MerchantAdmin']}>
+            <FileManagementView />
+          </RoleGuard>
+        ) 
+      },
+      { 
+        path: 'files/types', 
+        element: (
+          <RoleGuard roles={['SystemAdmin', 'MerchantAdmin']}>
+            <FileTypeList />
+          </RoleGuard>
+        ) 
+      },
+      { 
+        path: 'files/versions', 
+        element: (
+          <RoleGuard roles={['SystemAdmin', 'MerchantAdmin']}>
+            <FileVersionList />
+          </RoleGuard>
+        ) 
+      },
+      { 
+        path: 'files/publish', 
+        element: (
+          <RoleGuard roles={['SystemAdmin', 'MerchantAdmin']}>
+            <FilePublish />
+          </RoleGuard>
+        ) 
+      },
+      { 
+        path: 'files/publish-list', 
+        element: (
+          <RoleGuard roles={['SystemAdmin', 'MerchantAdmin']}>
+            <FilePublishList />
+          </RoleGuard>
+        ) 
+      },
+      { 
+        path: 'messages/types', 
+        element: (
+          <RoleGuard roles={['SystemAdmin', 'MerchantAdmin']}>
+            <MessageTypeList />
+          </RoleGuard>
+        ) 
+      },
+      { 
+        path: 'messages/send', 
+        element: (
+          <RoleGuard roles={['SystemAdmin', 'MerchantAdmin']}>
+            <MessageSend />
+          </RoleGuard>
+        ) 
+      },
+      { 
+        path: 'messages', 
+        element: (
+          <RoleGuard roles={['SystemAdmin', 'MerchantAdmin']}>
+            <MessageList />
+          </RoleGuard>
+        ) 
+      },
+      { 
+        path: 'settings', 
+        element: (
+          <RoleGuard roles={['SystemAdmin']}>
+            <SystemSettings />
+          </RoleGuard>
+        ) 
+      },
       { path: '404', element: <NotFoundView /> },
       { path: '*', element: <Navigate to="/app/404" /> }
     ]

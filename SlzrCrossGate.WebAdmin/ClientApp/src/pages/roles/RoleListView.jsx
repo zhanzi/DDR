@@ -167,16 +167,31 @@ const RoleListView = () => {
                             <EditIcon fontSize="small" />
                           </IconButton>
                         </Tooltip>
-                        <Tooltip title="删除">
-                          <IconButton
-                            onClick={() => handleOpenDeleteDialog(role)}
-                            size="small"
-                            color="error"
-                            disabled={role.name === 'SystemAdmin' || role.name === 'MerchantAdmin' || role.name === 'User'}
-                          >
-                            <DeleteIcon fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
+                        {role.name === 'SystemAdmin' || role.name === 'MerchantAdmin' || role.name === 'User' ? (
+                          // 对于禁用的按钮，使用span包装Tooltip，解决MUI警告
+                          <Tooltip title="系统角色无法删除">
+                            <span>
+                              <IconButton
+                                size="small"
+                                color="error"
+                                disabled={true}
+                              >
+                                <DeleteIcon fontSize="small" />
+                              </IconButton>
+                            </span>
+                          </Tooltip>
+                        ) : (
+                          // 正常的可点击按钮
+                          <Tooltip title="删除">
+                            <IconButton
+                              onClick={() => handleOpenDeleteDialog(role)}
+                              size="small"
+                              color="error"
+                            >
+                              <DeleteIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                        )}
                       </TableCell>
                     </TableRow>
                   ))}

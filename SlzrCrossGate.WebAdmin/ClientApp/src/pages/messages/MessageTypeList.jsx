@@ -167,20 +167,13 @@ const MessageTypeList = () => {
       codeType: messageType.codeType || 2, // 使用数字枚举值，默认为2(HEX)
       exampleMessage: messageType.exampleMessage || '' // 消息示例
     });
-    
-    // 当打开编辑对话框时，需要加载并设置当前选中的商户
-    try {
-      const response = await merchantAPI.getMerchants({ 
-        pageSize: 1,
-        merchantID: messageType.merchantId 
-      });
-      if (response.items && response.items.length > 0) {
-        setDialogSelectedMerchant(response.items[0]);
-      }
-    } catch (error) {
-      console.error('Error loading merchant for edit:', error);
-    }
-    
+    // 构造商户对象
+  if (messageType.merchantID && messageType.merchantName) {
+    setDialogSelectedMerchant({
+      merchantID: messageType.merchantID,
+      name: messageType.merchantName
+    });
+  }
     setDialogError('');
     setOpenDialog(true);
   };

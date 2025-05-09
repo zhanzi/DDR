@@ -142,6 +142,8 @@ export const userAPI = {
   lockUser: (id, data) => api.post(`/users/${id}/lock`, data),
   unlockUser: (id) => api.post(`/users/${id}/unlock`),
   resetTwoFactor: (id) => api.post(`/users/${id}/reset-two-factor`),
+  // 获取当前用户信息
+  getCurrentUser: () => api.get('/users/CurrentUser'),
 };
 
 // 角色相关API
@@ -182,6 +184,7 @@ export const terminalAPI = {
     api.post('/Terminals/SendMessage', { terminalIds, messageTypeId, content }),
   publishFile: (terminalIds, fileVersionId) =>
     api.post('/Terminals/PublishFile', { terminalIds, fileVersionId }),
+  getTerminalStats: (params) => api.get(`/Terminals/Stats`,{ params }),
 };
 
 // 文件相关API
@@ -260,6 +263,10 @@ export const dashboardAPI = {
   getMerchantDashboard: () => api.get('/Dashboard/Merchant'),
   getPlatformDashboard: () => api.get('/Dashboard/Platform'),
   getServerLogs: (params) => api.get('/Dashboard/ServerLogs', { params }),
+  // 添加新的方法以匹配实际调用路径
+  getMerchantStats: (params) => api.get('/Dashboard/MerchantStats', { params }),
+  getPlatformStats: () => api.get('/Dashboard/PlatformStats'),
+  getSystemInfo: () => api.get('/Dashboard/SystemInfo'),
 };
 
 // 系统设置相关API

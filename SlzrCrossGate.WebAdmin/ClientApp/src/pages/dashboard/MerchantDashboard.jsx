@@ -15,11 +15,7 @@ import {
   TableContainer,
   TableHead,
   TableRow,
-  Chip,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem
+  Chip
 } from '@mui/material';
 import {
   Refresh as RefreshIcon,
@@ -31,7 +27,8 @@ import {
   Cancel as CancelIcon
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import { dashboardAPI, merchantAPI } from '../../services/api'; // 使用统一的API服务
+import MerchantAutocomplete from '../../components/MerchantAutocomplete';
 import { format } from 'date-fns';
 import {
   BarChart,
@@ -54,18 +51,19 @@ const MerchantDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [dashboardData, setDashboardData] = useState(null);
   const [merchants, setMerchants] = useState([]);
-  const [selectedMerchant, setSelectedMerchant] = useState('');
+  const [selectedMerchant, setSelectedMerchant] = useState(null);
   const [error, setError] = useState('');
 
   // 加载商户列表
   const loadMerchants = async () => {
     try {
-      const response = await axios.get('/api/Merchants');
-      setMerchants(response.data.items);
+      // 使用merchantAPI替换直接的axios调用
+      const response = await merchantAPI.getMerchants();
+      setMerchants(response.items);
 
       // 如果有商户，默认选择第一个
-      if (response.data.items.length > 0) {
-        setSelectedMerchant(response.data.items[0].id);
+      if (response.items && response.items.length > 0) {
+        setSelectedMerchant(response.items[0]);
       }
     } catch (error) {
       console.error('Error loading merchants:', error);
@@ -75,16 +73,15 @@ const MerchantDashboard = () => {
 
   // 加载仪表盘数据
   const loadDashboardData = async () => {
-    if (!selectedMerchant) return;
+    if (!selectedMerchant?.merchantID) return;
 
     setLoading(true);
     setError('');
 
     try {
-      const response = await axios.get('/api/Dashboard/MerchantStats', {
-        params: { merchantId: selectedMerchant }
-      });
-      setDashboardData(response.data);
+      // 使用dashboardAPI替换直接的axios调用
+      const response = await dashboardAPI.getMerchantStats({ merchantId: selectedMerchant.merchantID });
+      setDashboardData(response);
     } catch (error) {
       console.error('Error loading dashboard data:', error);
       setError('加载仪表盘数据失败');
@@ -98,14 +95,14 @@ const MerchantDashboard = () => {
   }, []);
 
   useEffect(() => {
-    if (selectedMerchant) {
+    if (selectedMerchant?.merchantID) {
       loadDashboardData();
     }
   }, [selectedMerchant]);
 
   // 处理商户选择变更
-  const handleMerchantChange = (event) => {
-    setSelectedMerchant(event.target.value);
+  const handleMerchantChange = (event, newValue) => {
+    setSelectedMerchant(newValue);
   };
 
   // 获取事件类型的显示样式
@@ -206,20 +203,13 @@ const MerchantDashboard = () => {
             </Typography>
           </Grid>
           <Grid item xs={12} md={4}>
-            <FormControl fullWidth>
-              <InputLabel>选择商户</InputLabel>
-              <Select
-                value={selectedMerchant}
-                onChange={handleMerchantChange}
-                label="选择商户"
-              >
-                {merchants.map((merchant) => (
-                  <MenuItem key={merchant.id} value={merchant.id}>
-                    {merchant.name || merchant.id}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
+            <MerchantAutocomplete
+              value={selectedMerchant}
+              onChange={handleMerchantChange}
+              merchants={merchants}
+              label="选择商户"
+              size="medium"
+            />
           </Grid>
           <Grid item xs={12} md={2}>
             <Button
@@ -235,11 +225,11 @@ const MerchantDashboard = () => {
           </Grid>
         </Grid>
 
-        {loading && !dashboardData ? (
+        {loading && !dashboardData && selectedMerchant ? (
           <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
             <CircularProgress />
           </Box>
-        ) : dashboardData ? (
+        ) : dashboardData && selectedMerchant ? (
           <>
             {/* 统计卡片 */}
             <Grid container spacing={3} sx={{ mb: 3 }}>

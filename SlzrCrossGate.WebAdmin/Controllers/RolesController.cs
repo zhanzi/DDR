@@ -9,7 +9,6 @@ namespace SlzrCrossGate.WebAdmin.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    [Authorize(Roles = "SystemAdmin")]
     public class RolesController(RoleManager<ApplicationRole> roleManager, UserManager<ApplicationUser> userManager, ILogger<RolesController> logger) : ControllerBase
     {
         private readonly RoleManager<ApplicationRole> _roleManager = roleManager;
@@ -18,11 +17,19 @@ namespace SlzrCrossGate.WebAdmin.Controllers
 
         // GET: api/roles
         [HttpGet]
+        [Authorize(Roles = "SystemAdmin,MerchantAdmin")]
         public async Task<ActionResult<IEnumerable<RoleDto>>> GetRoles()
         {
             try
             {
-                var roles = await _roleManager.Roles.ToListAsync();
+                var isSystemAdmin = User.IsInRole("SystemAdmin");
+                var roles = _roleManager.Roles.AsQueryable();
+                if (!isSystemAdmin)
+                {
+                    // 如果不是系统管理员，则只获取非系统管理员角色
+                    roles = roles.Where(r => r.IsSysAdmin == false);
+                }
+
                 var roleDtos = roles.Select(r => new RoleDto
                 {
                     Id = r.Id,
@@ -42,6 +49,7 @@ namespace SlzrCrossGate.WebAdmin.Controllers
 
         // GET: api/roles/{id}
         [HttpGet("{id}")]
+        [Authorize(Roles = "SystemAdmin")]
         public async Task<ActionResult<RoleDto>> GetRole(string id)
         {
             try
@@ -69,6 +77,7 @@ namespace SlzrCrossGate.WebAdmin.Controllers
 
         // POST: api/roles
         [HttpPost]
+        [Authorize(Roles = "SystemAdmin")]
         public async Task<ActionResult<RoleDto>> CreateRole([FromBody] CreateRoleDto createRoleDto)
         {
             try
@@ -110,6 +119,7 @@ namespace SlzrCrossGate.WebAdmin.Controllers
 
         // PUT: api/roles/{id}
         [HttpPut("{id}")]
+        [Authorize(Roles = "SystemAdmin")]
         public async Task<IActionResult> UpdateRole(string id, [FromBody] UpdateRoleDto updateRoleDto)
         {
             try
@@ -158,6 +168,7 @@ namespace SlzrCrossGate.WebAdmin.Controllers
 
         // DELETE: api/roles/{id}
         [HttpDelete("{id}")]
+        [Authorize(Roles = "SystemAdmin")]
         public async Task<IActionResult> DeleteRole(string id)
         {
             try
@@ -198,6 +209,7 @@ namespace SlzrCrossGate.WebAdmin.Controllers
 
         // GET: api/roles/{id}/users
         [HttpGet("{id}/users")]
+        [Authorize(Roles = "SystemAdmin")]
         public async Task<ActionResult<IEnumerable<RoleUserDto>>> GetUsersInRole(string id, [FromQuery] int page = 1, [FromQuery] int pageSize = 10)
         {
             try
@@ -255,6 +267,7 @@ namespace SlzrCrossGate.WebAdmin.Controllers
             }
         }
 
+        [Authorize(Roles = "SystemAdmin")]
         // 判断是否是系统预定义角色
         private static bool IsSystemDefinedRole(string? roleName)
         {

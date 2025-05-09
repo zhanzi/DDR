@@ -12,7 +12,6 @@ namespace SlzrCrossGate.WebAdmin.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize(Roles = "SystemAdmin")]
     public class SystemSettingsController : ControllerBase
     {
         private readonly SystemSettingsService _settingsService;
@@ -31,6 +30,7 @@ namespace SlzrCrossGate.WebAdmin.Controllers
 
         // GET: api/SystemSettings
         [HttpGet]
+        [Authorize]
         public async Task<ActionResult<SystemSettings>> GetSettings()
         {
             try
@@ -47,6 +47,7 @@ namespace SlzrCrossGate.WebAdmin.Controllers
 
         // PUT: api/SystemSettings
         [HttpPut]
+        [Authorize(Roles = "SystemAdmin")]
         public async Task<ActionResult<SystemSettings>> UpdateSettings(SystemSettings settings)
         {
             try

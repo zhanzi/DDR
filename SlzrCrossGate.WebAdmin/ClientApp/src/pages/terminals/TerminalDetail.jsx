@@ -30,7 +30,7 @@ import {
   History as HistoryIcon
 } from '@mui/icons-material';
 import { useParams, useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import { terminalAPI } from '../../services/api'; // 替换axios导入为terminalAPI
 import { format } from 'date-fns';
 
 const TerminalDetail = () => {
@@ -45,8 +45,8 @@ const TerminalDetail = () => {
     setLoading(true);
     setError(null);
     try {
-      const response = await axios.get(`/api/Terminals/${id}`);
-      setTerminal(response.data);
+      const response = await terminalAPI.getTerminal(id); // 使用terminalAPI代替axios
+      setTerminal(response);
     } catch (error) {
       console.error('Error loading terminal:', error);
       setError('加载终端信息失败');

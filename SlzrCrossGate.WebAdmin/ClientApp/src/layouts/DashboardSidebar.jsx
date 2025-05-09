@@ -31,52 +31,62 @@ const items = [
   {
     href: '/app/dashboard',
     icon: BarChartIcon,
-    title: '仪表盘'
+    title: '仪表盘',
+    roles: [] // 空数组表示所有角色可见
   },
   {
     href: '/app/account',
     icon: UserIcon,
-    title: '账户设置'
+    title: '账户设置',
+    roles: [] // 所有角色可见
   },
   {
     href: '/app/users',
     icon: UsersIcon,
-    title: '用户管理'
+    title: '用户管理',
+    roles: ['SystemAdmin', 'MerchantAdmin'] // 仅系统管理员和商户管理员可见
   },
   {
     href: '/app/roles',
     icon: LockIcon,
-    title: '角色管理'
+    title: '角色管理',
+    roles: ['SystemAdmin'] // 仅系统管理员可见
   },
   {
     href: '/app/merchants',
     icon: ShoppingBagIcon,
-    title: '商户管理'
+    title: '商户管理',
+    roles: ['SystemAdmin'] // 仅系统管理员可见
   },
   {
     href: '/app/terminals',
     icon: ServerIcon,
-    title: '终端管理'
+    title: '终端管理',
+    roles: []
   },
   {
     href: '/app/files',
     icon: FileTextIcon,
-    title: '文件管理'
+    title: '文件管理',
+    roles: [] 
   },
   {
     href: '/app/messages',
     icon: MessageCircleIcon,
-    title: '消息管理'
+    title: '消息管理',
+    roles: [] 
   },
   {
     href: '/app/monitor',
     icon: MonitorIcon,
-    title: '系统监控'
+    title: '系统监控',
+    roles: ['SystemAdmin'] 
   },
   {
     href: '/app/settings',
     icon: SettingsIcon,
-    title: '系统设置'
+    title: '系统设置',
+    roles: ['SystemAdmin']
   }
 ];
 
@@ -199,15 +209,30 @@ const DashboardSidebar = ({
       <Divider />
       <Box sx={{ p: isCollapsed && !isMobile ? 1 : 2 }}>
         <List>
-          {items.map((item) => (
-            <NavItem
-              href={item.href}
-              key={item.title}
-              title={item.title}
-              icon={item.icon}
-              isCollapsed={isCollapsed && !isMobile}
-            />
-          ))}
+          {items
+            .filter(item => {
+              // 如果没有指定角色限制或数组为空，所有用户可见
+              if (!item.roles || item.roles.length === 0) {
+                return true;
+              }
+              
+              // 如果用户没有角色信息，只显示无角色限制的菜单
+              if (!user || !user.roles || user.roles.length === 0) {
+                return false;
+              }
+              
+              // 检查用户是否拥有所需角色
+              return item.roles.some(role => user.roles.includes(role));
+            })
+            .map((item) => (
+              <NavItem
+                href={item.href}
+                key={item.title}
+                title={item.title}
+                icon={item.icon}
+                isCollapsed={isCollapsed && !isMobile}
+              />
+            ))}
         </List>
       </Box>
       <Box sx={{ flexGrow: 1 }} />

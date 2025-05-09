@@ -38,7 +38,7 @@ import {
   GetApp as GetAppIcon
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import { terminalAPI, messageAPI, fileAPI } from '../../services/api'; // 使用API服务代替直接的axios
 import { format } from 'date-fns';
 
 const TerminalList = () => {
@@ -85,15 +85,15 @@ const TerminalList = () => {
         )
       };
 
-      const response = await axios.get('/api/Terminals', { params });
-      setTerminals(response.data.items);
-      setTotalCount(response.data.totalCount);
+      const response = await terminalAPI.getTerminals(params);
+      setTerminals(response.items);
+      setTotalCount(response.totalCount);
 
       // 加载统计数据
-      const statsResponse = await axios.get('/api/Terminals/stats', {
-        params: { merchantId: filters.merchantId || undefined }
+      const statsResponse = await terminalAPI.getTerminalStats({
+        merchantId: filters.merchantId || undefined
       });
-      setStats(statsResponse.data);
+      setStats(statsResponse);
     } catch (error) {
       console.error('Error loading terminals:', error);
     } finally {
@@ -104,8 +104,8 @@ const TerminalList = () => {
   // 加载消息类型
   const loadMessageTypes = async () => {
     try {
-      const response = await axios.get('/api/MessageTypes');
-      setMessageTypes(response.data);
+      const response = await messageAPI.getMessageTypes();
+      setMessageTypes(response.items || []);
     } catch (error) {
       console.error('Error loading message types:', error);
     }
@@ -114,8 +114,8 @@ const TerminalList = () => {
   // 加载文件版本
   const loadFileVersions = async () => {
     try {
-      const response = await axios.get('/api/FileVersions');
-      setFileVersions(response.data);
+      const response = await fileAPI.getFileVersions();
+      setFileVersions(response.items || []);
     } catch (error) {
       console.error('Error loading file versions:', error);
     }
@@ -172,11 +172,11 @@ const TerminalList = () => {
   // 发送消息
   const sendMessage = async () => {
     try {
-      await axios.post('/api/Terminals/SendMessage', {
-        terminalIds: selectedTerminals.map(t => t.id),
-        msgTypeCode: messageType,
-        content: messageContent
-      });
+      await terminalAPI.sendMessage(
+        selectedTerminals.map(t => t.id),
+        messageType,
+        messageContent
+      );
 
       setMessageDialog(false);
       setMessageType('');
@@ -198,10 +198,10 @@ const TerminalList = () => {
   // 发布文件
   const publishFile = async () => {
     try {
-      await axios.post('/api/Terminals/PublishFile', {
-        terminalIds: selectedTerminals.map(t => t.id),
-        fileVerId: fileVersion
-      });
+      await terminalAPI.publishFile(
+        selectedTerminals.map(t => t.id),
+        fileVersion
+      );
 
       setFileDialog(false);
       setFileVersion('');
@@ -410,7 +410,7 @@ const TerminalList = () => {
               <TableRow>
                 <TableCell>终端ID</TableCell>
                 <TableCell>商户ID</TableCell>
-                <TableCell>机器ID</TableCell>
+                <TableCell>出厂序列号</TableCell>
                 <TableCell>设备编号</TableCell>
                 <TableCell>线路编号</TableCell>
                 <TableCell>终端类型</TableCell>

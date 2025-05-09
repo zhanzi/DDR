@@ -389,14 +389,15 @@ const MessageList = () => {
         >
           消息类型管理
         </Button>
-        <Button
+        {(false && <Button
+
           variant="contained"
           color="secondary"
           startIcon={<MessageIcon />}
           onClick={goToSendMessage}
         >
           发送消息
-        </Button>
+        </Button>)}
       </Box>
 
       {/* 消息列表 */}

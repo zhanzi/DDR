@@ -10,7 +10,7 @@ import {
   Business as BusinessIcon,
   Dashboard as DashboardIcon
 } from '@mui/icons-material';
-import axios from 'axios';
+import { userAPI } from '../../services/api'; // 使用统一的API服务
 import MerchantDashboard from './MerchantDashboard';
 import PlatformDashboard from './PlatformDashboard';
 
@@ -21,8 +21,9 @@ const DashboardView = () => {
   // 检查当前用户是否为系统管理员
   const checkUserRole = async () => {
     try {
-      const response = await axios.get('/api/Users/CurrentUser');
-      const roles = response.data.roles || [];
+      // 使用userAPI替换直接的axios调用
+      const response = await userAPI.getCurrentUser();
+      const roles = response.roles || [];
       setIsSystemAdmin(roles.includes('SystemAdmin'));
       
       // 如果是系统管理员，默认显示平台仪表盘
