@@ -275,4 +275,16 @@ export const systemSettingsAPI = {
   updateSettings: (data) => api.put('/SystemSettings', data),
 };
 
+// 商户字典相关API
+export const dictionaryAPI = {
+  getDictionaries: (params) => api.get('/MerchantDictionary', { params }),
+  getDictionary: (id) => api.get(`/MerchantDictionary/${id}`),
+  createDictionary: (data) => api.post('/MerchantDictionary', data),
+  updateDictionary: (id, data) => api.put(`/MerchantDictionary/${id}`, data),
+  deleteDictionary: (id) => api.delete(`/MerchantDictionary/${id}`),
+  getDictionaryTypes: (merchantId) => api.get(`/MerchantDictionary/Types/${merchantId}`),
+  getDictionariesByType: (merchantId, dictionaryType) =>
+    api.get(`/MerchantDictionary/ByType?merchantId=${merchantId}&dictionaryType=${dictionaryType}`),
+};
+
 export default api;

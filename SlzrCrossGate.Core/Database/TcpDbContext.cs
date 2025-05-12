@@ -28,8 +28,9 @@ namespace SlzrCrossGate.Core.Database
         public DbSet<TerminalStatus> TerminalStatuses { get; set; }
         public DbSet<UploadFile> UploadFiles { get; set; }
         public DbSet<ConsumeData> ConsumeDatas { get; set; }
-        public DbSet<UnionPayTerminalKey> UnionPayTerminalKeys { get; set; }
+        public DbSet<UnionPayTerminalKey> UnionPayTerminalKeys { get; set; }        
         public DbSet<IncrementContent> IncrementContents { get; set; }
+        public DbSet<MerchantDictionary> MerchantDictionaries { get; set; }
 
         public DbSet<ApplicationUser> ApplicationUsers { get; set; }
         public DbSet<ApplicationRole> ApplicationRoles { get; set; }
@@ -147,11 +148,23 @@ namespace SlzrCrossGate.Core.Database
                 builder.HasKey(e => new { e.ID }).IsClustered();
                 builder.HasIndex(e => new { e.MerchantID, e.MachineID });
                 builder.HasIndex(e => new { e.MerchantID, e.IsInUse });
-            });    
-
-            modelBuilder.Entity<SystemSettings>(builder=>
+            });            modelBuilder.Entity<SystemSettings>(builder=>
             {
                 builder.HasKey(e => new { e.Id }).IsClustered();
+            });
+            
+            modelBuilder.Entity<MerchantDictionary>(builder=>
+            {
+                builder.HasKey(e => new { e.ID }).IsClustered();
+                // 复合唯一索引：(MerchantID, DictionaryType, DictionaryCode)
+                builder.HasIndex(e => new { e.MerchantID, e.DictionaryType, e.DictionaryCode }).IsUnique();
+                // 辅助索引：按商户和字典类型查询
+                builder.HasIndex(e => new { e.MerchantID, e.DictionaryType });
+                // 外键关系
+                builder.HasOne(e => e.Merchant)
+                      .WithMany()
+                      .HasForeignKey(e => e.MerchantID)
+                      .OnDelete(DeleteBehavior.Cascade);
             });
 
             //// 配置租户隔离

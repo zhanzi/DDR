@@ -35,6 +35,7 @@ import MessageSend from './pages/messages/MessageSend';
 import MessageList from './pages/messages/MessageList';
 import AccountView from './pages/account/AccountView';
 import SystemSettings from './pages/settings/SystemSettings';
+import DictionaryListView from './pages/dictionary/DictionaryListView';
 
 const routes = [
   {
@@ -180,6 +181,14 @@ const routes = [
         element: (
           <RoleGuard roles={['SystemAdmin', 'MerchantAdmin']}>
             <MessageList />
+          </RoleGuard>
+        ) 
+      },
+      { 
+        path: 'dictionary', 
+        element: (
+          <RoleGuard roles={['SystemAdmin', 'MerchantAdmin']}>
+            <DictionaryListView />
           </RoleGuard>
         ) 
       },

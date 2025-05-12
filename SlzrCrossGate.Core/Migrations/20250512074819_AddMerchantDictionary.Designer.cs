@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using SlzrCrossGate.Core.Database;
 
@@ -11,9 +12,11 @@ using SlzrCrossGate.Core.Database;
 namespace SlzrCrossGate.Core.Migrations
 {
     [DbContext(typeof(TcpDbContext))]
-    partial class TcpDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250512074819_AddMerchantDictionary")]
+    partial class AddMerchantDictionary
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -657,10 +660,6 @@ namespace SlzrCrossGate.Core.Migrations
 
                     b.Property<string>("DictionaryCode")
                         .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("varchar(50)");
-
-                    b.Property<string>("DictionaryLabel")
                         .HasMaxLength(50)
                         .HasColumnType("varchar(50)");
 

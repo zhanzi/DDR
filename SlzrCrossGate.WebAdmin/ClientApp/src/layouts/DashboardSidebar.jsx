@@ -77,6 +77,12 @@ const items = [
     roles: [] 
   },
   {
+    href: '/app/dictionary',
+    icon: FileTextIcon,
+    title: '商户字典',
+    roles: ['SystemAdmin', 'MerchantAdmin'] 
+  },
+  {
     href: '/app/monitor',
     icon: MonitorIcon,
     title: '系统监控',
