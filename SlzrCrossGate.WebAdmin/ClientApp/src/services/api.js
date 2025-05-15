@@ -159,7 +159,13 @@ export const roleAPI = {
 // 商户相关API
 export const merchantAPI = {
   getMerchants: (params) => api.get('/merchants', { params }),
-  getMerchant: (id) => api.get(`/merchants/${id}`),
+  getMerchant: (id) => {
+    if (!id) {
+      console.error("尝试获取商户详情但ID为空");
+      return Promise.reject(new Error("商户ID不能为空"));
+    }
+    return api.get(`/merchants/${id}`);
+  },
   createMerchant: (data) => api.post('/merchants', data),
   updateMerchant: (id, data) => api.put(`/merchants/${id}`, data),
   deleteMerchant: (id) => api.delete(`/merchants/${id}`),
@@ -273,6 +279,42 @@ export const dashboardAPI = {
 export const systemSettingsAPI = {
   getSettings: () => api.get('/SystemSettings'),
   updateSettings: (data) => api.put('/SystemSettings', data),
+};
+
+// 线路票价参数相关API
+export const linePriceAPI = {
+  // 线路票价基本信息
+  getLinePrices: (params) => api.get('/LinePrice', { params }),
+  getLinePrice: (id) => api.get(`/LinePrice/${id}`),
+  createLinePrice: (data) => api.post('/LinePrice', data),
+  updateLinePrice: (id, data) => api.put(`/LinePrice/${id}`, data),
+  deleteLinePrice: (id) => api.delete(`/LinePrice/${id}`),
+
+  // 线路票价版本
+  getLinePriceVersions: (linePriceInfoId, params) => 
+    api.get(`/LinePrice/${linePriceInfoId}/Versions`, { params }),
+  getLinePriceVersion: (versionId) => 
+    api.get(`/LinePrice/Versions/${versionId}`),
+  createLinePriceVersion: (linePriceInfoId, data) => 
+    api.post(`/LinePrice/${linePriceInfoId}/Versions`, data),
+  updateLinePriceVersion: (versionId, data) => 
+    api.put(`/LinePrice/Versions/${versionId}`, data),
+  copyLinePriceVersion: (versionId) => 
+    api.post(`/LinePrice/Versions/${versionId}/CopyCreate`),
+  deleteLinePriceVersion: (versionId) => 
+    api.delete(`/LinePrice/Versions/${versionId}`),
+    
+  // 票价文件操作
+  previewLinePriceFile: (versionId, data) => 
+    api.post(`/LinePrice/Versions/${versionId}/Preview`, data),
+  submitLinePriceVersion: (versionId, data) => 
+    api.post(`/LinePrice/Versions/${versionId}/Submit`, data),
+  publishLinePriceFile: (versionId, data) => 
+    api.post(`/LinePrice/Versions/${versionId}/Publish`, data),
+  
+  // 字典配置
+  getDictionaryConfig: (merchantId, dictionaryType) =>
+    api.get(`/LinePrice/DictionaryConfig/${merchantId}/${dictionaryType}`),
 };
 
 // 商户字典相关API

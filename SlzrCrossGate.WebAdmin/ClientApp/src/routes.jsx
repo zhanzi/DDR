@@ -36,6 +36,11 @@ import MessageList from './pages/messages/MessageList';
 import AccountView from './pages/account/AccountView';
 import SystemSettings from './pages/settings/SystemSettings';
 import DictionaryListView from './pages/dictionary/DictionaryListView';
+import LinePriceListView from './pages/fare-params/LinePriceListView';
+import LinePriceEditView from './pages/fare-params/LinePriceEditView';
+import LinePriceVersionsView from './pages/fare-params/LinePriceVersionsView';
+import LinePriceVersionEditView from './pages/fare-params/LinePriceVersionEditView';
+import LinePricePreviewView from './pages/fare-params/LinePricePreviewView';
 
 const routes = [
   {
@@ -189,6 +194,47 @@ const routes = [
         element: (
           <RoleGuard roles={['SystemAdmin', 'MerchantAdmin']}>
             <DictionaryListView />
+          </RoleGuard>
+        ) 
+      },
+      { 
+        path: 'fare-params', 
+        element: (
+          <RoleGuard roles={['SystemAdmin', 'MerchantAdmin']}>
+            <LinePriceListView />
+          </RoleGuard>
+        ) 
+      },
+
+      { 
+        path: 'fare-params/:id', 
+        element: (
+          <RoleGuard roles={['SystemAdmin', 'MerchantAdmin']}>
+            <LinePriceEditView />
+          </RoleGuard>
+        ) 
+      },
+      { 
+        path: 'fare-params/:id/versions', 
+        element: (
+          <RoleGuard roles={['SystemAdmin', 'MerchantAdmin']}>
+            <LinePriceVersionsView />
+          </RoleGuard>
+        ) 
+      },
+      { 
+        path: 'fare-params/:id/versions/:versionId', 
+        element: (
+          <RoleGuard roles={['SystemAdmin', 'MerchantAdmin']}>
+            <LinePriceVersionEditView />
+          </RoleGuard>
+        ) 
+      },
+      { 
+        path: 'fare-params/:id/versions/:versionId/preview', 
+        element: (
+          <RoleGuard roles={['SystemAdmin', 'MerchantAdmin']}>
+            <LinePricePreviewView />
           </RoleGuard>
         ) 
       },

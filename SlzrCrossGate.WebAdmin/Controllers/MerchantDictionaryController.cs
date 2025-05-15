@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SlzrCrossGate.Core.Database;
 using SlzrCrossGate.Core.Models;
+using SlzrCrossGate.WebAdmin.DTOs;
 using System.ComponentModel.DataAnnotations;
 
 namespace SlzrCrossGate.WebAdmin.Controllers
@@ -25,11 +26,9 @@ namespace SlzrCrossGate.WebAdmin.Controllers
             _dbContext = dbContext;
             _userManager = userManager;
             _logger = logger;
-        }
-
-        // GET: api/MerchantDictionary
+        }        // GET: api/MerchantDictionary
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<MerchantDictionaryDto>>> GetDictionaries(
+        public async Task<ActionResult<PaginatedResult<MerchantDictionaryDto>>> GetDictionaries(
             [FromQuery] string? merchantId,
             [FromQuery] string? dictionaryType,
             [FromQuery] string? search,
@@ -67,7 +66,9 @@ namespace SlzrCrossGate.WebAdmin.Controllers
                 if (!string.IsNullOrEmpty(dictionaryType))
                 {
                     query = query.Where(d => d.DictionaryType == dictionaryType);
-                }                // 搜索条件
+                }                
+                
+                // 搜索条件
                 if (!string.IsNullOrEmpty(search))
                 {
                     query = query.Where(d =>
@@ -79,7 +80,9 @@ namespace SlzrCrossGate.WebAdmin.Controllers
                 }
 
                 // 计算总数
-                var totalCount = await query.CountAsync();                // 分页和排序
+                var totalCount = await query.CountAsync();                
+                
+                // 分页和排序
                 var dictionaries = await query
                     .OrderBy(d => d.MerchantID)
                     .ThenBy(d => d.DictionaryType)
@@ -125,11 +128,14 @@ namespace SlzrCrossGate.WebAdmin.Controllers
                     }
                 }
 
-                // 设置分页响应头
-                Response.Headers.Append("X-Total-Count", totalCount.ToString());
-                Response.Headers.Append("X-Total-Pages", Math.Ceiling((double)totalCount / pageSize).ToString());
-
-                return dictionaries;
+                // 返回分页结果
+                return new PaginatedResult<MerchantDictionaryDto>
+                {
+                    Items = dictionaries,
+                    TotalCount = totalCount,
+                    Page = page,
+                    PageSize = pageSize
+                };
             }
             catch (Exception ex)
             {

@@ -56,6 +56,7 @@
 - 项目使用.NET 8和EntityFramework Core 8，安装依赖时需确保版本兼容性。
 - API endpoints in the WebAdmin project use PascalCase naming convention (e.g., 'api/SystemSettings') rather than kebab-case (e.g., 'api/system-settings').
 - WebAdmin项目后端应使用HTTPS协议启动，而非HTTP。
+- 返回分页数据时统一使用PaginatedResult 类型的分页数据格式，包含总记录数、当前页码、每页记录数和数据列表。
 
 # WebAdmin 登录需求与安全
 - WebAdmin项目的登录需求包括双因素验证（用户名密码+动态口令）、可针对用户开关动态口令功能、新用户首次登录需引导绑定动态口令，以及微信扫码登录功能（无需动态口令验证）。

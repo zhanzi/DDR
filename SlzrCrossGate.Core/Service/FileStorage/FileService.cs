@@ -1,7 +1,6 @@
 using System;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Http.Internal;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using SlzrCrossGate.Core.Services.BusinessServices;
@@ -43,6 +42,17 @@ namespace SlzrCrossGate.Core.Service.FileStorage
             }
         }
 
+        public async Task<string> SaveTemporaryFile(byte[] file, string filename, string uploadedBy, string storageType = "")
+        {
+            using var memoryStream = new MemoryStream(file);
+            var formFile = new FormFile(memoryStream, 0, file.Length, null, filename)
+            {
+                Headers = new HeaderDictionary(),
+                ContentType = "application/octet-stream"
+            };
+            return await UploadFileAsync(formFile, uploadedBy, storageType);
+        }
+
         public async Task<string> UploadFileAsync(string localFilePath, string uploadedBy, string storageType = "")
         {
             if (storageType == "") storageType = _default_storageType;
@@ -79,17 +89,17 @@ namespace SlzrCrossGate.Core.Service.FileStorage
 
                 if (filePath.StartsWith("minio://"))
                 {
-                    // MinIO ´æ´¢
+                    // MinIO ï¿½æ´¢
                     var minioFilePath = filePath.Substring("minio://".Length);
                     fileContent = await _minioFileStorage.GetFileContentAsync(minioFilePath);
                 }
                 else
                 {
-                    // ±¾µØ´æ´¢
+                    // ï¿½ï¿½ï¿½Ø´æ´¢
                     fileContent = await _localFileStorage.GetFileContentAsync(filePath);
                 }
 
-                _cache.Set(cacheKey, fileContent, TimeSpan.FromMinutes(10)); // »º´æ10·ÖÖÓ
+                _cache.Set(cacheKey, fileContent, TimeSpan.FromMinutes(10)); // ï¿½ï¿½ï¿½ï¿½10ï¿½ï¿½ï¿½ï¿½
                 return fileContent;
             }
             catch (Exception ex)
@@ -123,7 +133,7 @@ namespace SlzrCrossGate.Core.Service.FileStorage
             byte[] fileSegment = new byte[length];
             Array.Copy(fileData, offset, fileSegment, 0, length);
 
-            _cache.Set(cacheKey, fileSegment, TimeSpan.FromMinutes(10)); // »º´æ10·ÖÖÓ
+            _cache.Set(cacheKey, fileSegment, TimeSpan.FromMinutes(10)); // ï¿½ï¿½ï¿½ï¿½10ï¿½ï¿½ï¿½ï¿½
 
             return fileSegment;
         }

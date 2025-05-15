@@ -95,7 +95,6 @@ const DictionaryListView = () => {
       enqueueSnackbar('加载字典类型失败', { variant: 'error' });
     }
   };
-
   const loadDictionaries = async () => {
     try {
       setLoading(true);
@@ -115,13 +114,9 @@ const DictionaryListView = () => {
 
       const response = await dictionaryAPI.getDictionaries(params);
       
-      // 获取响应头中的总数
-      const totalCountHeader = response.totalCount || response.length;
-      setTotalCount(totalCountHeader || 0);
-      
-      // 获取数据
-      const data = Array.isArray(response) ? response : (response.items || []);
-      setDictionaries(data);
+      // 使用标准化的分页结果格式
+      setTotalCount(response.totalCount || 0);
+      setDictionaries(response.items || []);
     } catch (error) {
       console.error('加载商户字典列表失败', error);
       enqueueSnackbar('加载商户字典列表失败', { variant: 'error' });

@@ -83,6 +83,12 @@ const items = [
     roles: ['SystemAdmin', 'MerchantAdmin'] 
   },
   {
+    href: '/app/fare-params',
+    icon: FileTextIcon,
+    title: '票价参数',
+    roles: ['SystemAdmin', 'MerchantAdmin'] 
+  },
+  {
     href: '/app/monitor',
     icon: MonitorIcon,
     title: '系统监控',

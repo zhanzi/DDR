@@ -1,11 +1,29 @@
 namespace SlzrCrossGate.Core.Models
 {
-    // ��������
+    /// <summary>
+    /// 发布类型选项
+    /// </summary>
     public enum PublishTypeOption
     {
         Merchant = 1,
         Line = 2,
         Terminal = 3
+    }
+
+    /// <summary>
+    /// 线路价格版本状态
+    /// </summary>
+    public enum LinePriceVersionStatus
+    {
+        /// <summary>
+        /// 草稿
+        /// </summary>
+        Draft = 0,
+        
+        /// <summary>
+        /// 已提交
+        /// </summary>
+        Submitted = 1
     }
 
 

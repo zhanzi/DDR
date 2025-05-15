@@ -29,8 +29,9 @@ namespace SlzrCrossGate.Core.Database
         public DbSet<UploadFile> UploadFiles { get; set; }
         public DbSet<ConsumeData> ConsumeDatas { get; set; }
         public DbSet<UnionPayTerminalKey> UnionPayTerminalKeys { get; set; }        
-        public DbSet<IncrementContent> IncrementContents { get; set; }
-        public DbSet<MerchantDictionary> MerchantDictionaries { get; set; }
+        public DbSet<IncrementContent> IncrementContents { get; set; }        public DbSet<MerchantDictionary> MerchantDictionaries { get; set; }
+        public DbSet<LinePriceInfo> LinePriceInfos { get; set; }
+        public DbSet<LinePriceInfoVersion> LinePriceInfoVersions { get; set; }
 
         public DbSet<ApplicationUser> ApplicationUsers { get; set; }
         public DbSet<ApplicationRole> ApplicationRoles { get; set; }
@@ -152,8 +153,7 @@ namespace SlzrCrossGate.Core.Database
             {
                 builder.HasKey(e => new { e.Id }).IsClustered();
             });
-            
-            modelBuilder.Entity<MerchantDictionary>(builder=>
+              modelBuilder.Entity<MerchantDictionary>(builder=>
             {
                 builder.HasKey(e => new { e.ID }).IsClustered();
                 // 复合唯一索引：(MerchantID, DictionaryType, DictionaryCode)
@@ -165,6 +165,49 @@ namespace SlzrCrossGate.Core.Database
                       .WithMany()
                       .HasForeignKey(e => e.MerchantID)
                       .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            modelBuilder.Entity<LinePriceInfo>(builder =>
+            {
+                builder.HasKey(e => new { e.ID }).IsClustered();
+                // 复合唯一索引：(MerchantID, LineNumber, GroupNumber)
+                builder.HasIndex(e => new { e.MerchantID, e.LineNumber, e.GroupNumber }).IsUnique();
+                // 外键关系
+                builder.HasOne(e => e.Merchant)
+                      .WithMany()
+                      .HasForeignKey(e => e.MerchantID)
+                      .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            modelBuilder.Entity<LinePriceInfoVersion>(builder =>
+            {
+                builder.HasKey(e => new { e.ID }).IsClustered();
+                // 索引：按商户和线路信息ID查询
+                builder.HasIndex(e => new { e.MerchantID, e.LinePriceInfoID });
+                // 索引：按商户、线路号和组号查询
+                builder.HasIndex(e => new { e.MerchantID, e.LineNumber, e.GroupNumber });
+                // 索引：按版本状态查询
+                builder.HasIndex(e => new { e.MerchantID, e.Status });
+                // 外键关系
+                builder.HasOne(e => e.Merchant)
+                      .WithMany()
+                      .HasForeignKey(e => e.MerchantID)
+                      .OnDelete(DeleteBehavior.Cascade);
+                builder.HasOne(e => e.LinePriceInfo)
+                      .WithMany()
+                      .HasForeignKey(e => e.LinePriceInfoID)
+                      .OnDelete(DeleteBehavior.Cascade);
+                
+                // MySQL 配置 json字段配置
+                if (Database.IsMySql())
+                {
+                    builder.Property(e => e.ExtraParamsJson)
+                        .HasColumnType("json");
+                    builder.Property(e => e.CardDiscountInfoJson)
+                        .HasColumnType("json");
+                    builder.Property(e => e.FileContentJson)
+                        .HasColumnType("json");
+                }
             });
 
             //// 配置租户隔离
