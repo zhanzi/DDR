@@ -173,9 +173,8 @@ const LinePriceListView = () => {
       ),
     },
   ];
-
   return (
-    <Container maxWidth="xl">
+    <Container maxWidth="false">
       <Box sx={{ mb: 4 }}>
         <Typography variant="h4" gutterBottom>
           线路票价参数管理

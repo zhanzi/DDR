@@ -476,9 +476,8 @@ const LinePriceVersionsView = () => {
       </Container>
     );
   }
-
   return (
-    <Container maxWidth="xl">
+    <Container maxWidth="false">
       <Breadcrumbs sx={{ mb: 2 }}>
         <Link color="inherit" href="#" onClick={() => navigate('/app/fare-params')}>
           线路票价管理
