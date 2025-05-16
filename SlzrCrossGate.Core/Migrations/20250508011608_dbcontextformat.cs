@@ -5,7 +5,7 @@
 namespace SlzrCrossGate.Core.Migrations
 {
     /// <inheritdoc />
-    public partial class dbcontextformat : Migration
+    public partial class DbcontextFormat : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)

@@ -1229,6 +1229,9 @@ namespace SlzrCrossGate.Core.Migrations
 
                     b.HasIndex("MerchantID", "MachineID");
 
+                    b.HasIndex("UP_MerchantID", "UP_TerminalID")
+                        .IsUnique();
+
                     b.ToTable("UnionPayTerminalKeys");
                 });
 

@@ -40,7 +40,8 @@ namespace SlzrCrossGate.WebAdmin.Services
         }
 
         // 创建微信登录会话
-        public async Task<WechatLoginSession> CreateLoginSessionAsync()
+        // 创建微信登录会话（同步方法，无需async/await）
+        public Task<WechatLoginSession> CreateLoginSessionAsync()
         {
             try
             {
@@ -75,7 +76,7 @@ namespace SlzrCrossGate.WebAdmin.Services
                 // 存储会话
                 _loginSessions[loginId] = session;
 
-                return session;
+                return Task.FromResult(session);
             }
             catch (Exception ex)
             {

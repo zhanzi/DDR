@@ -13,7 +13,7 @@ namespace SlzrCrossGate.Core.Migrations
 {
     [DbContext(typeof(TcpDbContext))]
     [Migration("20250425131313_weichatlogin")]
-    partial class weichatlogin
+    partial class Weichatlogin
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)

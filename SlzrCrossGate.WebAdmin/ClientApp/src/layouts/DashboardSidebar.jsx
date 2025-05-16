@@ -21,7 +21,13 @@ import {
   MessageCircle as MessageCircleIcon,
   FileText as FileTextIcon,
   Monitor as MonitorIcon,
-  User as UserIcon
+  User as UserIcon,
+  CreditCard as CreditCardIcon,
+  Database as DatabaseIcon,
+  Archive as ArchiveIcon,
+  Book as BookIcon,
+  Smartphone as SmartphoneIcon,
+  Cpu as CpuIcon
 } from 'react-feather';
 import NavItem from './NavItem';
 import { useTheme } from '../contexts/ThemeContext';
@@ -33,6 +39,36 @@ const items = [
     icon: BarChartIcon,
     title: '仪表盘',
     roles: [] // 空数组表示所有角色可见
+  },
+  {
+    href: '/app/terminals',
+    icon: SmartphoneIcon,
+    title: '终端管理',
+    roles: []
+  },
+  {
+    href: '/app/files',
+    icon: ArchiveIcon,
+    title: '文件管理',
+    roles: [] 
+  },
+  {
+    href: '/app/messages',
+    icon: MessageCircleIcon,
+    title: '消息管理',
+    roles: [] 
+  },
+  {
+    href: '/app/fare-params',
+    icon: CreditCardIcon,
+    title: '票价参数',
+    roles: ['SystemAdmin', 'MerchantAdmin'] 
+  },
+  {
+    href: '/app/union-pay-terminal-keys',
+    icon: DatabaseIcon,
+    title: '银联密钥',
+    roles: ['SystemAdmin', 'MerchantAdmin']
   },
   {
     href: '/app/account',
@@ -59,33 +95,9 @@ const items = [
     roles: ['SystemAdmin'] // 仅系统管理员可见
   },
   {
-    href: '/app/terminals',
-    icon: ServerIcon,
-    title: '终端管理',
-    roles: []
-  },
-  {
-    href: '/app/files',
-    icon: FileTextIcon,
-    title: '文件管理',
-    roles: [] 
-  },
-  {
-    href: '/app/messages',
-    icon: MessageCircleIcon,
-    title: '消息管理',
-    roles: [] 
-  },
-  {
     href: '/app/dictionary',
-    icon: FileTextIcon,
+    icon: BookIcon,
     title: '商户字典',
-    roles: ['SystemAdmin', 'MerchantAdmin'] 
-  },
-  {
-    href: '/app/fare-params',
-    icon: FileTextIcon,
-    title: '票价参数',
     roles: ['SystemAdmin', 'MerchantAdmin'] 
   },
   {

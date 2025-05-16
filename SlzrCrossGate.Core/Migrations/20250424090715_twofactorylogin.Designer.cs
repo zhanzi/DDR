@@ -13,7 +13,7 @@ namespace SlzrCrossGate.Core.Migrations
 {
     [DbContext(typeof(TcpDbContext))]
     [Migration("20250424090715_twofactorylogin")]
-    partial class twofactorylogin
+    partial class TwoFactorLogin
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)

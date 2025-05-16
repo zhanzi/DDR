@@ -337,4 +337,23 @@ export const dictionaryAPI = {
     api.get(`/MerchantDictionary/ByType?merchantId=${merchantId}&dictionaryType=${dictionaryType}`),
 };
 
+// 银联终端密钥相关API
+export const unionPayTerminalKeyAPI = {
+  getUnionPayTerminalKeys: (params) => api.get('/UnionPayTerminalKeys', { params }),
+  getUnionPayTerminalKey: (id) => api.get(`/UnionPayTerminalKeys/${id}`),
+  createUnionPayTerminalKey: (data) => api.post('/UnionPayTerminalKeys', data),
+  updateUnionPayTerminalKey: (id, data) => api.put(`/UnionPayTerminalKeys/${id}`, data),
+  deleteUnionPayTerminalKey: (id) => api.delete(`/UnionPayTerminalKeys/${id}`),
+  // 导入银联终端密钥
+  importUnionPayTerminalKeys: (formData) => api.post('/UnionPayTerminalKeys/import', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  }),
+  // 下载导入模板
+  downloadTemplate: () => api.get('/UnionPayTerminalKeys/template', {
+    responseType: 'blob',
+  }),
+};
+
 export default api;

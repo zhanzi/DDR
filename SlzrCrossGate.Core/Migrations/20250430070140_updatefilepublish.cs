@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace SlzrCrossGate.Core.Migrations
 {
     /// <inheritdoc />
-    public partial class updatefilepublish : Migration
+    public partial class Updatefilepublish : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)

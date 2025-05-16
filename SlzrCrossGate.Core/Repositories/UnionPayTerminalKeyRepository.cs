@@ -9,8 +9,11 @@ using System.Threading.Tasks;
 
 namespace SlzrCrossGate.Core.Repositories
 {
-    public class UnionPayTerminalKeyRepository(TcpDbContext context) : Repository<UnionPayTerminalKey>(context)
+    public class UnionPayTerminalKeyRepository : Repository<UnionPayTerminalKey>
     {
+        public UnionPayTerminalKeyRepository(TcpDbContext context) : base(context)
+        {
+        }
         //绑定银联密钥
         public async Task<Tuple<bool,UnionPayTerminalKey?>> BindUnionPayKeyAsync(string merchantid, string machineid, string lineid, string busno)
         {
@@ -29,7 +32,7 @@ namespace SlzrCrossGate.Core.Repositories
                 bindkey.LineID = lineid;
                 try
                 {
-                    context.SaveChanges();
+                    this._context.SaveChanges();
                     return new Tuple<bool, UnionPayTerminalKey?>(true, bindkey);
                 }
                 catch (DbUpdateConcurrencyException)

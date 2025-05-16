@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace SlzrCrossGate.Core.Migrations
 {
     /// <inheritdoc />
-    public partial class weichatlogin : Migration
+    public partial class Weichatlogin : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)

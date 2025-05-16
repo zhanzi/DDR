@@ -42,6 +42,10 @@ import LinePriceVersionsView from './pages/fare-params/LinePriceVersionsView';
 import LinePriceVersionEditView from './pages/fare-params/LinePriceVersionEditView';
 import LinePricePreviewView from './pages/fare-params/LinePricePreviewView';
 
+// 引入银联终端密钥管理页面
+import UnionPayTerminalKeyList from './pages/unionPayTerminalKeys/UnionPayTerminalKeyList'; 
+
+
 const routes = [
   {
     path: 'app',
@@ -245,6 +249,14 @@ const routes = [
             <SystemSettings />
           </RoleGuard>
         ) 
+      },
+      {
+        path: 'union-pay-terminal-keys',
+        element: (
+          <RoleGuard roles={['SystemAdmin', 'MerchantAdmin']}>
+            <UnionPayTerminalKeyList />
+          </RoleGuard>
+        )
       },
       { path: '404', element: <NotFoundView /> },
       { path: '*', element: <Navigate to="/app/404" /> }

@@ -30,13 +30,13 @@ namespace SlzrCrossGate.WebAdmin.Controllers
                     roles = roles.Where(r => r.IsSysAdmin == false);
                 }
 
-                var roleDtos = roles.Select(r => new RoleDto
+                var roleDtos = await roles.Select(r => new RoleDto
                 {
                     Id = r.Id,
                     Name = r.Name ?? string.Empty,
                     IsSysAdmin = r.IsSysAdmin,
                     Description = r.NormalizedName ?? string.Empty // 使用NormalizedName作为描述，实际应该有专门的Description字段
-                }).ToList();
+                }).ToListAsync();
 
                 return Ok(roleDtos);
             }

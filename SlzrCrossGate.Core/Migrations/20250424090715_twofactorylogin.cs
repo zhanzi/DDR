@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace SlzrCrossGate.Core.Migrations
 {
     /// <inheritdoc />
-    public partial class twofactorylogin : Migration
+    public partial class TwoFactorLogin : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)

@@ -13,7 +13,7 @@ namespace SlzrCrossGate.Core.Migrations
 {
     [DbContext(typeof(TcpDbContext))]
     [Migration("20250430070140_updatefilepublish")]
-    partial class updatefilepublish
+    partial class Updatefilepublish
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)

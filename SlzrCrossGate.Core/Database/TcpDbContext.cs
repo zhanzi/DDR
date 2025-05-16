@@ -149,11 +149,16 @@ namespace SlzrCrossGate.Core.Database
                 builder.HasKey(e => new { e.ID }).IsClustered();
                 builder.HasIndex(e => new { e.MerchantID, e.MachineID });
                 builder.HasIndex(e => new { e.MerchantID, e.IsInUse });
-            });            modelBuilder.Entity<SystemSettings>(builder=>
+                builder.HasIndex(e => new { e.UP_MerchantID, e.UP_TerminalID })
+                    .IsUnique();
+            });
+
+            modelBuilder.Entity<SystemSettings>(builder=>
             {
                 builder.HasKey(e => new { e.Id }).IsClustered();
             });
-              modelBuilder.Entity<MerchantDictionary>(builder=>
+
+            modelBuilder.Entity<MerchantDictionary>(builder=>
             {
                 builder.HasKey(e => new { e.ID }).IsClustered();
                 // 复合唯一索引：(MerchantID, DictionaryType, DictionaryCode)
