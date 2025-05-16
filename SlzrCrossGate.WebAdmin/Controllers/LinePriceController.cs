@@ -128,6 +128,98 @@ namespace SlzrCrossGate.WebAdmin.Controllers
             };
         }
 
+        // GET: api/LinePrice/search - 搜索线路(用于跨线路复制)
+        [HttpGet("search")]
+        public async Task<ActionResult<PaginatedResult<LinePriceInfoDto>>> SearchLinePrices(
+            [FromQuery] string? search = "", 
+            [FromQuery] int excludeLineId = 0, 
+            [FromQuery] string? merchantId = null,
+            [FromQuery] int page = 1, 
+            [FromQuery] int pageSize = 20)
+        {
+            // 获取当前用户的商户ID
+            var currentUserMerchantId = await _userService.GetUserMerchantIdAsync(User);
+            var isSystemAdmin = User.IsInRole("SystemAdmin");
+
+            // 非系统管理员只能查看自己商户的数据
+            if (!isSystemAdmin && merchantId != null && merchantId != currentUserMerchantId)
+            {
+                return Forbid();
+            }
+
+            // 如果未指定商户ID且不是系统管理员，则使用当前用户的商户ID
+            if (merchantId == null && !isSystemAdmin)
+            {
+                merchantId = currentUserMerchantId;
+            }
+
+            // 构建查询，使用联结查询而非导航属性
+            var query = from lpi in _dbContext.LinePriceInfos
+                        join merchant in _dbContext.Merchants
+                            on lpi.MerchantID equals merchant.MerchantID
+                        select new { LinePriceInfo = lpi, MerchantName = merchant.Name };
+
+            // 应用筛选条件
+            if (!string.IsNullOrEmpty(merchantId))
+            {
+                query = query.Where(lpi => lpi.LinePriceInfo.MerchantID == merchantId);
+            }
+
+            // 排除指定的线路ID
+            if (excludeLineId > 0)
+            {
+                query = query.Where(lpi => lpi.LinePriceInfo.ID != excludeLineId);
+            }
+
+            // 基于搜索关键词筛选
+            if (!string.IsNullOrEmpty(search))
+            {
+                // 搜索线路号、组号、名称
+                query = query.Where(lpi => 
+                    lpi.LinePriceInfo.LineNumber.Contains(search) || 
+                    lpi.LinePriceInfo.GroupNumber.Contains(search) || 
+                    lpi.LinePriceInfo.LineName.Contains(search));
+            }
+
+            // 获取总记录数
+            var count = await query.CountAsync();
+
+            // 应用分页和排序
+            var linePriceInfos = await query
+                .OrderBy(lpi => lpi.LinePriceInfo.LineNumber)
+                .ThenBy(lpi => lpi.LinePriceInfo.GroupNumber)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            // 转换为DTO
+            var linePriceInfoDtos = linePriceInfos.Select(lpi => new LinePriceInfoDto
+            {
+                ID = lpi.LinePriceInfo.ID,
+                MerchantID = lpi.LinePriceInfo.MerchantID,
+                MerchantName = lpi.MerchantName ?? "",
+                LineNumber = lpi.LinePriceInfo.LineNumber,
+                GroupNumber = lpi.LinePriceInfo.GroupNumber,
+                LineName = lpi.LinePriceInfo.LineName,
+                Fare = lpi.LinePriceInfo.Fare,
+                IsActive = lpi.LinePriceInfo.IsActive,
+                CurrentVersion = lpi.LinePriceInfo.CurrentVersion,
+                CreateTime = lpi.LinePriceInfo.CreateTime,
+                UpdateTime = lpi.LinePriceInfo.UpdateTime,
+                Creator = lpi.LinePriceInfo.Creator,
+                Updater = lpi.LinePriceInfo.Updater,
+                Remark = lpi.LinePriceInfo.Remark
+            }).ToList();
+
+            return new PaginatedResult<LinePriceInfoDto>
+            {
+                Items = linePriceInfoDtos,
+                TotalCount = count,
+                Page = page,
+                PageSize = pageSize
+            };
+        }
+
         // GET: api/LinePrices/5
         [HttpGet("{id}")]
         public async Task<ActionResult<LinePriceInfoDto>> GetLinePriceInfo(int id)
@@ -928,6 +1020,118 @@ namespace SlzrCrossGate.WebAdmin.Controllers
                 Submitter = versionNew.Submitter
             });
         }
+
+        // POST: api/LinePrices/Versions/{versionId}/CopyToLines
+        [HttpPost("Versions/{versionId}/CopyToLines")]
+        public async Task<IActionResult> CopyLinePriceVersionToOtherLines(int versionId, CopyToLinesRequestDto model)
+        {
+            // 获取当前用户的商户ID和用户名
+            var currentUserMerchantId = await _userService.GetUserMerchantIdAsync(User);
+            var isSystemAdmin = User.IsInRole("SystemAdmin");
+            var username = UserService.GetUserNameForOperator(User);
+
+            // 验证参数
+            if (model.TargetLineIds == null || !model.TargetLineIds.Any())
+            {
+                return BadRequest("目标线路ID不能为空");
+            }
+
+            // 获取要复制的版本
+            var sourceVersion = await _dbContext.LinePriceInfoVersions
+                .FirstOrDefaultAsync(v => v.ID == versionId);
+
+            if (sourceVersion == null)
+            {
+                return NotFound("源版本不存在");
+            }
+
+            // 如果不是系统管理员，只能复制自己商户的版本
+            if (!isSystemAdmin && sourceVersion.MerchantID != currentUserMerchantId)
+            {
+                return Forbid();
+            }
+
+            // 验证商户ID匹配
+            if (sourceVersion.MerchantID != model.MerchantId)
+            {
+                return BadRequest("商户ID不匹配");
+            }
+
+            // 只能复制已提交状态的版本
+            if (sourceVersion.Status != LinePriceVersionStatus.Submitted)
+            {
+                return BadRequest("只能复制已提交状态的版本");
+            }
+
+            // 获取目标线路信息列表，验证它们存在且属于同一商户
+            var targetLines = await _dbContext.LinePriceInfos
+                .Where(lpi => model.TargetLineIds.Contains(lpi.ID))
+                .ToListAsync();
+
+            if (targetLines.Count != model.TargetLineIds.Count)
+            {
+                return BadRequest("部分目标线路不存在");
+            }
+
+            // 验证目标线路是否全部属于同一商户
+            if (targetLines.Any(lpi => lpi.MerchantID != sourceVersion.MerchantID))
+            {
+                return BadRequest("部分目标线路不属于指定商户");
+            }
+
+
+            // 查询每个目标线路的最新版本号
+            var maxVersions = await _dbContext.LinePriceInfoVersions
+                .Where(v => model.TargetLineIds.Contains(v.LinePriceInfoID))
+                .GroupBy(v => v.LinePriceInfoID)
+                .Select(g => new
+                {
+                    LinePriceInfoID = g.Key,
+                    MaxVersion = g.OrderByDescending(v => v.CreateTime).Select(v => v.Version).FirstOrDefault()
+                }).ToListAsync();
+
+            // 开始复制操作
+            List<LinePriceInfoVersion> newVersions = new List<LinePriceInfoVersion>();
+            foreach (var targetLine in targetLines)
+            {
+                // 将当前版本号转换为16进制整数，加1，再转回16进制字符串
+                int currentVersionInt = Convert.ToInt32(maxVersions.FirstOrDefault(m => m.LinePriceInfoID == targetLine.ID)?.MaxVersion ?? "0000", 16) % 0xFFFF; // 限制在4位16进制数范围内
+
+                // 为每条目标线路创建一个新的版本（草稿状态）
+                var newVersion = new LinePriceInfoVersion
+                {
+                    MerchantID = sourceVersion.MerchantID,
+                    LinePriceInfoID = targetLine.ID,
+                    LineNumber = targetLine.LineNumber,
+                    GroupNumber = targetLine.GroupNumber,
+                    LineName = targetLine.LineName,
+                    Fare = targetLine.Fare,
+                    Version = (currentVersionInt + 1).ToString("X4"),
+                    ExtraParamsJson = sourceVersion.ExtraParamsJson,
+                    CardDiscountInfoJson = sourceVersion.CardDiscountInfoJson,
+                    Status = LinePriceVersionStatus.Draft,
+                    IsPublished = false,
+                    CreateTime = DateTime.Now,
+                    UpdateTime = DateTime.Now,
+                    Creator = username,
+                    Updater = username
+                };
+                newVersions.Add(newVersion);
+            }
+
+            // 批量保存所有新版本
+            _dbContext.LinePriceInfoVersions.AddRange(newVersions);
+            await _dbContext.SaveChangesAsync();
+
+            return Ok(new
+            {
+                Message = $"已成功复制到 {newVersions.Count} 条线路",
+                SuccessCount = newVersions.Count,
+                TargetCount = model.TargetLineIds.Count
+            });
+        }
+
+        
 
         // POST: api/LinePrices/Versions/{versionId}/Publish
         [HttpPost("Versions/{versionId}/Publish")]

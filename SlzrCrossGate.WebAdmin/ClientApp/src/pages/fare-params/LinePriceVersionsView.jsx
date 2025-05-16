@@ -19,7 +19,8 @@ import {
   Grid,
   Breadcrumbs,
   Link,
-  CircularProgress
+  CircularProgress,
+  Checkbox
 } from '@mui/material';
 import {
   Add,
@@ -31,7 +32,8 @@ import {
   Delete,
   PlayArrow,
   Check,
-  ContentCopy
+  ContentCopy,
+  FileCopy
 } from '@mui/icons-material';
 import { DataGrid } from '@mui/x-data-grid';
 import { useSnackbar } from 'notistack';
@@ -70,6 +72,14 @@ const LinePriceVersionsView = () => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [submitDialogOpen, setSubmitDialogOpen] = useState(false);
   const [actionVersion, setActionVersion] = useState(null);
+  
+  // 跨线路复制相关状态
+  const [copyToOtherLineDialogOpen, setCopyToOtherLineDialogOpen] = useState(false);
+  const [selectedLines, setSelectedLines] = useState([]);
+  const [availableLines, setAvailableLines] = useState([]);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [copyingVersionId, setCopyingVersionId] = useState(null);
+  const [searchLoading, setSearchLoading] = useState(false);
   
   // 加载线路票价基本信息
   const fetchLinePriceInfo = async () => {
@@ -260,6 +270,86 @@ const LinePriceVersionsView = () => {
     }
   };
   
+  // 打开复制到其他线路对话框
+  const openCopyToOtherLineDialog = async (versionId) => {
+    setCopyingVersionId(versionId);
+    setSearchTerm('');
+    setSelectedLines([]);
+    setAvailableLines([]);
+    setCopyToOtherLineDialogOpen(true);
+    // 预加载一些线路作为默认选项
+    await searchLines('');
+  };
+
+  // 搜索线路
+  const searchLines = async (term) => {
+    try {
+      setSearchLoading(true);
+      // 调用API搜索线路，排除当前线路
+      const response = await linePriceAPI.searchLinePrices({
+        search: term,
+        excludeLineId: id,
+        merchantId: linePriceInfo.merchantID,
+        page: 1,
+        pageSize: 20
+      });
+      setAvailableLines(response.items || []);
+    } catch (error) {
+      console.error('搜索线路失败:', error);
+      enqueueSnackbar('搜索线路失败', { variant: 'error' });
+    } finally {
+      setSearchLoading(false);
+    }
+  };
+
+  // 处理搜索输入变更
+  const handleSearchInputChange = (event) => {
+    const value = event.target.value;
+    setSearchTerm(value);
+    
+    // 添加防抖处理
+    const delayDebounceFn = setTimeout(() => {
+      searchLines(value);
+    }, 500);
+    
+    return () => clearTimeout(delayDebounceFn);
+  };
+
+  // 处理线路选择变更
+  const handleLineSelectionChange = (event, lineId) => {
+    if (event.target.checked) {
+      setSelectedLines([...selectedLines, lineId]);
+    } else {
+      setSelectedLines(selectedLines.filter(id => id !== lineId));
+    }
+  };
+
+  // 执行复制到其他线路
+  const handleCopyToOtherLines = async () => {
+    if (selectedLines.length === 0) {
+      enqueueSnackbar('请至少选择一条目标线路', { variant: 'warning' });
+      return;
+    }
+
+    try {
+      // 显示加载提示
+      enqueueSnackbar('正在复制版本数据...', { variant: 'info' });
+      
+      // 调用后端API执行复制
+      await linePriceAPI.copyLinePriceVersionToOtherLines(copyingVersionId, {
+        versionId: copyingVersionId,
+        targetLineIds: selectedLines,
+        merchantId: linePriceInfo.merchantID
+      });
+      
+      enqueueSnackbar(`已成功复制到${selectedLines.length}条线路`, { variant: 'success' });
+      setCopyToOtherLineDialogOpen(false);
+    } catch (error) {
+      console.error('复制到其他线路失败:', error);
+      enqueueSnackbar('复制失败: ' + (error.response?.data?.message || error.message), { variant: 'error' });
+    }
+  };
+
   // 版本状态渲染
   const renderStatus = (status, isPublished) => {
     if (isPublished) {
@@ -343,8 +433,7 @@ const LinePriceVersionsView = () => {
                 </IconButton>
               </Tooltip>
             </>
-          )}
-          <Tooltip title="预览">
+          )}          <Tooltip title="预览">
             <IconButton 
               onClick={() => handlePreview(params.row.id)}
               color="info"
@@ -354,15 +443,27 @@ const LinePriceVersionsView = () => {
             </IconButton>
           </Tooltip>
           {params.row.status === 1 && (
-          <Tooltip title="复制创建">
-            <IconButton 
-              onClick={() => handleCopyVersion(params.row.id)}
-              color="warning"
-              size="small"
-            >
-              <ContentCopy fontSize="small" />
-            </IconButton>
-          </Tooltip>)}
+            <>
+              <Tooltip title="复制创建">
+                <IconButton 
+                  onClick={() => handleCopyVersion(params.row.id)}
+                  color="warning"
+                  size="small"
+                >
+                  <ContentCopy fontSize="small" />
+                </IconButton>
+              </Tooltip>
+              <Tooltip title="复制到其他线路">
+                <IconButton 
+                  onClick={() => openCopyToOtherLineDialog(params.row.id)}
+                  color="success"
+                  size="small"
+                >
+                  <FileCopy fontSize="small" />
+                </IconButton>
+              </Tooltip>
+            </>
+          )}
         </Box>
       ),
     },
@@ -601,6 +702,49 @@ const LinePriceVersionsView = () => {
             startIcon={<Delete />}
           >
             确认删除
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* 复制到其他线路对话框 */}
+      <Dialog
+        open={copyToOtherLineDialogOpen}
+        onClose={() => setCopyToOtherLineDialogOpen(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>复制到其他线路</DialogTitle>
+        <DialogContent>
+          <TextField
+            fullWidth
+            margin="normal"
+            label="搜索线路"
+            value={searchTerm}
+            onChange={handleSearchInputChange}
+            InputProps={{
+              endAdornment: searchLoading ? <CircularProgress size={20} /> : null,
+            }}
+          />
+          <Box sx={{ maxHeight: '300px', overflowY: 'auto' }}>
+            {availableLines.map((line) => (
+              <Box key={line.id} sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                <Checkbox
+                  checked={selectedLines.includes(line.id)}
+                  onChange={(event) => handleLineSelectionChange(event, line.id)}
+                />
+                <Typography>{`${line.lineNumber}-${line.groupNumber} ${line.lineName}`}</Typography>
+              </Box>
+            ))}
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setCopyToOtherLineDialogOpen(false)}>取消</Button>
+          <Button
+            variant="contained"
+            onClick={handleCopyToOtherLines}
+            startIcon={<FileCopy />}
+          >
+            复制
           </Button>
         </DialogActions>
       </Dialog>

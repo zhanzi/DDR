@@ -303,6 +303,14 @@ export const linePriceAPI = {
     api.post(`/LinePrice/Versions/${versionId}/CopyCreate`),
   deleteLinePriceVersion: (versionId) => 
     api.delete(`/LinePrice/Versions/${versionId}`),
+  
+  // 搜索线路
+  searchLinePrices: (params) => 
+    api.get('/LinePrice/search', { params }),
+    
+  // 跨线路复制版本
+  copyLinePriceVersionToOtherLines: (versionId, data) => 
+    api.post(`/LinePrice/Versions/${versionId}/CopyToLines`, data),
     
   // 票价文件操作
   previewLinePriceFile: (versionId, data) => 

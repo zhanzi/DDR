@@ -127,6 +127,24 @@ namespace SlzrCrossGate.WebAdmin.DTOs
         public string? Remark { get; set; }
     }
 
+    // 跨线路复制版本DTO
+    public class CopyToLinesRequestDto
+    {
+        public int VersionId { get; set; }
+        public List<int> TargetLineIds { get; set; } = new List<int>();
+        public string MerchantId { get; set; } = string.Empty;
+    }
+
+    // 搜索线路请求DTO
+    public class SearchLinePricesRequestDto
+    {
+        public string? Search { get; set; }
+        public int ExcludeLineId { get; set; }
+        public string MerchantId { get; set; } = string.Empty;
+        public int Page { get; set; } = 1;
+        public int PageSize { get; set; } = 20;
+    }
+
     #endregion
 
     #region Dictionary Configuration DTOs
