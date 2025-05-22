@@ -1,0 +1,133 @@
+version: '3.8'
+
+services:
+  # MySQL 数据库
+  # mysql:
+  #   image: devtest.pointlife365.net:5180/library/mysql:8.0
+  #   container_name: slzr-mysql
+  #   command: --default-authentication-plugin=mysql_native_password
+  #   volumes:
+  #     - mysql_data:/var/lib/mysql
+  #   environment:
+  #     MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-slzr!12345}
+  #     MYSQL_DATABASE: tcpserver
+  #   ports:
+  #     - "3307:3306"
+  #   networks:
+  #     - slzr-network
+  #   restart: unless-stopped
+  #   healthcheck:
+  #     test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD:-slzr!12345}"]
+  #     interval: 10s
+  #     timeout: 5s
+  #     retries: 5
+
+  # RabbitMQ 消息队列
+  # rabbitmq:
+  #   image: devtest.pointlife365.net:5180/library/rabbitmq:3.12-management
+  #   container_name: slzr-rabbitmq
+  #   volumes:
+  #     - rabbitmq_data:/var/lib/rabbitmq
+  #   environment:
+  #     - RABBITMQ_DEFAULT_USER=${RABBITMQ_USER:-guest}
+  #     - RABBITMQ_DEFAULT_PASS=${RABBITMQ_PASS:-guest}
+  #   ports:
+  #     - "5673:5672"
+  #     - "15673:15672"
+  #   networks:
+  #     - slzr-network
+  #   restart: unless-stopped
+  #   healthcheck:
+  #     test: ["CMD", "rabbitmqctl", "status"]
+  #     interval: 10s
+  #     timeout: 5s
+  #     retries: 5
+
+  api-service:
+    image: devtest.pointlife365.net:5180/slzr/tcpserver-api:latest
+    container_name: tcpserver-api
+    # depends_on:
+    #   mysql:
+    #     condition: service_healthy
+    #   rabbitmq:
+    #     condition: service_healthy
+    ports:
+      - "6000:8000"  # HTTP API
+      - "6001:8001"  # TCP 服务
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - HTTP_PORT=8000
+      - TCP_PORT=8001
+      - ConnectionStrings__DefaultConnection=Server=192.168.2.34;Port=3306;Database=tcpserver;User=root;Password=${MYSQL_ROOT_PASSWORD:-slzr!12345};SslMode=Required;
+      - DatabaseProvider=MySql
+      - RabbitMQ__HostName=192.168.2.34
+      - RabbitMQ__Port=5672
+      - RabbitMQ__UserName=${RABBITMQ_USER:-guest}
+      - RabbitMQ__Password=${RABBITMQ_PASS:-guest}
+    volumes:
+      - api_storage:/app/storage
+    networks:
+      - slzr-network
+    restart: unless-stopped    
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]  # 与HTTP_PORT环境变量保持一致
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # WebAdmin 服务
+  web-admin:
+    image: devtest.pointlife365.net:5180/slzr/tcpserver-web:latest
+    container_name: tcpserver-web
+    # depends_on:
+    #   mysql:
+    #     condition: service_healthy
+    #   rabbitmq:
+    #     condition: service_healthy
+    ports:
+      - "7296:7296"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ConnectionStrings__DefaultConnection=Server=192.168.2.34;Port=3306;Database=tcpserver;User=root;Password=${MYSQL_ROOT_PASSWORD:-slzr!12345};SslMode=Required;
+      - RabbitMQ__HostName=192.168.2.34
+      - RabbitMQ__UserName=${RABBITMQ_USER:-guest}
+      - RabbitMQ__Password=${RABBITMQ_PASS:-guest}
+      - Jwt__Key=${JWT_KEY:-YourSecretKeyHere12345678901234567890}
+    volumes:
+      - webadmin_storage:/app/storage
+    networks:
+      - slzr-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:7296/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Nginx 反向代理
+  nginx:
+    image: devtest.pointlife365.net:5180/library/nginx:latest
+    container_name: slzr-nginx
+    depends_on:
+      - api-service
+      - web-admin
+    ports:
+      - "8080:80"
+      # - "443:443"
+    volumes:
+      - ./nginx/conf.d:/etc/nginx/conf.d
+      # - ./nginx/ssl:/etc/nginx/ssl
+      - ./nginx/logs:/var/log/nginx
+    networks:
+      - slzr-network
+    restart: unless-stopped
+
+networks:
+  slzr-network:
+    driver: bridge
+
+volumes:
+  mysql_data:
+  rabbitmq_data:
+  api_storage:
+  webadmin_storage:

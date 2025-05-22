@@ -28,7 +28,7 @@ export default defineConfig({
     }
   },
   build: {
-    outDir: '../wwwroot',
+    outDir: 'dist', // 修改为标准的dist目录，方便Docker构建
     emptyOutDir: true,
     sourcemap: process.env.NODE_ENV !== 'production'
   }

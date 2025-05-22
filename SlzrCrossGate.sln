@@ -22,7 +22,29 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "解决方案项", "解决�
 		.editorconfig = .editorconfig
 		README.md = README.md
 		todo.md = todo.md
+		deployment-guide.md = deployment-guide.md
+		add_system_settings.sql = add_system_settings.sql
+		docker-compose.yml = docker-compose.yml
+		.env = .env
+		docker-compose-registry.yml = docker-compose-registry.yml
+		registry-deployment-guide.md = registry-deployment-guide.md
+		registry-password.txt = registry-password.txt
+		build-step-by-step.ps1 = build-step-by-step.ps1
+		build-step-by-step.sh = build-step-by-step.sh
+		build-api.sh = build-api.sh
+		build-web.sh = build-web.sh
 	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "nginx", "nginx", "{D540FBC1-9D7E-8A17-AA8C-13844FF6478B}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "conf.d", "conf.d", "{8497AFA4-12F4-808F-2562-D4CAF7267B86}"
+	ProjectSection(SolutionItems) = preProject
+		nginx\conf.d\default.conf = nginx\conf.d\default.conf
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "ssl", "ssl", "{C58BBF29-62A8-60DF-A523-AD2F951F35E6}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "logs", "logs", "{727EA896-A04B-2085-CCAD-F2A11DD16BE4}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -61,6 +83,12 @@ Global
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{D540FBC1-9D7E-8A17-AA8C-13844FF6478B} = {9FA3D6BD-1EC1-3BA5-80CB-CE02773A58D5}
+		{8497AFA4-12F4-808F-2562-D4CAF7267B86} = {D540FBC1-9D7E-8A17-AA8C-13844FF6478B}
+		{C58BBF29-62A8-60DF-A523-AD2F951F35E6} = {D540FBC1-9D7E-8A17-AA8C-13844FF6478B}
+		{727EA896-A04B-2085-CCAD-F2A11DD16BE4} = {D540FBC1-9D7E-8A17-AA8C-13844FF6478B}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {AB189E9F-154F-475E-A9B8-0BDB5B84920F}

@@ -1,0 +1,17 @@
+# .dockerignore 文件
+# 忽略构建输出和临时文件
+**/bin/
+**/obj/
+**/out/
+**/node_modules/
+**/npm-debug.log
+**/dist/
+**/.git/
+**/.vs/
+**/.vscode/
+**/*.md
+**/*.user
+
+# 不忽略特定的项目文件
+!**/SlzrCrossGate.*/bin/
+!**/SlzrCrossGate.*/obj/

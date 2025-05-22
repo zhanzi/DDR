@@ -57,14 +57,20 @@ builder.Services.AddOpenTelemetry()
 // 配置Kestrel同时监听HTTP和TCP
 builder.WebHost.ConfigureKestrel(kestrel =>
 {
-    // HTTP端点（原有配置保留）
-    kestrel.Listen(IPAddress.Any, 5000, listen =>
+    // 从环境变量读取端口配置，如果不存在则使用默认值
+    var httpPort = int.Parse(Environment.GetEnvironmentVariable("HTTP_PORT") ?? "8000");
+    var tcpPort = int.Parse(Environment.GetEnvironmentVariable("TCP_PORT") ?? "8001");
+
+    Console.WriteLine($"正在配置HTTP端口: {httpPort}, TCP端口: {tcpPort}");
+
+    // HTTP端点
+    kestrel.Listen(IPAddress.Any, httpPort, listen =>
     {
         listen.Protocols = HttpProtocols.Http1AndHttp2;
     });
 
-    // TCP端点（新增配置）
-    kestrel.Listen(IPAddress.Any, 5001, listen =>
+    // TCP端点
+    kestrel.Listen(IPAddress.Any, tcpPort, listen =>
     {
         listen.UseConnectionHandler<TcpConnectionHandler>();
         listen.UseConnectionLogging();

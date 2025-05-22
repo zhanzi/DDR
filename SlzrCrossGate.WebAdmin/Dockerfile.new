@@ -1,0 +1,44 @@
+# 完整Dockerfile，修复前端构建输出目录问题
+
+# 阶段 1: 构建前端
+FROM devtest.pointlife365.net:5180/library/node:18-alpine AS frontend-build
+WORKDIR /app
+# 确保package.json文件路径正确
+COPY ["SlzrCrossGate.WebAdmin/ClientApp/package*.json", "./"]
+RUN npm ci
+COPY ["SlzrCrossGate.WebAdmin/ClientApp/", "./"]
+# 运行构建并检查输出
+RUN npm run build && echo "前端构建完成，检查输出目录" && ls -la
+
+# 阶段 2: 构建后端
+FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+WORKDIR /src
+COPY ["SlzrCrossGate.WebAdmin/SlzrCrossGate.WebAdmin.csproj", "SlzrCrossGate.WebAdmin/"]
+COPY ["SlzrCrossGate.Core/SlzrCrossGate.Core.csproj", "SlzrCrossGate.Core/"]
+COPY ["SlzrCrossGate.Common/SlzrCrossGate.Common.csproj", "SlzrCrossGate.Common/"]
+COPY ["SlzrCrossGate.ServiceDefaults/SlzrCrossGate.ServiceDefaults.csproj", "SlzrCrossGate.ServiceDefaults/"]
+RUN dotnet restore "SlzrCrossGate.WebAdmin/SlzrCrossGate.WebAdmin.csproj"
+COPY . .
+WORKDIR "/src/SlzrCrossGate.WebAdmin"
+RUN dotnet build "SlzrCrossGate.WebAdmin.csproj" -c Release -o /app/build
+
+FROM build AS publish
+RUN dotnet publish "SlzrCrossGate.WebAdmin.csproj" -c Release -o /app/publish /p:UseAppHost=false
+
+# 阶段 3: 最终镜像
+FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS final
+WORKDIR /app
+EXPOSE 7296
+# 复制发布的后端应用
+COPY --from=publish /app/publish .
+# 创建wwwroot目录（如果不存在）
+RUN mkdir -p ./wwwroot
+# 尝试从不同可能的位置复制前端构建结果
+# 由于vite.config.js中outDir设置为'../wwwroot'，应该在frontend-build阶段的项目根目录中
+COPY --from=frontend-build /app/wwwroot/ ./wwwroot/ || true
+# 备用方案：尝试其他可能的输出位置
+COPY --from=frontend-build /app/build/ ./wwwroot/ || true
+COPY --from=frontend-build /app/dist/ ./wwwroot/ || true
+# 创建文件存储目录
+RUN mkdir -p /app/storage/files && chmod -R 755 /app/storage
+ENTRYPOINT ["dotnet", "SlzrCrossGate.WebAdmin.dll"]

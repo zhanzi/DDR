@@ -40,6 +40,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { terminalAPI, messageAPI, fileAPI } from '../../services/api'; // 使用API服务代替直接的axios
 import { format } from 'date-fns';
+import MerchantAutocomplete from '../../components/MerchantAutocomplete'; // 导入商户下拉框组件
 
 const TerminalList = () => {
   const navigate = useNavigate();
@@ -59,6 +60,9 @@ const TerminalList = () => {
     terminalType: '',
     activeStatus: ''
   });
+  
+  // 选中的商户
+  const [selectedMerchant, setSelectedMerchant] = useState(null);
 
   // 消息发送对话框
   const [messageDialog, setMessageDialog] = useState(false);
@@ -84,6 +88,11 @@ const TerminalList = () => {
           Object.entries(filters).filter(([_, value]) => value !== '')
         )
       };
+      
+      // 如果选择了商户，使用商户ID
+      if (selectedMerchant) {
+        params.merchantId = selectedMerchant.merchantID;
+      }
 
       const response = await terminalAPI.getTerminals(params);
       setTerminals(response.items);
@@ -91,7 +100,7 @@ const TerminalList = () => {
 
       // 加载统计数据
       const statsResponse = await terminalAPI.getTerminalStats({
-        merchantId: filters.merchantId || undefined
+        merchantId: selectedMerchant ? selectedMerchant.merchantID : undefined
       });
       setStats(statsResponse);
     } catch (error) {
@@ -133,6 +142,11 @@ const TerminalList = () => {
     setFilters(prev => ({ ...prev, [name]: value }));
   };
 
+  // 处理商户选择变更
+  const handleMerchantChange = (event, newValue) => {
+    setSelectedMerchant(newValue);
+  };
+
   // 应用筛选
   const applyFilters = () => {
     setPage(0);
@@ -149,6 +163,7 @@ const TerminalList = () => {
       terminalType: '',
       activeStatus: ''
     });
+    setSelectedMerchant(null);
     setPage(0);
     loadTerminals();
   };
@@ -233,9 +248,9 @@ const TerminalList = () => {
     if (!status) return <Chip label="未知" color="default" size="small" />;
 
     switch (status.activeStatus) {
-      case 0: // Active
+      case 1: // Active
         return <Chip label="在线" color="success" size="small" />;
-      case 1: // Inactive
+      case 2: // Inactive
         return <Chip label="离线" color="error" size="small" />;
       default:
         return <Chip label="未知" color="default" size="small" />;
@@ -292,12 +307,11 @@ const TerminalList = () => {
       <Paper sx={{ p: 2, mb: 3 }}>
         <Grid container spacing={2} alignItems="center">
           <Grid item xs={12} sm={6} md={2}>
-            <TextField
-              fullWidth
-              label="商户ID"
-              name="merchantId"
+            <MerchantAutocomplete
+              label="商户"
               value={filters.merchantId}
-              onChange={handleFilterChange}
+              onChange={(value) => setFilters(prev => ({ ...prev, merchantId: value }))}
+              fullWidth
               size="small"
             />
           </Grid>
@@ -450,7 +464,7 @@ const TerminalList = () => {
                         <IconButton
                           size="small"
                           color="primary"
-                          onClick={() => navigate(`/terminals/${terminal.id}`)}
+                          onClick={() => navigate(`/app/terminals/${terminal.id}`)}
                         >
                           <VisibilityIcon fontSize="small" />
                         </IconButton>
@@ -477,7 +491,7 @@ const TerminalList = () => {
                         <IconButton
                           size="small"
                           color="info"
-                          onClick={() => navigate(`/terminals/${terminal.id}/events`)}
+                          onClick={() => navigate(`/app/terminals/${terminal.id}/events`)}
                         >
                           <HistoryIcon fontSize="small" />
                         </IconButton>

@@ -64,9 +64,9 @@ const TerminalDetail = () => {
     if (!status) return <Chip label="未知" color="default" />;
 
     switch (status.activeStatus) {
-      case 0: // Active
+      case 1: // Active
         return <Chip label="在线" color="success" />;
-      case 1: // Inactive
+      case 2: // Inactive
         return <Chip label="离线" color="error" />;
       default:
         return <Chip label="未知" color="default" />;
@@ -107,7 +107,7 @@ const TerminalDetail = () => {
         <Button
           variant="outlined"
           startIcon={<ArrowBackIcon />}
-          onClick={() => navigate('/terminals')}
+          onClick={() => navigate('/app/terminals')}
         >
           返回终端列表
         </Button>
@@ -125,7 +125,7 @@ const TerminalDetail = () => {
           <Button
             variant="outlined"
             startIcon={<ArrowBackIcon />}
-            onClick={() => navigate('/terminals')}
+            onClick={() => navigate('/app/terminals')}
             sx={{ mr: 1 }}
           >
             返回
@@ -280,7 +280,7 @@ const TerminalDetail = () => {
             variant="contained"
             color="secondary"
             startIcon={<MessageIcon />}
-            onClick={() => navigate('/terminals', { state: { openMessageDialog: true, terminal } })}
+            onClick={() => navigate('/app/terminals', { state: { openMessageDialog: true, terminal } })}
           >
             发送消息
           </Button>
@@ -288,7 +288,7 @@ const TerminalDetail = () => {
             variant="contained"
             color="success"
             startIcon={<PublishIcon />}
-            onClick={() => navigate('/terminals', { state: { openFileDialog: true, terminal } })}
+            onClick={() => navigate('/app/terminals', { state: { openFileDialog: true, terminal } })}
           >
             发布文件
           </Button>
@@ -296,7 +296,7 @@ const TerminalDetail = () => {
             variant="contained"
             color="info"
             startIcon={<HistoryIcon />}
-            onClick={() => navigate(`/terminals/${terminal.id}/events`)}
+            onClick={() => navigate(`/app/terminals/${terminal.id}/events`)}
           >
             查看事件
           </Button>

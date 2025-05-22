@@ -5,7 +5,7 @@ using SlzrCrossGate.Common;
 namespace SlzrCrossGate.Tcp.Protocol
 {
     /// <summary>
-    /// ISO 8583 Êı¾İ°üÀà
+    /// ISO 8583 æ•°æ®åŒ…ç±»
     /// </summary>
     public class Iso8583Package
     {
@@ -24,9 +24,9 @@ namespace SlzrCrossGate.Tcp.Protocol
             return _buffer;
         }
 
-        #region ¹¹Ôìº¯Êı
+        #region æ„é€ å‡½æ•°
         /// <summary>
-        /// Ê¹ÓÃÖ¸¶¨µÄ Schema ¹¹ÔìÊı¾İ°üÀà
+        /// ä½¿ç”¨æŒ‡å®šçš„ Schema æ„é€ æ•°æ®åŒ…ç±»
         /// </summary>
         /// <param name="schema"></param>
         public Iso8583Package(Iso8583Schema schema, bool messageTypeIsBCD = true)
@@ -37,7 +37,7 @@ namespace SlzrCrossGate.Tcp.Protocol
             this.messageTypeIsBCD = messageTypeIsBCD;
         }
         /// <summary>
-        /// Ê¹ÓÃÖ¸¶¨µÄ Schema ÎÄ¼ş¹¹ÔìÊı¾İ°üÀà
+        /// ä½¿ç”¨æŒ‡å®šçš„ Schema æ–‡ä»¶æ„é€ æ•°æ®åŒ…ç±»
         /// </summary>
         /// <param name="schemaFile"></param>
         public Iso8583Package() : this(new Iso8583Schema("schema.xml"))
@@ -48,7 +48,7 @@ namespace SlzrCrossGate.Tcp.Protocol
 
 
         /// <summary>
-        /// ÉèÖÃÖµ£¨Í¨ÓÃ·½·¨£©
+        /// è®¾ç½®å€¼ï¼ˆé€šç”¨æ–¹æ³•ï¼‰
         /// </summary>
         /// <param name="bitNum"></param>
         /// <param name="value"></param>
@@ -75,7 +75,7 @@ namespace SlzrCrossGate.Tcp.Protocol
                 case Iso8583DataType.N:
                 case Iso8583DataType.BCD:
                 case Iso8583DataType.ANS:
-                    if (value is string && !DataConvert.IsHex(value.ToString()))
+                    if (value is string && value.ToString()!="" && !DataConvert.IsHex(value.ToString()))
                     {
                         throw new Iso8583FieldeException("this field is number, but the value is not hex string.");
                     }
@@ -108,7 +108,7 @@ namespace SlzrCrossGate.Tcp.Protocol
         }
 
         /// <summary>
-        /// »ñÈ¡Öµ£¨Í¨ÓÃ·½·¨£©
+        /// è·å–å€¼ï¼ˆé€šç”¨æ–¹æ³•ï¼‰
         /// </summary>
         /// <typeparam name="T"></typeparam>
         /// <param name="bitNum"></param>
@@ -143,9 +143,9 @@ namespace SlzrCrossGate.Tcp.Protocol
         }
 
 
-        #region ¹«¹²ÊôĞÔ
+        #region å…¬å…±å±æ€§
         /// <summary>
-        /// ÏûÏ¢ÀàĞÍ
+        /// æ¶ˆæ¯ç±»å‹
         /// </summary>
         public string MessageType
         {
@@ -153,13 +153,13 @@ namespace SlzrCrossGate.Tcp.Protocol
             set
             {
                 if (value.Length != 4)
-                    throw new Exception("³¤¶È²»ÕıÈ·¡£");
+                    throw new Exception("é•¿åº¦ä¸æ­£ç¡®ã€‚");
                 this.messageType = value;
             }
         }
         /// <summary>
-        /// Ö¸Ê¾ÊÇ·ñÊ¹ÓÃÖÇÄÜÎ»Í¼Ä£Ê½½øĞĞ×é°üºÍ½â°ü¡£
-        /// ÉèÖÃ true Ê±ĞèÒª Schema ÎªÈ«128×Ö¶ÎµÄ¶¨Òå¡£
+        /// æŒ‡ç¤ºæ˜¯å¦ä½¿ç”¨æ™ºèƒ½ä½å›¾æ¨¡å¼è¿›è¡Œç»„åŒ…å’Œè§£åŒ…ã€‚
+        /// è®¾ç½® true æ—¶éœ€è¦ Schema ä¸ºå…¨128å­—æ®µçš„å®šä¹‰ã€‚
         /// </summary>
         public bool SmartBitmap
         {
@@ -169,16 +169,16 @@ namespace SlzrCrossGate.Tcp.Protocol
                 if (value)
                 {
                     if (!this.schema.IsFullBitmap)
-                        throw new Exception("¼Ü¹¹¶¨Òå²»ÊÇÈ«128×Ö¶ÎµÄ£¬²»ÄÜ¿ªÆôÖÇÄÜÎ»Í¼Ä£Ê½½øĞĞ×é°üºÍ½â°ü");
+                        throw new Exception("æ¶æ„å®šä¹‰ä¸æ˜¯å…¨128å­—æ®µçš„ï¼Œä¸èƒ½å¼€å¯æ™ºèƒ½ä½å›¾æ¨¡å¼è¿›è¡Œç»„åŒ…å’Œè§£åŒ…");
                 }
                 this.smartBitmap = value;
             }
         }
         #endregion
 
-        #region ÎªÊı¾İÓòÉèÖÃÖµ
+        #region ä¸ºæ•°æ®åŸŸè®¾ç½®å€¼
         /// <summary>
-        /// Çå³ıËùÓĞÊı¾İ¡£
+        /// æ¸…é™¤æ‰€æœ‰æ•°æ®ã€‚
         /// </summary>
         public void Clear()
         {
@@ -186,21 +186,21 @@ namespace SlzrCrossGate.Tcp.Protocol
             this.values = new SortedList<int, object>(Bitmap.FieldCount);
         }
         /// <summary>
-        /// ÎªÖ¸¶¨Êı¾İÓòÉèÖÃÒ»¸ö×Ö·û´®Öµ
+        /// ä¸ºæŒ‡å®šæ•°æ®åŸŸè®¾ç½®ä¸€ä¸ªå­—ç¬¦ä¸²å€¼
         /// </summary>
-        /// <param name="bitNum">Êı¾İÓò</param>
-        /// <param name="value">×Ö·û´®Öµ</param>
+        /// <param name="bitNum">æ•°æ®åŸŸ</param>
+        /// <param name="value">å­—ç¬¦ä¸²å€¼</param>
         public void SetString(int bitNum, string value)
         {
             if (!this.schema.fields.ContainsKey(bitNum))
-                throw new Exception(String.Format("Êı¾İ°ü¶¨Òå²»°üº¬´ËÓò£º{0}", bitNum));
+                throw new Exception(String.Format("æ•°æ®åŒ…å®šä¹‰ä¸åŒ…å«æ­¤åŸŸï¼š{0}", bitNum));
             Iso8583Field field = this.schema.fields[bitNum];
             if (Encoding.Default.GetByteCount(value) > field.Length)
-                throw new Exception("³¤¶È¹ı³¤¡£bitNum:" + bitNum.ToString() + "value:" + value);
+                throw new Exception("é•¿åº¦è¿‡é•¿ã€‚bitNum:" + bitNum.ToString() + "value:" + value);
             switch (field.DataType)
             {
                 case Iso8583DataType.B:
-                    throw new Exception("¸ñÊ½²»·û¡£bitNum:" + bitNum.ToString() + "value:" + value);
+                    throw new Exception("æ ¼å¼ä¸ç¬¦ã€‚bitNum:" + bitNum.ToString() + "value:" + value);
                 default:
                     values[bitNum] = value;
                     break;
@@ -208,22 +208,22 @@ namespace SlzrCrossGate.Tcp.Protocol
             this.bitmap.Set(bitNum, value != null);
         }
         /// <summary>
-        /// ÎªÖ¸¶¨Êı¾İÓòÉèÖÃÒ»¸öÊı×ÖÖµ
+        /// ä¸ºæŒ‡å®šæ•°æ®åŸŸè®¾ç½®ä¸€ä¸ªæ•°å­—å€¼
         /// </summary>
-        /// <param name="bitNum">Êı¾İÓò</param>
-        /// <param name="value">Êı×ÖÖµ</param>
+        /// <param name="bitNum">æ•°æ®åŸŸ</param>
+        /// <param name="value">æ•°å­—å€¼</param>
         public void SetNumber(int bitNum, int value)
         {
             if (!this.schema.fields.ContainsKey(bitNum))
-                throw new Exception(String.Format("Êı¾İ°ü¶¨Òå²»°üº¬´ËÓò£º{0}", bitNum));
+                throw new Exception(String.Format("æ•°æ®åŒ…å®šä¹‰ä¸åŒ…å«æ­¤åŸŸï¼š{0}", bitNum));
             Iso8583Field field = this.schema.fields[bitNum];
             string strValue = value.ToString();
             if (strValue.Length > field.Length)
-                throw new ArgumentException("ÊıÖµ¹ı´ó¡£", "value");
+                throw new ArgumentException("æ•°å€¼è¿‡å¤§ã€‚", "value");
             switch (field.DataType)
             {
                 case Iso8583DataType.B:
-                    throw new Exception("¸ñÊ½²»·û¡£bitNum:" + bitNum.ToString() + "value:" + value.ToString());
+                    throw new Exception("æ ¼å¼ä¸ç¬¦ã€‚bitNum:" + bitNum.ToString() + "value:" + value.ToString());
                 default:
                     values[bitNum] = new string('0', field.Length - strValue.Length) + strValue;
                     break;
@@ -231,29 +231,29 @@ namespace SlzrCrossGate.Tcp.Protocol
             this.bitmap.Set(bitNum, true);
         }
         /// <summary>
-        /// ÎªÖ¸¶¨Êı¾İÓòÉèÖÃÒ»¸ö½ğ¶îÖµ
+        /// ä¸ºæŒ‡å®šæ•°æ®åŸŸè®¾ç½®ä¸€ä¸ªé‡‘é¢å€¼
         /// </summary>
-        /// <param name="bitNum">Êı¾İÓò</param>
-        /// <param name="money">½ğ¶îÖµ</param>
+        /// <param name="bitNum">æ•°æ®åŸŸ</param>
+        /// <param name="money">é‡‘é¢å€¼</param>
         public void SetMoney(int bitNum, decimal money)
         {
             int value = Convert.ToInt32(money * 100);
             this.SetNumber(bitNum, value);
         }
         /// <summary>
-        /// ÎªÖ¸¶¨Êı¾İÓòÉèÖÃÒ»¸öÈÕÆÚÖµ
+        /// ä¸ºæŒ‡å®šæ•°æ®åŸŸè®¾ç½®ä¸€ä¸ªæ—¥æœŸå€¼
         /// </summary>
-        /// <param name="bitNum">Êı¾İÓò</param>
-        /// <param name="time">ÈÕÆÚÖµ</param>
+        /// <param name="bitNum">æ•°æ®åŸŸ</param>
+        /// <param name="time">æ—¥æœŸå€¼</param>
         public void SetDateTime(int bitNum, DateTime time)
         {
             if (!this.schema.fields.ContainsKey(bitNum))
-                throw new Exception(String.Format("Êı¾İ°ü¶¨Òå²»°üº¬´ËÓò£º{0}", bitNum));
+                throw new Exception(String.Format("æ•°æ®åŒ…å®šä¹‰ä¸åŒ…å«æ­¤åŸŸï¼š{0}", bitNum));
             Iso8583Field field = this.schema.fields[bitNum];
             switch (field.DataType)
             {
                 case Iso8583DataType.B:
-                    throw new Exception("¸ñÊ½²»·û¡£");
+                    throw new Exception("æ ¼å¼ä¸ç¬¦ã€‚");
                 default:
                     switch (field.Format)
                     {
@@ -276,44 +276,44 @@ namespace SlzrCrossGate.Tcp.Protocol
                             values[bitNum] = time.ToString("MMddHHmmss");
                             break;
                         default:
-                            throw new Exception("¸ñÊ½²»·û¡£");
+                            throw new Exception("æ ¼å¼ä¸ç¬¦ã€‚");
                     }
                     break;
             }
             this.bitmap.Set(bitNum, true);
         }
         /// <summary>
-        /// ÎªÖ¸¶¨Êı¾İÓòÉèÖÃÒ»¸ö¶ş½øÖÆÖµ
+        /// ä¸ºæŒ‡å®šæ•°æ®åŸŸè®¾ç½®ä¸€ä¸ªäºŒè¿›åˆ¶å€¼
         /// </summary>
-        /// <param name="bitNum">Êı¾İÓò</param>
-        /// <param name="data">¶ş½øÖÆÖµ</param>
+        /// <param name="bitNum">æ•°æ®åŸŸ</param>
+        /// <param name="data">äºŒè¿›åˆ¶å€¼</param>
         public void SetArrayData(int bitNum, byte[] data)
         {
             if (!this.schema.fields.ContainsKey(bitNum))
-                throw new Exception(String.Format("Êı¾İ°ü¶¨Òå²»°üº¬´ËÓò£º{0}", bitNum));
+                throw new Exception(String.Format("æ•°æ®åŒ…å®šä¹‰ä¸åŒ…å«æ­¤åŸŸï¼š{0}", bitNum));
             Iso8583Field field = this.schema.fields[bitNum];
             if (data.Length > field.Length)
-                throw new Exception("³¤¶È¹ı³¤¡£bitNum:" + bitNum.ToString());
+                throw new Exception("é•¿åº¦è¿‡é•¿ã€‚bitNum:" + bitNum.ToString());
             switch (field.DataType)
             {
                 case Iso8583DataType.B:
                     values[bitNum] = data;
                     break;
                 default:
-                    throw new Exception("¸ñÊ½²»·û¡£bitNum:" + bitNum.ToString());
+                    throw new Exception("æ ¼å¼ä¸ç¬¦ã€‚bitNum:" + bitNum.ToString());
             }
             this.bitmap.Set(bitNum, data != null);
         }
         public void SetBCD(int bitNum, string value) {
             if (!this.schema.fields.ContainsKey(bitNum))
-                throw new Exception(String.Format("Êı¾İ°ü¶¨Òå²»°üº¬´ËÓò£º{0}", bitNum));
+                throw new Exception(String.Format("æ•°æ®åŒ…å®šä¹‰ä¸åŒ…å«æ­¤åŸŸï¼š{0}", bitNum));
             Iso8583Field field = this.schema.fields[bitNum];
             if (value.Length/2 > field.Length)
-                throw new Exception("³¤¶È¹ı³¤¡£bitNum:" + bitNum.ToString() + "value:" + value);
+                throw new Exception("é•¿åº¦è¿‡é•¿ã€‚bitNum:" + bitNum.ToString() + "value:" + value);
             switch (field.DataType)
             {
                 case Iso8583DataType.B:
-                    throw new Exception("¸ñÊ½²»·û¡£bitNum:" + bitNum.ToString() + "value:" + value);
+                    throw new Exception("æ ¼å¼ä¸ç¬¦ã€‚bitNum:" + bitNum.ToString() + "value:" + value);
                 default:
                     values[bitNum] = value;
                     break;
@@ -322,60 +322,60 @@ namespace SlzrCrossGate.Tcp.Protocol
         }
         #endregion
 
-        #region ´ÓÊı¾İÓò»ñÈ¡Öµ
+        #region ä»æ•°æ®åŸŸè·å–å€¼
         /// <summary>
-        /// »ñÈ¡Ä³¸öÓòÉÏÊÇ·ñ´æÔÚÓĞĞ§Öµ¡£
+        /// è·å–æŸä¸ªåŸŸä¸Šæ˜¯å¦å­˜åœ¨æœ‰æ•ˆå€¼ã€‚
         /// </summary>
-        /// <param name="bitNum">Êı¾İÓò</param>
+        /// <param name="bitNum">æ•°æ®åŸŸ</param>
         /// <returns></returns>
         public bool ExistValue(int bitNum)
         {
             return this.values.ContainsKey(bitNum) && (this.values[bitNum] != null);
         }
         /// <summary>
-        /// ´ÓÖ¸¶¨Êı¾İÓò»ñÈ¡×Ö·û´®Öµ
+        /// ä»æŒ‡å®šæ•°æ®åŸŸè·å–å­—ç¬¦ä¸²å€¼
         /// </summary>
-        /// <param name="bitNum">Êı¾İÓò</param>
+        /// <param name="bitNum">æ•°æ®åŸŸ</param>
         /// <returns></returns>
         public string GetString(int bitNum)
         {
             if (!this.schema.fields.ContainsKey(bitNum))
-                throw new Exception(String.Format("Êı¾İ°ü¶¨Òå²»°üº¬´ËÓò£º{0}", bitNum));
+                throw new Exception(String.Format("æ•°æ®åŒ…å®šä¹‰ä¸åŒ…å«æ­¤åŸŸï¼š{0}", bitNum));
             Iso8583Field field = this.schema.fields[bitNum];
             if (!this.values.ContainsKey(bitNum) || (this.values[bitNum] == null))
-                throw new Exception(String.Format("Êı¾İÓò {0} ²»°üº¬ÈÎºÎÓĞĞ§Öµ¡£", bitNum));
+                throw new Exception(String.Format("æ•°æ®åŸŸ {0} ä¸åŒ…å«ä»»ä½•æœ‰æ•ˆå€¼ã€‚", bitNum));
             switch (field.DataType)
             {
                 case Iso8583DataType.B:
-                    throw new Exception("¸ñÊ½²»·û¡£");
+                    throw new Exception("æ ¼å¼ä¸ç¬¦ã€‚");
                 default:
                     return this.values[bitNum].ToString();
             }
         }
         /// <summary>
-        /// ´ÓÖ¸¶¨Êı¾İÓò»ñÈ¡Êı×ÖÖµ
+        /// ä»æŒ‡å®šæ•°æ®åŸŸè·å–æ•°å­—å€¼
         /// </summary>
-        /// <param name="bitNum">Êı¾İÓò</param>
+        /// <param name="bitNum">æ•°æ®åŸŸ</param>
         /// <returns></returns>
         public int GetNumber(int bitNum)
         {
             if (!this.schema.fields.ContainsKey(bitNum))
-                throw new Exception(String.Format("Êı¾İ°ü¶¨Òå²»°üº¬´ËÓò£º{0}", bitNum));
+                throw new Exception(String.Format("æ•°æ®åŒ…å®šä¹‰ä¸åŒ…å«æ­¤åŸŸï¼š{0}", bitNum));
             Iso8583Field field = this.schema.fields[bitNum];
             if (!this.values.ContainsKey(bitNum) || (this.values[bitNum] == null))
-                throw new Exception(String.Format("Êı¾İÓò {0} ²»°üº¬ÈÎºÎÓĞĞ§Öµ¡£", bitNum));
+                throw new Exception(String.Format("æ•°æ®åŸŸ {0} ä¸åŒ…å«ä»»ä½•æœ‰æ•ˆå€¼ã€‚", bitNum));
             switch (field.DataType)
             {
                 case Iso8583DataType.N:
                     return Convert.ToInt32(this.values[bitNum]);
                 default:
-                    throw new Exception("¸ñÊ½²»·û¡£");
+                    throw new Exception("æ ¼å¼ä¸ç¬¦ã€‚");
             }
         }
         /// <summary>
-        /// ´ÓÖ¸¶¨Êı¾İÓò»ñÈ¡½ğ¶îÖµ
+        /// ä»æŒ‡å®šæ•°æ®åŸŸè·å–é‡‘é¢å€¼
         /// </summary>
-        /// <param name="bitNum">Êı¾İÓò</param>
+        /// <param name="bitNum">æ•°æ®åŸŸ</param>
         /// <returns></returns>
         public decimal GetMoney(int bitNum)
         {
@@ -383,21 +383,21 @@ namespace SlzrCrossGate.Tcp.Protocol
             return money / 100;
         }
         /// <summary>
-        /// ´ÓÖ¸¶¨Êı¾İÓò»ñÈ¡ÈÕÆÚÖµ
+        /// ä»æŒ‡å®šæ•°æ®åŸŸè·å–æ—¥æœŸå€¼
         /// </summary>
-        /// <param name="bitNum">Êı¾İÓò</param>
+        /// <param name="bitNum">æ•°æ®åŸŸ</param>
         /// <returns></returns>
         public DateTime GetDateTime(int bitNum)
         {
             if (!this.schema.fields.ContainsKey(bitNum))
-                throw new Exception(String.Format("Êı¾İ°ü¶¨Òå²»°üº¬´ËÓò£º{0}", bitNum));
+                throw new Exception(String.Format("æ•°æ®åŒ…å®šä¹‰ä¸åŒ…å«æ­¤åŸŸï¼š{0}", bitNum));
             Iso8583Field field = this.schema.fields[bitNum];
             if (!this.values.ContainsKey(bitNum) || (this.values[bitNum] == null))
-                throw new Exception(String.Format("Êı¾İÓò {0} ²»°üº¬ÈÎºÎÓĞĞ§Öµ¡£", bitNum));
+                throw new Exception(String.Format("æ•°æ®åŸŸ {0} ä¸åŒ…å«ä»»ä½•æœ‰æ•ˆå€¼ã€‚", bitNum));
             switch (field.DataType)
             {
                 case Iso8583DataType.B:
-                    throw new Exception("¸ñÊ½²»·û¡£");
+                    throw new Exception("æ ¼å¼ä¸ç¬¦ã€‚");
                 default:
                     string value = (string)this.values[bitNum];
                     switch (field.Format)
@@ -415,33 +415,33 @@ namespace SlzrCrossGate.Tcp.Protocol
                         case Iso8583Format.MMDDhhmmss:
                             return DateTime.ParseExact(value, "MMddHHmmss", null);
                         default:
-                            throw new Exception("¸ñÊ½²»·û¡£");
+                            throw new Exception("æ ¼å¼ä¸ç¬¦ã€‚");
                     }
             }
         }
         /// <summary>
-        /// ´ÓÖ¸¶¨Êı¾İÓò»ñÈ¡¶ş½øÖÆÖµ
+        /// ä»æŒ‡å®šæ•°æ®åŸŸè·å–äºŒè¿›åˆ¶å€¼
         /// </summary>
-        /// <param name="bitNum">Êı¾İÓò</param>
+        /// <param name="bitNum">æ•°æ®åŸŸ</param>
         /// <returns></returns>
         public byte[] GetArrayData(int bitNum)
         {
             if (!this.schema.fields.ContainsKey(bitNum))
-                throw new Exception(String.Format("Êı¾İ°ü¶¨Òå²»°üº¬´ËÓò£º{0}", bitNum));
+                throw new Exception(String.Format("æ•°æ®åŒ…å®šä¹‰ä¸åŒ…å«æ­¤åŸŸï¼š{0}", bitNum));
             Iso8583Field field = this.schema.fields[bitNum];
             if (!this.values.ContainsKey(bitNum) || (this.values[bitNum] == null))
-                throw new Exception(String.Format("Êı¾İÓò {0} ²»°üº¬ÈÎºÎÓĞĞ§Öµ¡£", bitNum));
+                throw new Exception(String.Format("æ•°æ®åŸŸ {0} ä¸åŒ…å«ä»»ä½•æœ‰æ•ˆå€¼ã€‚", bitNum));
             switch (field.DataType)
             {
                 case Iso8583DataType.B:
                     return (byte[])this.values[bitNum];
                 default:
-                    throw new Exception(String.Format("Êı¾İÓò {0} ¸ñÊ½²»ÊÇ¶ş½øÖÆ¡£", bitNum));
+                    throw new Exception(String.Format("æ•°æ®åŸŸ {0} æ ¼å¼ä¸æ˜¯äºŒè¿›åˆ¶ã€‚", bitNum));
             }
         }
         #endregion
 
-        #region ×é°ü
+        #region ç»„åŒ…
         private int GetLength(int bitNum)
         {
             Debug.Assert(this.schema.fields.ContainsKey(bitNum));
@@ -525,7 +525,7 @@ namespace SlzrCrossGate.Tcp.Protocol
 
         private readonly byte[] EmptyBytes = new byte[1024];
         /// <summary>
-        /// ×é°üÒ»¸ö ISO 8583 Êı¾İ°ü
+        /// ç»„åŒ…ä¸€ä¸ª ISO 8583 æ•°æ®åŒ…
         /// </summary>
         /// <returns></returns>
         private byte[] PackSendBody()
@@ -639,11 +639,11 @@ namespace SlzrCrossGate.Tcp.Protocol
                                 var diff = field.Length - bValue.Length;
                                 if (diff < 0)
                                 {
-                                    throw new Exception($"{bitNum}ÓòµÄÄÚÈİ³¬¹ı¹æ¶¨³¤¶È{field.Length}");
+                                    throw new Exception($"{bitNum}åŸŸçš„å†…å®¹è¶…è¿‡è§„å®šé•¿åº¦{field.Length}");
                                 }
                                 if (diff > 1024)
                                 {
-                                    throw new Exception($"{bitNum}Óò×Ö¶Î³¤¶ÈÒì³£");
+                                    throw new Exception($"{bitNum}åŸŸå­—æ®µé•¿åº¦å¼‚å¸¸");
                                 }
                                 bValue.CopyTo(result, pos);
                                 var destIndex = pos;
@@ -662,7 +662,7 @@ namespace SlzrCrossGate.Tcp.Protocol
         }
 
         /// <summary>
-        /// ´ò°üÍêÕûÊı¾İ°ü
+        /// æ‰“åŒ…å®Œæ•´æ•°æ®åŒ…
         /// </summary>
         /// <param name="NeedReSign"></param>
         /// <returns></returns>
@@ -681,7 +681,7 @@ namespace SlzrCrossGate.Tcp.Protocol
                     headStr = "6000000000612205000001";
                 }
             }
-            //int len = body.Length + 11+4;//4×Ö½ÚCRC
+            //int len = body.Length + 11+4;//4å­—èŠ‚CRC
             int len = body.Length + 11;
             _buffer = new byte[body.Length + 11 + 2];
             _buffer[0] = Convert.ToByte(len >> 8 & 0XFF);
@@ -692,12 +692,12 @@ namespace SlzrCrossGate.Tcp.Protocol
         }
         #endregion
 
-        #region ½â°ü
+        #region è§£åŒ…
         /// <summary>
-        /// ½â°üÒ»¸ö ISO 8583 Êı¾İ°ü
+        /// è§£åŒ…ä¸€ä¸ª ISO 8583 æ•°æ®åŒ…
         /// </summary>
-        /// <param name="buf">Êı¾İ°ü</param>
-        /// <param name="haveMT">Êı¾İ°üÊÇ·ñ°üº¬4×Ö½ÚµÄMessageType</param>
+        /// <param name="buf">æ•°æ®åŒ…</param>
+        /// <param name="haveMT">æ•°æ®åŒ…æ˜¯å¦åŒ…å«4å­—èŠ‚çš„MessageType</param>
         private void ParseBuffer(byte[] buf, bool haveMT=true)
         {
             int pos = 0;
@@ -705,7 +705,7 @@ namespace SlzrCrossGate.Tcp.Protocol
                 throw new ArgumentNullException("buf");
             if ((haveMT && messageTypeIsBCD && buf.Length < 18) 
                 || (haveMT && !messageTypeIsBCD && buf.Length < 204))
-                throw new ArgumentException("Êı¾İ°ü³¤¶È²»·ûºÏ¶¨Òå", "buf");
+                throw new ArgumentException("æ•°æ®åŒ…é•¿åº¦ä¸ç¬¦åˆå®šä¹‰", "buf");
             if (haveMT)
             {
                 if (messageTypeIsBCD)
@@ -724,13 +724,13 @@ namespace SlzrCrossGate.Tcp.Protocol
             pos += 16;
             this.bitmap = new Bitmap(data);
             if (!this.smartBitmap && !this.schema.bitmap.IsEqual(data))
-                throw new Exception("Êı¾İ°üµÄÎ»Í¼±íºÍ¶¨ÒåµÄ²»Ò»ÖÂ");
+                throw new Exception("æ•°æ®åŒ…çš„ä½å›¾è¡¨å’Œå®šä¹‰çš„ä¸ä¸€è‡´");
             for (int bitNum = 2; bitNum <= Bitmap.FieldCount; bitNum++)
             {
                 if (!bitmap.Get(bitNum)) continue;
                 if (this.smartBitmap && !schema.fields.ContainsKey(bitNum))
                 {
-                    throw new Exception(string.Format("Êı¾İ½á¹¹¶¨ÒåÖĞ²»°üº¬Óò{0}", bitNum));
+                    throw new Exception(string.Format("æ•°æ®ç»“æ„å®šä¹‰ä¸­ä¸åŒ…å«åŸŸ{0}", bitNum));
                 }
                 Iso8583Field field = this.schema.fields[bitNum];
                 int len = 0;
@@ -762,8 +762,8 @@ namespace SlzrCrossGate.Tcp.Protocol
                         break;
                 }
                 if (buf.Length < pos + len)
-                    //throw new ArgumentException("Êı¾İ°ü³¤¶È²»·ûºÏ¶¨Òå", "buf");
-                    throw new Exception("Êı¾İ°ü³¤¶È²»·ûºÏ¶¨Òå");
+                    //throw new ArgumentException("æ•°æ®åŒ…é•¿åº¦ä¸ç¬¦åˆå®šä¹‰", "buf");
+                    throw new Exception("æ•°æ®åŒ…é•¿åº¦ä¸ç¬¦åˆå®šä¹‰");
                 switch (field.DataType)
                 {
                     case Iso8583DataType.B:
@@ -788,7 +788,7 @@ namespace SlzrCrossGate.Tcp.Protocol
         }
 
         /// <summary>
-        /// ½â°üÍêÕû±¨ÎÄÏûÏ¢£¨Len + TPDU + Header + 8583message£©
+        /// è§£åŒ…å®Œæ•´æŠ¥æ–‡æ¶ˆæ¯ï¼ˆLen + TPDU + Header + 8583messageï¼‰
         /// </summary>
         /// <param name="buf"></param>
         /// <param name="haveMT"></param>
@@ -801,7 +801,7 @@ namespace SlzrCrossGate.Tcp.Protocol
 
         #region Util
         /// <summary>
-        /// »ñÈ¡Ò»¸öÊÊºÏÔÚÈÕÖ¾ÖĞÊäÈëµÄ×Ö·û´®
+        /// è·å–ä¸€ä¸ªé€‚åˆåœ¨æ—¥å¿—ä¸­è¾“å…¥çš„å­—ç¬¦ä¸²
         /// </summary>
         /// <returns></returns>
         public string GetLogText()

@@ -21,14 +21,4 @@
     <ProjectReference Include="..\SlzrCrossGate.Tcp\SlzrCrossGate.Tcp.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="Service\" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <None Update="schema.xml">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-  </ItemGroup>
-
 </Project>
