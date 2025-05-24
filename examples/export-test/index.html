@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DDR导出功能测试</title>
+  <style>
+    body {
+      font-family: Arial, "Microsoft YaHei", sans-serif;
+      margin: 0;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    .control-panel {
+      background: #fff;
+      padding: 15px;
+      margin-bottom: 15px;
+      border-radius: 4px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    button {
+      padding: 8px 12px;
+      margin-right: 8px;
+      background: #4472C4;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #365D9D;
+    }
+    #report-container {
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+  <div class="control-panel">
+    <h2>DDR导出测试</h2>
+    <div>
+      <button id="exportExcel">导出Excel</button>
+      <button id="exportPDF">导出PDF</button>
+      <button id="exportImage">导出图片</button>
+    </div>
+  </div>
+
+  <div id="report-container"></div>
+
+  <script type="module">
+    import { DDR } from '../../dist/ddr-core.esm.js';
+
+    // 创建测试数据
+    function createTestData() {
+      return {
+        title: '测试报表 - 导出功能验证',
+        subtitle: '2025年5月24日',
+        logo: 'https://www.pngitem.com/pimgs/m/538-5389247_sample-logo-png-download-sample-logo-png-transparent.png',
+        metadata: [
+          { label: '报表编号', value: 'TEST-20250524-001' },
+          { label: '生成日期', value: '2025年5月24日' },
+          { label: '生成人员', value: '测试人员' }
+        ],
+        columns: [
+          { field: 'id', title: '序号', width: 60 },
+          { field: 'name', title: '名称', width: 150 },
+          { field: 'category', title: '类别', width: 120 },
+          { field: 'amount', title: '金额', width: 100, align: 'right' },
+          { field: 'date', title: '日期', width: 120 },
+          { field: 'status', title: '状态', width: 100 },
+          { field: 'description', title: '描述', width: 200 }
+        ],
+        data: generateMockData(30),
+        summary: [
+          { field: 'name', value: '合计' },
+          { field: 'amount', value: '10,500.00', align: 'right' }
+        ],
+        footer: {
+          text: '测试页脚 - 保密文件',
+          extra: '页码：#pageNumber# / #totalPages#'
+        }
+      };
+    }
+
+    // 生成测试数据
+    function generateMockData(count) {
+      const data = [];
+      const categories = ['类别A', '类别B', '类别C'];
+      const statuses = ['已完成', '进行中', '已取消', '已审核'];
+      
+      for (let i = 1; i <= count; i++) {
+        data.push({
+          id: i,
+          name: `测试项目${i}`,
+          category: categories[i % categories.length],
+          amount: (i * 100 + i * 10 + Math.floor(Math.random() * 100)).toFixed(2),
+          date: `2025-05-${(i % 30) + 1}`,
+          status: statuses[i % statuses.length],
+          description: `这是测试项目${i}的详细描述信息，用于测试导出功能。`
+        });
+      }
+      
+      return data;
+    }
+
+    // 初始化DDR报表
+    const ddrInstance = new DDR({
+      container: '#report-container',
+      data: createTestData()
+    });
+
+    // 渲染报表
+    ddrInstance.render();
+
+    // 添加导出按钮事件
+    document.getElementById('exportExcel').addEventListener('click', () => {
+      ddrInstance.exportExcel();
+    });
+
+    document.getElementById('exportPDF').addEventListener('click', () => {
+      ddrInstance.exportPDF();
+    });
+
+    document.getElementById('exportImage').addEventListener('click', () => {
+      ddrInstance.exportImage();
+    });
+  </script>
+</body>
+</html>

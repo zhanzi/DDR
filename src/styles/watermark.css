@@ -1,0 +1,58 @@
+/**
+ * DDR报表组件水印样式
+ */
+
+/* 水印容器 */
+.ddr-watermark {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none; /* 允许点击水印下的元素 */
+  overflow: hidden;
+  z-index: 10; /* 提高水印层级，确保在内容上方显示 */
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  grid-template-rows: repeat(5, 1fr);
+  opacity: 0.8; /* 提高水印可见度 */
+}
+
+/* 每个水印文本内容 */
+.ddr-watermark-content {
+  position: relative;
+  color: rgba(0, 0, 0, 0.15); /* 增加水印颜色深度以提高可见性 */
+  font-size: 18px; /* 增大字体 */
+  font-weight: bold;
+  text-align: center;
+  transform: rotate(-30deg); /* 旋转角度 */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  user-select: none; /* 防止文本被选择 */
+  margin: auto;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 50px;
+  text-shadow: 0px 0px 1px rgba(0, 0, 0, 0.05); /* 添加轻微阴影提高可见性 */
+}
+
+/* 暗色主题下的水印 */
+.ddr-theme-dark .ddr-watermark-content {
+  color: rgba(255, 255, 255, 0.07);
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+/* 打印样式 - 确保水印在打印时可见 */
+@media print {
+  .ddr-watermark {
+    position: fixed;
+    z-index: 1000;
+  }
+  
+  .ddr-watermark-content {
+    color: rgba(0, 0, 0, 0.15); /* 打印时稍微加深颜色 */
+  }
+}

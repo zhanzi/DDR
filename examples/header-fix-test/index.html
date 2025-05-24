@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DDR表头修复测试</title>
+  <link rel="stylesheet" href="../../dist/ddr-core.css">
+  <style>
+    body {
+      margin: 0;
+      padding: 20px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    }
+    
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      height: 800px;
+    }
+    
+    .test-controls {
+      margin-bottom: 20px;
+      padding: 10px;
+      background: #f3f3f3;
+      border-radius: 4px;
+    }
+    
+    button {
+      padding: 8px 12px;
+      margin-right: 10px;
+      background: #1890ff;
+      border: none;
+      border-radius: 4px;
+      color: white;
+      cursor: pointer;
+    }
+    
+    button:hover {
+      background: #40a9ff;
+    }
+  </style>
+</head>
+<body>
+  <div class="test-controls">
+    <button id="addMetadata">添加更多元数据</button>
+    <button id="clearMetadata">清除额外元数据</button>
+  </div>
+  
+  <div class="container" id="reportContainer"></div>
+  
+  <script src="../../dist/ddr-core.browser.js"></script>
+  <script>
+    // 初始元数据
+    const initialMetadata = {
+      title: "元数据表头高度测试报表",
+      fields: {
+        reportNo: "RPT20250523001",
+        reportName: "测试报表",
+        createDate: "2025-05-23",
+        author: "系统测试"
+      }
+    };
+    
+    // 创建报表实例
+    const reportInstance = DDR.create({
+      container: "#reportContainer",
+      config: {
+        meta: {
+          name: "表头高度自适应测试"
+        },
+        header: {
+          title: {
+            metadataPath: "title",
+            text: "表头高度自适应测试"
+          },
+          fields: [
+            { label: "报表编号:", metadataPath: "fields.reportNo", position: "left" },
+            { label: "报表名称:", metadataPath: "fields.reportName", position: "left" },
+            { label: "创建日期:", metadataPath: "fields.createDate", position: "right" },
+            { label: "作者:", metadataPath: "fields.author", position: "right" }
+          ]
+        },
+        columns: [
+          { key: "id", title: "ID", width: 80 },
+          { key: "name", title: "名称", width: 150 },
+          { key: "description", title: "描述", width: 300 }
+        ],
+        dataSource: {
+          mock: [
+            { id: 1, name: "测试数据1", description: "这是测试数据1的描述" },
+            { id: 2, name: "测试数据2", description: "这是测试数据2的描述" },
+            { id: 3, name: "测试数据3", description: "这是测试数据3的描述" }
+          ]
+        }
+      },
+      metadata: initialMetadata
+    });
+    
+    // 添加更多元数据按钮事件
+    document.getElementById('addMetadata').addEventListener('click', () => {
+      const additionalMetadata = {
+        fields: {
+          reportNo: initialMetadata.fields.reportNo,
+          reportName: initialMetadata.fields.reportName,
+          createDate: initialMetadata.fields.createDate,
+          author: initialMetadata.fields.author,
+          department: "技术部门",
+          category: "每日报表",
+          confidential: "内部文件，请勿外传",
+          reviewer: "测试经理",
+          comments: "这是一个很长的注释，用于测试多行元数据是否会导致表头与表格内容重叠。测试多行情况下的表头自适应高度功能。",
+          status: "已审核",
+          version: "1.0.0",
+          distribution: "技术部门, 产品部门, 运营部门, 管理层"
+        }
+      };
+      
+      reportInstance.updateMetadata(additionalMetadata);
+    });
+    
+    // 清除额外元数据按钮事件
+    document.getElementById('clearMetadata').addEventListener('click', () => {
+      reportInstance.updateMetadata(initialMetadata);
+    });
+  </script>
+</body>
+</html>

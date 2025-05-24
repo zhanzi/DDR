@@ -1,0 +1,214 @@
+/*
+ * 修复header高度自适应和表格重叠问题
+ * 此文件将合并到主CSS中
+ */
+
+/* 表头样式修复 */
+.ddr-header, .ddr-report-header {
+  flex: 0 0 auto;
+  height: auto !important; /* 强制使用自动高度 */
+  min-height: 80px;
+  padding: 20px 25px 10px; /* 增加左右内边距，为Logo留出更多空间 */
+  margin-bottom: 5px; /* 保持较小间距 */
+  z-index: 20;
+  border-bottom: 1px solid var(--ddr-border-color);
+  overflow: visible; /* 允许内容溢出 */
+  position: relative; /* 确保定位正确 */
+}
+
+/* 表头字段修复 */
+.ddr-header-fields {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 20px; /* 增加与标题的距离 */
+  width: 100%;
+  flex-wrap: nowrap;
+}
+
+.ddr-header-fields-left,
+.ddr-header-fields-right {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  flex: 0 1 45%;
+  min-width: 40%;
+  margin-bottom: 10px; /* 确保底部有足够空间 */
+  padding: 0 10px; /* 添加内边距，避免与logo的布局冲突 */
+}
+
+.ddr-header-field {
+  display: flex;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  margin-bottom: 8px; /* 字段之间的间距 */
+  width: 100%; /* 确保充分利用空间 */
+  line-height: 1.5; /* 提高行高改善多行显示 */
+}
+
+/* 优化字段标签和值的布局 */
+.ddr-field-label {
+  font-weight: 500;
+  margin-right: 8px;
+  min-width: 100px; /* 提供固定宽度的标签 */
+  max-width: 30%; /* 但不要占用太多空间 */
+}
+
+/* 修复长元数据值的显示 */
+.ddr-field-value {
+  word-break: break-word; /* 允许长词换行 */
+  white-space: pre-wrap; /* 保留空格和换行符 */
+  max-width: 100%; /* 限制最大宽度 */
+}
+
+/* 表格容器修复 */
+.ddr-table-container {
+  flex: 1 1 auto;
+  overflow: auto;
+  position: relative;
+  margin-top: 8px; /* 减少与表头的间距 */
+  padding-top: 8px; /* 增加内边距，增加视觉空间 */
+  height: auto !important;
+  background-color: var(--ddr-table-odd-row, #fff);
+  z-index: 5; /* 确保低于表头 */
+  border-top: 1px solid rgba(0,0,0,0.1); /* 增加边框可见度，提供更明显的视觉分隔 */
+}
+
+/* 表格头部修复 */
+.ddr-table-header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+/* 改用Flexbox布局解决Logo重合问题 */
+.ddr-header, .ddr-report-header {
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+/* 创建顶部区域容器，包含Logo和标题 */
+.ddr-header-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  min-height: 60px;
+  margin-bottom: 15px;
+}
+
+/* Logo样式 - 改为Flex项目 */
+.ddr-header-logo {
+  flex: 0 0 auto;
+  max-height: 50px;
+  width: auto;
+  max-width: 100px;
+  z-index: 11;
+}
+
+.ddr-header-logo-left {
+  order: 1; /* 左侧Logo */
+}
+
+.ddr-header-logo-right {
+  order: 3; /* 右侧Logo */
+}
+
+/* 标题区域 - 占据中间空间 */
+.ddr-header-center {
+  flex: 1 1 auto;
+  order: 2;
+  text-align: center;
+  padding: 0 20px; /* 与Logo保持距离 */
+  min-width: 0; /* 允许收缩 */
+}
+
+/* 移除原有的边距设置，改用Flex布局 */
+.ddr-header-title, .ddr-header-subtitle {
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 字段区域保持原有布局，但移除边距 */
+.ddr-header-fields {
+  order: 4;
+  width: 100%;
+}
+
+.ddr-header-fields-left,
+.ddr-header-fields-right {
+  margin: 0;
+  padding: 0 10px;
+}
+
+/* 报表容器结构修复 */
+.ddr-wrapper {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  position: relative; /* 添加相对定位 */
+}
+
+/* 确保内容不会重叠，特别是当有多行元数据时 */
+.ddr-report-header + * {
+  margin-top: 0; /* 移除自动边距，使用上面定义的固定值 */
+}
+
+/* 支持动态计算高度的CSS变量 */
+:root {
+  --header-height: auto;
+  --footer-height: auto;
+  --table-offset-top: 0px;
+}
+
+/* 使表头内的元素更加灵活 */
+.ddr-header-title, .ddr-header-subtitle {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2; /* 默认显示两行 */
+  line-clamp: 2; /* 标准属性 */
+  -webkit-box-orient: vertical;
+  max-height: none; /* 允许适当扩展 */
+  padding: 0 100px; /* 为两侧的Logo预留足够空间 */
+}
+
+/* 确保表格和表头在打印时正常显示 */
+@media print {
+  .ddr-header, .ddr-report-header {
+    position: relative !important;
+    height: auto !important;
+  }
+
+  .ddr-table-container {
+    margin-top: 20px !important;
+    position: relative !important;
+  }
+}
+
+/* 表尾样式修复 */
+.ddr-footer, .ddr-report-footer {
+  flex: 0 0 auto;
+  height: auto !important; /* 强制使用自动高度 */
+  min-height: 100px;
+  padding: 16px;
+  overflow: visible; /* 允许内容溢出 */
+  z-index: 15; /* 确保在正确的层级，但低于表头 */
+}
+
+/* 确保表尾内容不被截断 */
+.ddr-footer-fields,
+.ddr-footer-summary,
+.ddr-footer-signatures {
+  width: 100%;
+  box-sizing: border-box;
+  overflow: visible;
+}
+
+/* 表尾与表格的间距 */
+.ddr-table-container + .ddr-report-footer {
+  margin-top: 10px;
+}

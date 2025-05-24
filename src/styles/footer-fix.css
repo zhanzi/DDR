@@ -1,0 +1,60 @@
+/**
+ * 表尾问题修复样式
+ * 确保表尾内容完全可见
+ */
+
+/* 表尾容器样式修复 */
+.ddr-footer, .ddr-report-footer {
+  flex: 0 0 auto;
+  height: auto !important; /* 强制覆盖内联样式 */
+  min-height: 100px !important; /* 最小高度而不是固定高度 */
+  padding: 16px;
+  overflow: visible !important; /* 确保内容不会被截断 */
+  z-index: 15; /* 提高层级确保显示 */
+  box-sizing: border-box;
+  width: 100%;
+  position: relative;
+}
+
+/* 确保页脚内容不会被截断 */
+.ddr-footer-fields,
+.ddr-footer-summary,
+.ddr-footer-signatures {
+  width: 100%;
+  box-sizing: border-box;
+  overflow: visible !important;
+}
+
+/* 修复页脚内部间距 */
+.ddr-footer-field {
+  margin-bottom: 10px;
+}
+
+/* 确保签名区域正确显示 */
+.ddr-footer-signatures {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-around;
+  margin-top: 20px;
+  margin-bottom: 16px;
+  gap: 15px;
+}
+
+.ddr-signature-item {
+  min-width: 150px;
+  text-align: center;
+  margin: 10px 5px;
+  flex: 0 1 auto;
+}
+
+.ddr-signature-label {
+  margin-bottom: 25px;
+  font-weight: 500;
+}
+
+.ddr-signature-name {
+  position: relative;
+  padding-top: 2px;
+  border-top: 1px solid #ddd;
+  margin-top: 25px;
+}

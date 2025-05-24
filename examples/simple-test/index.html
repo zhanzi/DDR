@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DDR简单测试</title>
+  <link rel="stylesheet" href="../../dist/ddr-core.css">
+  <style>
+    body, html {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB',
+        'Microsoft YaHei', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    }
+    
+    .container {
+      width: 100%;
+      height: 100%;
+      padding: 20px;
+      box-sizing: border-box;
+    }
+    
+    .report {
+      height: 600px;
+      border: 1px solid #e0e0e0;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>DDR报表组件简单测试</h1>
+    <div id="report" class="report"></div>
+  </div>  <script>
+    // 先加载IIFE格式的DDR库
+    window.addEventListener('DOMContentLoaded', () => {
+      const script = document.createElement('script');
+      script.src = '../../dist/ddr-core.browser.js';      script.onload = () => {
+        // DDR库加载成功后初始化
+        console.log('DDR库加载成功:', DDR);
+        console.log('DDR.create方法:', DDR.create);
+        initReport();
+      };
+      script.onerror = (err) => {
+        document.getElementById('report').innerHTML = 
+          `<div style="padding: 20px; color: red;">错误: 无法加载DDR库，可能是因为库尚未构建完成。请先运行 npm run build</div>`;
+        console.error('加载DDR库出错:', err);
+      };
+      document.head.appendChild(script);
+    });
+
+    // 模拟数据
+    const mockData = {
+      records: [
+        { id: 1, product: "产品A", category: "电子产品", price: 1299, quantity: 5, amount: 6495 },
+        { id: 2, product: "产品B", category: "家居用品", price: 299, quantity: 10, amount: 2990 },
+        { id: 3, product: "产品C", category: "食品饮料", price: 15, quantity: 100, amount: 1500 },
+        { id: 4, product: "产品D", category: "服装鞋帽", price: 399, quantity: 8, amount: 3192 },
+        { id: 5, product: "产品E", category: "电子产品", price: 4999, quantity: 2, amount: 9998 }
+      ],
+      metadata: {
+        report: {
+          title: "简单测试报表",
+          generateTime: new Date().toLocaleString()
+        },
+        company: {
+          name: "测试公司"
+        }      }
+    };
+
+    function initReport() {
+      // 简单的报表配置
+      const config = {
+        meta: {
+          name: '简单测试报表',
+          version: '1.0'
+        },
+        header: {
+          title: {
+            metadataPath: 'report.title'
+          },
+          fields: [
+            {
+              key: 'company',
+              label: '公司名称:',
+              metadataPath: 'company.name'
+            },
+            {
+              key: 'generateTime',
+              label: '生成时间:',
+              metadataPath: 'report.generateTime',
+              position: 'right'
+            }
+          ]
+        },
+        columns: [
+          {
+            key: 'id',
+            title: '序号',
+            width: 80,
+            align: 'center'
+          },
+          {
+            key: 'product',
+            title: '产品名称',
+            width: 120
+          },
+          {
+            key: 'category',
+            title: '产品类别',
+            width: 120
+          },
+          {
+            key: 'price',
+            title: '单价',
+            width: 100,
+            align: 'right',
+            formatter: 'currency'
+          },
+          {
+            key: 'quantity',
+            title: '销售数量',
+            width: 100,
+            align: 'right',
+            formatter: 'number'
+          },
+          {
+            key: 'amount',
+            title: '销售额',
+            width: 120,
+            align: 'right',
+            formatter: 'currency'
+          }
+        ]
+      };      try {
+        // 创建报表实例
+        const report = DDR.create({
+          container: document.getElementById('report'),
+          config: config,
+          theme: 'default'
+        });
+
+        // 使用模拟数据
+        report._fetchData = async function() {
+          return mockData;
+        };
+
+      } catch (error) {
+        document.getElementById('report').innerHTML = 
+          `<div style="padding: 20px; color: red;">错误: ${error.message}</div>`;
+        console.error("报表创建错误:", error);
+      }
+    }
+  </script>
+</body>
+</html>

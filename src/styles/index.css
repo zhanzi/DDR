@@ -1,0 +1,524 @@
+/**
+ * DDR报表组件样式
+ */
+@import './watermark.css';
+@import './header-fix.css';
+@import './footer-fix.css';
+
+/* 容器样式 */
+.ddr-container {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen,
+    Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+  font-size: 14px;
+  color: #333;
+  line-height: 1.5;
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden; /* 修改为 hidden，让内部元素处理滚动 */
+  display: flex;
+  flex-direction: column;
+  background-color: #fff;
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.12);
+  border-radius: 6px;
+}
+
+/* 包装器样式 */
+.ddr-wrapper {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-radius: 6px;
+}
+
+/* 主题样式: 默认 */
+.ddr-theme-default {
+  --ddr-primary-color: #1890ff;
+  --ddr-text-color: #333;
+  --ddr-border-color: #e8e8e8;
+  --ddr-header-bg: #fff;
+  --ddr-footer-bg: #fafafa;
+  --ddr-table-header-bg: #f2f2f2;
+  --ddr-table-odd-row: #fff;
+  --ddr-table-even-row: #f9f9f9;
+  --ddr-hover-bg: #e6f7ff;
+  --ddr-font-size-title: 18px;
+  --ddr-font-size-subtitle: 14px;
+  --ddr-font-size-normal: 14px;
+  --ddr-font-size-small: 12px;
+}
+
+/* 主题样式: 黑暗 */
+.ddr-theme-dark {
+  --ddr-primary-color: #177ddc;
+  --ddr-text-color: #e0e0e0;
+  --ddr-border-color: #434343;
+  --ddr-header-bg: #262626;
+  --ddr-footer-bg: #1f1f1f;
+  --ddr-table-header-bg: #1d1d1d;
+  --ddr-table-odd-row: #141414;
+  --ddr-table-even-row: #1a1a1a;
+  --ddr-hover-bg: #234566;
+  color: var(--ddr-text-color);
+  background-color: #141414;
+}
+
+/* 主题样式: 紧凑 */
+.ddr-theme-compact {
+  --ddr-font-size-title: 16px;
+  --ddr-font-size-subtitle: 13px;
+  --ddr-font-size-normal: 13px;
+  --ddr-font-size-small: 12px;
+}
+
+/* 表头样式 */
+.ddr-header, .ddr-report-header {
+  flex: 0 0 auto;
+  padding: 20px 16px 16px;
+  background-color: var(--ddr-header-bg);
+  border-bottom: 1px solid var(--ddr-border-color);
+  position: relative;
+  min-height: 80px;
+  height: auto; /* 允许根据内容自动调整高度 */
+  z-index: 10; /* 确保报表头部在表格头部之上 */
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 10px; /* 添加与表格的间距 */
+}
+
+/* 表头标题 */
+.ddr-header-title {
+  font-size: var(--ddr-font-size-title);
+  font-weight: bold;
+  text-align: center;
+  margin: 16px 60px 8px;
+}
+
+/* 表头副标题 */
+.ddr-header-subtitle {
+  font-size: var(--ddr-font-size-subtitle);
+  color: #666;
+  text-align: center;
+  margin: 0 60px 8px;
+}
+
+/* 表头Logo */
+.ddr-header-logo {
+  position: absolute;
+  max-height: 50px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 11;
+}
+
+.ddr-header-logo img {
+  max-height: 100%;
+  max-width: 100%;
+  display: block;
+}
+
+.ddr-header-logo-left {
+  left: 16px;
+}
+
+.ddr-header-logo-right {
+  right: 16px;
+}
+
+/* 表头字段 */
+.ddr-header-fields {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 16px;
+  width: 100%;
+}
+
+.ddr-header-fields-left,
+.ddr-header-fields-right {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 0 1 auto;
+  min-width: 40%;
+}
+
+.ddr-header-field {
+  display: flex;
+  align-items: center;
+}
+
+.ddr-header-field-label {
+  font-weight: 500;
+  margin-right: 8px;
+  min-width: 80px;
+}
+
+.ddr-header-field-value {
+  color: #666;
+}
+
+/* 表头布局 */
+.ddr-header-layout-compact {
+  padding: 8px;
+  min-height: 40px;
+}
+
+.ddr-header-layout-compact .ddr-header-title {
+  font-size: var(--ddr-font-size-subtitle);
+  margin: 4px 0;
+}
+
+.ddr-header-layout-compact .ddr-header-fields {
+  margin-top: 8px;
+}
+
+/* 表格样式 */
+.ddr-table-container {
+  flex: 1 1 auto;
+  overflow: auto;
+  position: relative;
+  max-height: calc(100% - var(--header-height, 0px) - var(--footer-height, 0px));
+  height: auto; /* 改为自动高度 */
+  background-color: var(--ddr-table-odd-row, #fff);
+}
+
+.ddr-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  table-layout: fixed;
+  border: 1px solid var(--ddr-border-color);
+  border-radius: 4px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+/* 表格头部 */
+.ddr-table-header {
+  position: sticky;
+  top: 0;
+  z-index: 5; /* 降低z-index，确保不会覆盖报表头部 */
+  background-color: var(--ddr-table-header-bg);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.ddr-table-header-cell {
+  font-weight: bold;
+  padding: 15px 12px;
+  border-bottom: 2px solid var(--ddr-border-color);
+  border-right: 1px solid var(--ddr-border-color);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  position: relative;
+  background-color: var(--ddr-table-header-bg);
+  color: var(--ddr-primary-color);
+}
+
+.ddr-table-header-cell:last-child {
+  border-right: none;
+}
+
+/* 表格单元格 */
+.ddr-table-cell {
+  padding: 12px;
+  border-bottom: 1px solid var(--ddr-border-color);
+  border-right: 1px solid var(--ddr-border-color);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: background-color 0.3s;
+}
+
+.ddr-table-cell:last-child {
+  border-right: none;
+}
+
+/* 表格行 */
+.ddr-table-row {
+  transition: background-color 0.2s ease;
+}
+
+.ddr-table-row:nth-child(even) {
+  background-color: var(--ddr-table-even-row);
+}
+
+.ddr-table-row:nth-child(odd) {
+  background-color: var(--ddr-table-odd-row);
+}
+
+.ddr-table-row:hover {
+  background-color: var(--ddr-hover-bg);
+}
+
+/* 单元格边框圆角处理 */
+.ddr-table-row:first-child td:first-child {
+  border-top-left-radius: 4px;
+}
+
+.ddr-table-row:first-child td:last-child {
+  border-top-right-radius: 4px;
+}
+
+.ddr-table-row:last-child td:first-child {
+  border-bottom-left-radius: 4px;
+}
+
+.ddr-table-row:last-child td:last-child {
+  border-bottom-right-radius: 4px;
+}
+
+/* 带边框的表格样式 */
+.ddr-bordered .ddr-table {
+  border: 1px solid var(--ddr-border-color);
+}
+
+.ddr-bordered .ddr-table-cell {
+  border: 1px solid var(--ddr-border-color);
+}
+
+.ddr-bordered .ddr-table-header-cell {
+  border: 1px solid var(--ddr-border-color);
+}
+
+/* 固定列 */
+.ddr-table-fixed-left {
+  position: sticky;
+  left: 0;
+  z-index: 2;
+  box-shadow: 2px 0 5px rgba(0, 0, 0, 0.05);
+  background-color: inherit;
+}
+
+.ddr-table-fixed-right {
+  position: sticky;
+  right: 0;
+  z-index: 2;
+  box-shadow: -2px 0 5px rgba(0, 0, 0, 0.05);
+  background-color: inherit;
+}
+
+/* 排序功能 */
+.ddr-table-sortable {
+  cursor: pointer;
+}
+
+.ddr-table-sortable:hover::after {
+  content: '↕';
+  margin-left: 4px;
+  opacity: 0.5;
+}
+
+.ddr-table-sort-asc::after {
+  content: '↑';
+  margin-left: 4px;
+  color: var(--ddr-primary-color);
+}
+
+.ddr-table-sort-desc::after {
+  content: '↓';
+  margin-left: 4px;
+  color: var(--ddr-primary-color);
+}
+
+/* 空数据提示 */
+.ddr-table-empty {
+  text-align: center;
+  padding: 24px;
+  color: #999;
+}
+
+/* 加载状态 */
+.ddr-loading {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(255, 255, 255, 0.7);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+
+.ddr-loading-text {
+  margin-top: 12px;
+  color: var(--ddr-primary-color);
+}
+
+/* 表尾样式 */
+.ddr-footer, .ddr-report-footer {
+  flex: 0 0 auto;
+  padding: 16px;
+  background-color: var(--ddr-footer-bg);
+  border-top: 1px solid var(--ddr-border-color);
+  width: 100%;
+  box-sizing: border-box;
+  position: relative;
+  z-index: 10; /* 确保页脚在上层 */
+}
+
+/* 表尾固定布局 */
+.ddr-footer-fixed {
+  position: sticky;
+  bottom: 0;
+  z-index: 10;
+}
+
+/* 表尾字段 */
+.ddr-footer-fields {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.ddr-footer-field {
+  display: flex;
+  align-items: center;
+}
+
+.ddr-footer-field-label {
+  font-weight: 500;
+  margin-right: 8px;
+}
+
+.ddr-footer-field-center {
+  margin: 0 auto;
+}
+
+.ddr-footer-field-right {
+  margin-left: auto;
+}
+
+/* 汇总信息 */
+.ddr-footer-summary {
+  display: flex;
+  justify-content: flex-end;
+  gap: 24px;
+  padding: 12px 0;
+  border-top: 1px dashed var(--ddr-border-color);
+  border-bottom: 1px dashed var(--ddr-border-color);
+  margin-bottom: 16px;
+}
+
+.ddr-footer-summary-item {
+  display: flex;
+  align-items: center;
+}
+
+.ddr-footer-summary-label {
+  font-weight: 500;
+  margin-right: 8px;
+}
+
+.ddr-footer-summary-value {
+  font-weight: bold;
+  color: var(--ddr-primary-color);
+}
+
+/* 签名区域 */
+.ddr-footer-signatures {
+  display: flex;
+  justify-content: space-around;
+  margin-top: 24px;
+  margin-bottom: 16px;
+}
+
+.ddr-footer-signature {
+  text-align: center;
+  min-width: 120px;
+}
+
+.ddr-footer-signature-line {
+  height: 1px;
+  background-color: var(--ddr-border-color);
+  margin: 8px 0;
+}
+
+.ddr-footer-signature-label {
+  font-size: var(--ddr-font-size-small);
+  color: #666;
+  margin-bottom: 8px;
+}
+
+.ddr-footer-signature-name {
+  margin-top: 4px;
+}
+
+.ddr-footer-signature-date {
+  font-size: var(--ddr-font-size-small);
+  color: #999;
+  margin-top: 4px;
+}
+
+/* 页码信息 */
+.ddr-footer-page-info {
+  font-size: var(--ddr-font-size-small);
+  color: #666;
+  margin-top: 16px;
+}
+
+.ddr-footer-page-info-center {
+  text-align: center;
+}
+
+.ddr-footer-page-info-right {
+  text-align: right;
+}
+
+/* 注释 */
+.ddr-footer-notes {
+  margin-top: 16px;
+  font-size: var(--ddr-font-size-small);
+  color: #999;
+  font-style: italic;
+}
+
+/* 表尾布局 */
+.ddr-footer-layout-compact {
+  padding: 8px;
+}
+
+.ddr-footer-layout-compact .ddr-footer-fields {
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.ddr-footer-layout-compact .ddr-footer-summary {
+  padding: 8px 0;
+  margin-bottom: 8px;
+}
+
+.ddr-footer-layout-compact .ddr-footer-signatures {
+  margin-top: 16px;
+  margin-bottom: 8px;
+}
+
+/* 打印样式 */
+@media print {
+  .ddr-container {
+    box-shadow: none;
+  }
+  
+  .ddr-table-container {
+    overflow: visible;
+  }
+  
+  .ddr-table {
+    page-break-inside: auto;
+  }
+  
+  .ddr-table-row {
+    page-break-inside: avoid;
+    page-break-after: auto;
+  }
+  
+  .ddr-header, .ddr-footer {
+    page-break-inside: avoid;
+  }
+}
