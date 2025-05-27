@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.DependencyInjection;
 using SlzrCrossGate.Core.Models;
 using System;
@@ -36,7 +36,8 @@ namespace SlzrCrossGate.Core.Database
             var admin = new ApplicationUser
             {
                 UserName = "admin",
-                RealName = "系统管理员"
+                RealName = "系统管理员",
+                Email="zdsh@slzr-sz.com"
             };
 
             var existingAdmin = await userManager.FindByNameAsync(admin.UserName);

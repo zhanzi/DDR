@@ -93,9 +93,10 @@ services:
       - RabbitMQ__HostName=rabbitmq
       - RabbitMQ__UserName=${RABBITMQ_USER:-guest}
       - RabbitMQ__Password=${RABBITMQ_PASS:-guest}
-      - Jwt__Key=${JWT_KEY:-YourSecretKeyHere12345678901234567890}
+      - Jwt__Key=${JWT_KEY:-YourSecretKeyHere12345678901234567890}    
     volumes:
       - webadmin_storage:/app/storage
+      - webadmin_keys:/app/Keys
     networks:
       - slzr-network
     restart: unless-stopped
@@ -132,3 +133,4 @@ volumes:
   rabbitmq_data:
   api_storage:
   webadmin_storage:
+  webadmin_keys:

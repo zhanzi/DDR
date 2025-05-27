@@ -98,9 +98,13 @@ namespace SlzrCrossGate.Core.Service.BusinessServices
                 {
                     try
                     {
-                        var _terminalEventRepository = _serviceProvider.GetRequiredService<Repository<TerminalEvent>>();
-                        await _terminalEventRepository.AddRangeAsync(eventsToProcess);
-                        _logger.LogInformation("Processed {Count} terminal events", eventsToProcess.Count);
+                        // 创建一个新的作用域来解析作用域服务
+                        using (var scope = _serviceProvider.CreateScope())
+                        {
+                            var _terminalEventRepository = scope.ServiceProvider.GetRequiredService<Repository<TerminalEvent>>();
+                            await _terminalEventRepository.AddRangeAsync(eventsToProcess);
+                            _logger.LogInformation("Processed {Count} terminal events", eventsToProcess.Count);
+                        }
                     }
                     catch (Exception ex)
                     {

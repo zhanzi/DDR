@@ -302,7 +302,7 @@ namespace SlzrCrossGate.Core.Services
 
             public async Task ResubscribeAsync(RabbitMQService service)
             {
-                if (IsConsumeData && Handler is Func<SlzrDatatransferModel.ConsumeData, ulong, Task> consumeDataHandler)
+                if (IsConsumeData && Handler is Func<SlzrDatatransferModel.ConsumeData,IChannel, ulong, Task> consumeDataHandler)
                 {
                     await service.SubscribeConsumeDataInternalAsync(consumeDataHandler, AutoAck, true);
                 }
@@ -476,7 +476,7 @@ namespace SlzrCrossGate.Core.Services
         /// <param name="handler">处理消费数据的回调函数</param>
         /// <param name="autoAck">是否自动确认消息</param>
         /// <returns></returns>
-        public async Task SubscribeConsumeDataAsync(Func<SlzrDatatransferModel.ConsumeData, ulong, Task> handler, bool autoAck = true)
+        public async Task SubscribeConsumeDataAsync(Func<SlzrDatatransferModel.ConsumeData,IChannel, ulong, Task> handler, bool autoAck = true)
         {
             await SubscribeConsumeDataInternalAsync(handler, autoAck, false);
         }
@@ -484,7 +484,7 @@ namespace SlzrCrossGate.Core.Services
         /// <summary>
         /// 内部消费数据订阅方法，支持重连后重新订阅
         /// </summary>
-        private async Task SubscribeConsumeDataInternalAsync(Func<SlzrDatatransferModel.ConsumeData, ulong, Task> handler, bool autoAck = true, bool isResubscribe = false)
+        private async Task SubscribeConsumeDataInternalAsync(Func<SlzrDatatransferModel.ConsumeData,IChannel , ulong, Task> handler, bool autoAck = true, bool isResubscribe = false)
         {
             // 获取或创建消费通道
             var channel = await GetOrCreateConsumeChannelAsync(_options.TcpQueue);
@@ -516,7 +516,7 @@ namespace SlzrCrossGate.Core.Services
                         var consumeData = JsonSerializer.Deserialize<SlzrDatatransferModel.ConsumeData>(body);
                         if (consumeData != null)
                         {
-                            await handler(consumeData, ea.DeliveryTag);
+                            await handler(consumeData,channel, ea.DeliveryTag);
                         }
 
                         if (autoAck)
@@ -679,6 +679,15 @@ namespace SlzrCrossGate.Core.Services
             {
                 _logger.LogWarning("Failed to acknowledge message with delivery tag {DeliveryTag} on any channel", deliveryTag);
             }
+        }
+
+        public async Task Ack(IChannel channel, ulong deliveryTag) {
+            await channel.BasicAckAsync(deliveryTag, false);
+        }
+
+        public async Task NAck(IChannel channel, ulong deliveryTag,bool requeue)
+        {
+            await channel.BasicRejectAsync(deliveryTag, requeue);
         }
 
         /// <summary>

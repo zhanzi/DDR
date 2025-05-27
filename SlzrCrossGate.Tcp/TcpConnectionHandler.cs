@@ -16,6 +16,7 @@ using System.Diagnostics;
 using System.Diagnostics.Metrics;
 using SlzrCrossGate.Core.Models;
 using SlzrCrossGate.Core.Service;
+using Minio.Helper;
 
 namespace SlzrCrossGate.Tcp
 {
@@ -43,6 +44,9 @@ namespace SlzrCrossGate.Tcp
         private static readonly Counter<long> _networkBandwidthIn;
         private static readonly Counter<long> _networkBandwidthOut;
 
+
+        private readonly Iso8583Schema _schema;
+
         static TcpConnectionHandler()
         {
             _messageProcessedCounter = _meter.CreateCounter<long>("tcp.messages.processed", "Messages");
@@ -55,12 +59,14 @@ namespace SlzrCrossGate.Tcp
         public TcpConnectionHandler(
             TcpConnectionManager connectionManager,
             ILogger<TcpConnectionHandler> logger,
+            Iso8583Schema schema,
             IServiceProvider serviceProvider,TerminalManager terminalManager)
         {
             _connectionManager = connectionManager;
             _logger = logger;
             _serviceProvider = serviceProvider;
             _terminalManager= terminalManager;
+            _schema = schema;
         }
 
         public override async Task OnConnectedAsync(ConnectionContext context)
@@ -102,7 +108,8 @@ namespace SlzrCrossGate.Tcp
                             connectionTimeoutCts.Cancel();
                             readToken = tcpContext.ConnectionClosed;
 
-                            if (message.MessageType != "0800") {
+                            if (message.MessageType != "0800")
+                            {
                                 //不是签到消息，尝试添加终端
                                 var terminal = new Core.Models.Terminal
                                 {
@@ -137,6 +144,7 @@ namespace SlzrCrossGate.Tcp
                     }
 
                     tcpContext.Transport.Input.AdvanceTo(data.Start, data.End);
+                    tcpContext.UpdateLastActivityTime();
                 }
             }
             catch (Iso8583ParseException ex)
@@ -145,17 +153,19 @@ namespace SlzrCrossGate.Tcp
             }
             catch (Exception ex) when (ex is OperationCanceledException || ex is IOException)
             {
-                _logger.LogError(ex, "Network error or connection interrupted.");
+                _logger.LogInformation("Network error or connection interrupted: {Message}", ex.Message);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Connection error{TerminalID:{0}, IP:{RemoteEndPoint}}", tcpContext.TerminalID,remoteEndPoint);
+                _logger.LogError(ex, "Connection error TerminalID:{0}, IP:{RemoteEndPoint}", tcpContext.TerminalID, remoteEndPoint);
             }
             finally
             {
                 _logger.LogInformation("Connection closed, IP:{0}", remoteEndPoint);
-                //_connectionManager.TryRemoveConnection(tcpContext.TerminalID);
-                //await context.DisposeAsync();
+                if (!string.IsNullOrEmpty(tcpContext.TerminalID))
+                {
+                    _connectionManager.TryRemoveConnection(tcpContext.TerminalID);
+                }
             }
         }
 
@@ -228,6 +238,18 @@ namespace SlzrCrossGate.Tcp
 
                 if (_messageHandlerTypes.Value.TryGetValue(message.MessageType, out var handlerType))
                 {
+                    //版本>=0300,检查MAC
+                    if (Convert.ToInt32(message.ProtocolVer, 16) >= 0x0300) {
+                        var buffer = message.GetCurBuffer();
+                        if (_terminalManager.CheckMac(message.TerimalID, buffer) == false)
+                        {
+                            var response = new Iso8583Message(_schema, Iso8583MessageType.SignInResponse);
+                            response.Error("0012", "MAC无效");
+                            _ = context.SendMessageAsync(response.Pack());
+                            return;
+                        }
+                    }
+
                     using (var scope = _serviceProvider.CreateScope())
                     {// 记录处理开始事件
                         //activity?.AddEvent(new ActivityEvent("HandlerStarted"));
@@ -288,6 +310,13 @@ namespace SlzrCrossGate.Tcp
         {
             if (response == null) return;
 
+            // 检查连接是否已关闭
+            if (context.ConnectionClosed.IsCancellationRequested)
+            {
+                _logger.LogWarning("Cannot send response to {TerminalID} - connection already closed", context.TerminalID);
+                return;
+            }
+
             if (request.Exist(3)) response.SetField(3, request.GetString(3));
 
             response.SetDateTime(12, DateTime.Now);
@@ -321,12 +350,20 @@ namespace SlzrCrossGate.Tcp
                 }
             }
 
-            await context.SendMessageAsync(response.Pack(needSign, msgcount));
+            var sendSuccess = await context.SendMessageAsync(response.Pack(needSign, msgcount));
 
-            _networkBandwidthOut.Add(response.GetCurBuffer().Length,
-                new KeyValuePair<string, object?>("MessageType", response.MessageType),
-                new KeyValuePair<string, object?>("TerminalID", context.TerminalID),
-                new KeyValuePair<string, object?>("MerchantID", context.MerchantID));
+            if (sendSuccess)
+            {
+                _networkBandwidthOut.Add(response.GetCurBuffer().Length,
+                    new KeyValuePair<string, object?>("MessageType", response.MessageType),
+                    new KeyValuePair<string, object?>("TerminalID", context.TerminalID),
+                    new KeyValuePair<string, object?>("MerchantID", context.MerchantID));
+            }
+            else
+            {
+                _logger.LogWarning("Failed to send response {MessageType} to terminal {TerminalID}", 
+                    response.MessageType, context.TerminalID);
+            }
         }
 
 

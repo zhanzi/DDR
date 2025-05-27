@@ -2,9 +2,11 @@ using Azure;
 using CommunityToolkit.HighPerformance.Helpers;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.Abstractions;
 using RabbitMQ.Client;
+using SlzrCrossGate.Common;
 using SlzrCrossGate.Core.Database;
 using SlzrCrossGate.Core.DTOs;
 using SlzrCrossGate.Core.Models;
@@ -40,18 +42,21 @@ namespace SlzrCrossGate.Core.Service
 
         //增加定时器，定期对期望版本过期的终端进行更新
         private readonly Timer _updateExpiredVersionTimer;
+        private readonly ILogger<TerminalManager> _logger;
 
 
         public TerminalManager(
             IRabbitMQService rabbitMQService,
             IServiceScopeFactory scopeFactory,
             TerminalEventService terminalEventService,
-            MsgboxEventService msgboxEventService
+            MsgboxEventService msgboxEventService,
+            ILogger<TerminalManager> logger
             )
         {
             _scopeFactory = scopeFactory;
             _terminalEventService = terminalEventService;
             _msgboxEventService = msgboxEventService;
+            _logger = logger;
 
             //定时器，定时检查终端的文件版本是否与期望版本一致，并提醒更新. 每分钟检查一次
             _checkFileVersionTimer = new Timer(new TimerCallback( _ =>  CheckTerminalFileVersion()), null, TimeSpan.FromSeconds(59), TimeSpan.FromSeconds(59));
@@ -82,40 +87,56 @@ namespace SlzrCrossGate.Core.Service
             terminal.Status.ActiveStatus = DeviceActiveStatus.Active;
             terminal.StatusUpdateTime = DateTime.Now;
 
-            bool isNewTerminal = !_terminals.ContainsKey(terminal.ID);
-            _terminals.AddOrUpdate(terminal.ID, terminal, (key, existingVal) =>
+            _terminals.AddOrUpdate(terminal.ID, terminal, (k, v) => terminal);
+            try
             {
-                terminal.CreateTime = existingVal.CreateTime;
-                terminal.IsDeleted = false;
-                return terminal;
-            });
-
-            if (isNewTerminal)
-            {
-
-                using (var scope = _scopeFactory.CreateScope())
-                {
-                    var terminalRepository = scope.ServiceProvider.GetRequiredService<Repository<Terminal>>();
-                    var terminalStatusRepository = scope.ServiceProvider.GetRequiredService<Repository<TerminalStatus>>();
-                    //终端不存在，添加新终端
-                    terminal.CreateTime = DateTime.Now;
-                    terminal.IsDeleted = false;
-                    await terminalRepository.AddAsync(terminal);
-                    await terminalStatusRepository.AddAsync(terminal.Status);
-                }
-
+                using var scope = _scopeFactory.CreateScope();
+                var dbContext = scope.ServiceProvider.GetRequiredService<TcpDbContext>();
                 
-                RecordTerminalEvent(new TerminalEvent {
-                    MerchantID=terminal.MerchantID,
-                    TerminalID = terminal.ID,
-                    EventType = TerminalEventType.Created,
-                    Severity = EventSeverity.Info,
-                    Remark = $"Terminal Created.",
-                    Operator = ""
-                });
+                // 检查终端是否已存在
+                var existingTerminal = await dbContext.Terminals
+                    .Include(t => t.Status)
+                    .FirstOrDefaultAsync(t => t.ID == terminal.ID);
+                    
+                if (existingTerminal != null)
+                {
+                    // 更新现有终端
+                    existingTerminal.MerchantID = terminal.MerchantID;
+                    existingTerminal.MachineID = terminal.MachineID;
+                    existingTerminal.DeviceNO = terminal.DeviceNO;
+                    existingTerminal.LineNO = terminal.LineNO;
+                    existingTerminal.IsDeleted = false;
+                    existingTerminal.TerminalType = terminal.TerminalType;
+                    existingTerminal.StatusUpdateTime = DateTime.Now;
+                    
+                    if (existingTerminal.Status != null)
+                    {
+                        existingTerminal.Status.LastActiveTime = DateTime.Now;
+                        existingTerminal.Status.ActiveStatus = DeviceActiveStatus.Active;
+                        existingTerminal.Status.ConnectionProtocol = terminal.Status.ConnectionProtocol;
+                        existingTerminal.Status.EndPoint = terminal.Status.EndPoint;
+                        existingTerminal.Status.FileVersionMetadata = terminal.Status.FileVersionMetadata;
+                        existingTerminal.Status.PropertyMetadata = terminal.Status.PropertyMetadata;
+                    }
+                    else
+                    {
+                        existingTerminal.Status = terminal.Status;
+                    }
+                }
+                else
+                {
+                    // 添加新终端
+                    dbContext.Terminals.Add(terminal);
+                }
+                
+                await dbContext.SaveChangesAsync();
+                return true;
             }
-
-            return true;
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error adding or updating terminal {TerminalID}", terminal.ID);
+                return false;
+            }
         }
 
         private void RecordTerminalEvent(TerminalEvent terminalEvent)
@@ -227,9 +248,6 @@ namespace SlzrCrossGate.Core.Service
                 .AsNoTracking()
                 .ToList();
 
-
-            ConcurrentDictionary<string, Terminal> keyValuePairs = new ConcurrentDictionary<string, Terminal>();
-
             foreach (var terminal in terminals)
             {
                 terminal.Status ??= new TerminalStatus
@@ -245,9 +263,9 @@ namespace SlzrCrossGate.Core.Service
                     FileVersions = "",
                     Properties = ""
                 };
-                keyValuePairs.TryAdd(terminal.ID, terminal);
+                _terminals.TryAdd(terminal.ID, terminal);
             }
-            _terminals.Concat(keyValuePairs);
+
         }
 
 
@@ -312,9 +330,9 @@ namespace SlzrCrossGate.Core.Service
                 }
             }
 
-            using var scope = _scopeFactory.CreateScope();
-            var terminalRepository = scope.ServiceProvider.GetRequiredService<Repository<Terminal>>();
-            await terminalRepository.UpdateAsync(terminal);
+            // using var scope = _scopeFactory.CreateScope();
+            // var terminalRepository = scope.ServiceProvider.GetRequiredService<Repository<Terminal>>();
+            // await terminalRepository.UpdateAsync(terminal);
 
             return true;
         }
@@ -379,12 +397,12 @@ namespace SlzrCrossGate.Core.Service
                 }
             }
 
-            if (result)
-            {
-                using var scope = _scopeFactory.CreateScope();
-                var terminalStatusRepository = scope.ServiceProvider.GetRequiredService<Repository<TerminalStatus>>();
-                await terminalStatusRepository.UpdateAsync(terminal.Status);
-            }
+            // if (result)
+            // {
+            //     using var scope = _scopeFactory.CreateScope();
+            //     var terminalStatusRepository = scope.ServiceProvider.GetRequiredService<Repository<TerminalStatus>>();
+            //     await terminalStatusRepository.UpdateAsync(terminal.Status);
+            // }
 
             return result;
         }
@@ -627,6 +645,21 @@ namespace SlzrCrossGate.Core.Service
         {
             return _cachedNeedSignTerminalIds.Remove(terminalId);
         }
+
+
+        public bool CheckMac(string terminalId, byte[] message)
+        {
+            var key = GetMacKey(terminalId);
+            var mac = message.TakeLast(4).ToArray();
+            return Encrypts.ChcekMac(message.Skip(13).SkipLast(4).ToArray(), mac, DataConvert.HexToBytes(key));
+        }
+
+        public string GetMacKey(string terminalId)
+        {
+            var hexmackey= Encrypts.ComputeMD5($"slzr-mackey-{terminalId}");
+            return hexmackey;
+        }
+
     }
 
     // Replace the problematic record declaration with a proper class definition  

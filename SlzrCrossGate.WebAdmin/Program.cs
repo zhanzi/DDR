@@ -8,6 +8,8 @@ using SlzrCrossGate.Core.Database;
 using SlzrCrossGate.Core;
 using SlzrCrossGate.WebAdmin.Services;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.DataProtection;
+using System.IO;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -20,6 +22,21 @@ builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+
+// 配置数据保护,使密钥持久化存储
+var keysDirectory = Path.Combine(builder.Environment.ContentRootPath, "Keys");
+if (!Directory.Exists(keysDirectory))
+{
+    Directory.CreateDirectory(keysDirectory);
+}
+
+builder.Services.AddDataProtection()
+    .PersistKeysToFileSystem(new DirectoryInfo(keysDirectory))
+    .SetApplicationName("SlzrCrossGate.WebAdmin")
+    // 添加XML加密器配置
+    .ProtectKeysWithDpapi();  // 在Windows环境下使用DPAPI加密
+    // 在Linux环境下可以使用X509证书加密: .ProtectKeysWithCertificate(certificateX509);
+
 
 // 在 ConfigureServices 中添加
 builder.Services.AddScoped<TwoFactorAuthService>();

@@ -33,6 +33,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "解决方案项", "解决�
 		build-step-by-step.sh = build-step-by-step.sh
 		build-api.sh = build-api.sh
 		build-web.sh = build-web.sh
+		docker-compose-test.yml = docker-compose-test.yml
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "nginx", "nginx", "{D540FBC1-9D7E-8A17-AA8C-13844FF6478B}"

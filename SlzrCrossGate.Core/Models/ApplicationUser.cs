@@ -11,12 +11,12 @@ namespace SlzrCrossGate.Core.Models
     {
         public string? RealName { get; set; }
         public string? MerchantID { get; set; }
-        public DateTime CreateTime { get; set; }
-        public bool IsDeleted { get; set; }
+        public DateTime CreateTime { get; set; }=DateTime.Now;
+        public bool IsDeleted { get; set; }=false;
 
         // 双因素认证相关字段
         public string? TwoFactorSecretKey { get; set; }
-        public bool IsTwoFactorRequired { get; set; }  // 是否强制要求使用双因素认证
+        public bool IsTwoFactorRequired { get; set; }=false;  // 是否强制要求使用双因素认证
         public DateTime? TwoFactorEnabledDate { get; set; }
         public int? FailedTwoFactorAttempts { get; set; }
         public DateTime? LastFailedTwoFactorAttempt { get; set; }

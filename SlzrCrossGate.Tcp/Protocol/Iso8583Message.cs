@@ -1,4 +1,4 @@
-﻿using Azure.Core;
+using Azure.Core;
 using Microsoft.Extensions.DependencyInjection;
 using SlzrCrossGate.Core.Models;
 using System;
@@ -74,7 +74,7 @@ namespace SlzrCrossGate.Tcp.Protocol
         public byte[] GetCurBuffer() => _iso8583Package.GetCurBuffer();
 
 
-        public string ProtocolVer { get; private set; } = "";
+        public string ProtocolVer { get; private set; } = "0200";
         public string TerminalType { get; private set; } = "";
 
         public void Ok()

@@ -16,7 +16,7 @@ namespace SlzrCrossGate.Core.Models
         public int ID { get; set; }
         [MaxLength(8)]
         public required string MerchantID { get; set; }
-        [MaxLength(8)]
+        [MaxLength(20)]
         public required string TerminalID { get; set; }
         public DateTime EventTime { get; set; } = DateTime.Now;
         [MaxLength(100)]

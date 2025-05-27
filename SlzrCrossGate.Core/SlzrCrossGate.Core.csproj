@@ -26,4 +26,8 @@
     <Folder Include="Migrations\" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\SlzrCrossGate.Common\SlzrCrossGate.Common.csproj" />
+  </ItemGroup>
+
 </Project>

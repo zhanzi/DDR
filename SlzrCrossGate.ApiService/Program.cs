@@ -15,6 +15,7 @@ using SlzrCrossGate.Core.Services;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
+using SlzrCrossGate.Core.Service.BusinessServices;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -100,6 +101,10 @@ using (var scope = app.Services.CreateScope())
     var terminalManager = services.GetRequiredService<TerminalManager>();
     terminalManager.InitTerminalsFromDatabase();
     terminalManager.RefreshTerminalMessageCount();
+
+    _ = services.GetRequiredService<TerminalEventService>();
+    _ = services.GetRequiredService<MsgboxEventService>();
+    _ = services.GetRequiredService<IRabbitMQService>();
 }
 
 

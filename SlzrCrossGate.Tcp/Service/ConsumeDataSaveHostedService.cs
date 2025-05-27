@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using RabbitMQ.Client;
 using SlzrCrossGate.Common;
 using SlzrCrossGate.Core.Models;
 using SlzrCrossGate.Core.Repositories;
@@ -26,7 +27,7 @@ namespace SlzrCrossGate.Tcp.Service
         private readonly ILogger<ConsumeDataSaveHostedService> _logger;
         private readonly IServiceScopeFactory _scopeFactory;
 
-        private readonly Channel<(Core.Models.ConsumeData, ulong)> _consumeDataChannel;
+        private readonly Channel<(Core.Models.ConsumeData, ChannelTag)> _consumeDataChannel;
         private readonly TimeSpan _batchInterval = TimeSpan.FromSeconds(5); // 批量插入间隔时间
         private readonly int _batchSize = 200; // 批量大小
         private Timer? _timer;
@@ -39,14 +40,14 @@ namespace SlzrCrossGate.Tcp.Service
             _rabbitMQService = rabbitMQService;
             _logger = logger;
             _scopeFactory = scopeFactory;
-            _consumeDataChannel = Channel.CreateUnbounded<(Core.Models.ConsumeData, ulong)>();
+            _consumeDataChannel = Channel.CreateUnbounded<(Core.Models.ConsumeData,ChannelTag)>();
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
             _timer = new Timer(async _ => await ProcessQueueAsync(), null, _batchInterval, _batchInterval);
 
-            await _rabbitMQService.SubscribeConsumeDataAsync(async (consumeData,deliveryTag) =>
+            await _rabbitMQService.SubscribeConsumeDataAsync(async (consumeData, channel, deliveryTag) =>
             {
                 Core.Models.ConsumeData entity = new Core.Models.ConsumeData
                 {
@@ -57,7 +58,7 @@ namespace SlzrCrossGate.Tcp.Service
                     ReceiveTime = DateTime.Now,
                     Buffer = consumeData.buffer
                 };
-                await _consumeDataChannel.Writer.WriteAsync((entity, deliveryTag));
+                await _consumeDataChannel.Writer.WriteAsync((entity, new ChannelTag(channel, deliveryTag)));
                 Interlocked.Increment(ref _currentBatchSize);
                 if (_semaphore.CurrentCount == 1 && _currentBatchSize >= _batchSize)
                 {
@@ -72,7 +73,7 @@ namespace SlzrCrossGate.Tcp.Service
             try
             {
                 var batch = new List<Core.Models.ConsumeData>();
-                var deliveryTags = new List<ulong>();
+                var deliveryTags = new List<ChannelTag>();
 
                 while (batch.Count < _batchSize && _consumeDataChannel.Reader.TryRead(out var item))
                 {
@@ -92,7 +93,7 @@ namespace SlzrCrossGate.Tcp.Service
                         // 确认消息
                         foreach (var deliveryTag in deliveryTags)
                         {
-                            _ = _rabbitMQService.Ack(deliveryTag);
+                            _ = _rabbitMQService.Ack(deliveryTag.channel, deliveryTag.tag);
                         }
                     }
                     catch (Exception ex)
@@ -102,7 +103,7 @@ namespace SlzrCrossGate.Tcp.Service
                         // 消息重新入队
                         foreach (var deliveryTag in deliveryTags)
                         {
-                            _ = _rabbitMQService.NAck(deliveryTag, true);
+                            _ = _rabbitMQService.NAck(deliveryTag.channel, deliveryTag.tag, true);
                         }
                     }
                     finally
@@ -124,4 +125,8 @@ namespace SlzrCrossGate.Tcp.Service
             await base.StopAsync(cancellationToken);
         }
     }
+    public record ChannelTag (
+        IChannel channel,
+        ulong tag
+    );
 }

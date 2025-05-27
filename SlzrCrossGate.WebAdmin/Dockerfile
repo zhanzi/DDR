@@ -36,4 +36,9 @@ RUN mkdir -p ./wwwroot
 COPY --from=frontend-build /app/dist/ ./wwwroot/
 # 创建文件存储目录
 RUN mkdir -p /app/storage/files && chmod -R 755 /app/storage
+# 创建数据保护密钥目录并设置权限
+RUN mkdir -p /app/Keys && chmod -R 755 /app/Keys
+
+# 定义持久卷
+VOLUME ["/app/Keys"]
 ENTRYPOINT ["dotnet", "SlzrCrossGate.WebAdmin.dll"]

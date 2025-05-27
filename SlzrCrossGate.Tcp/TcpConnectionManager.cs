@@ -50,8 +50,7 @@ namespace SlzrCrossGate.Tcp
             {
                 if (_connections.TryGetValue(id, out var context))
                 {
-                    _logger.LogInformation("Closing idle connection {ConnectionId}", id);
-                    //context.Abort();
+                    _logger.LogInformation("Closing idle connection by timeout: {ConnectionId}", id);
                     TryRemoveConnection(id);
                 }
             }
@@ -61,7 +60,7 @@ namespace SlzrCrossGate.Tcp
         {
             if (_connections.TryGetValue(terminalId, out var oldContext))
             {
-                _logger.LogInformation($"Closing old connection for {terminalId}");
+                _logger.LogInformation("Closing old connection for {TerminalId}", terminalId);
                 oldContext.Abort(); // 强制关闭旧连接
             }
             var added = _connections.TryAdd(terminalId, context);

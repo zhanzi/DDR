@@ -53,17 +53,18 @@ services:
     #     condition: service_healthy
     ports:
       - "6000:8000"  # HTTP API
-      - "6001:8001"  # TCP 服务
+      - "6001:8001"  # TCP 服务mysql://139.199.213.63:3306/pointlife_java?characterEncoding=utf-8&useSSL=false&serverTimeZone=GMT+8
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
       - HTTP_PORT=8000
       - TCP_PORT=8001
-      - ConnectionStrings__DefaultConnection=Server=192.168.2.34;Port=3306;Database=tcpserver;User=root;Password=${MYSQL_ROOT_PASSWORD:-slzr!12345};SslMode=Required;
       - DatabaseProvider=MySql
-      - RabbitMQ__HostName=192.168.2.34
+      - ConnectionStrings__DefaultConnection=Server=139.199.213.63;Port=3306;Database=tcpserver;User=root;Password=DevTest@QrPay#2022;SslMode=none;
+      - RabbitMQ__HostName=172.16.16.15
       - RabbitMQ__Port=5672
-      - RabbitMQ__UserName=${RABBITMQ_USER:-guest}
-      - RabbitMQ__Password=${RABBITMQ_PASS:-guest}
+      - RabbitMQ__VirtualHost=tcp
+      - RabbitMQ__UserName=tcp
+      - RabbitMQ__Password=Slzr!12345
     volumes:
       - api_storage:/app/storage
     networks:
@@ -85,13 +86,16 @@ services:
     #   rabbitmq:
     #     condition: service_healthy
     ports:
-      - "7296:7296"
+      - "6002:7296"
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
-      - ConnectionStrings__DefaultConnection=Server=192.168.2.34;Port=3306;Database=tcpserver;User=root;Password=${MYSQL_ROOT_PASSWORD:-slzr!12345};SslMode=Required;
-      - RabbitMQ__HostName=192.168.2.34
-      - RabbitMQ__UserName=${RABBITMQ_USER:-guest}
-      - RabbitMQ__Password=${RABBITMQ_PASS:-guest}
+      - DatabaseProvider=MySql
+      - ConnectionStrings__DefaultConnection=Server=139.199.213.63;Port=3306;Database=tcpserver;User=root;Password=DevTest@QrPay#2022;SslMode=none;
+      - RabbitMQ__HostName=172.16.16.15
+      - RabbitMQ__Port=5672
+      - RabbitMQ__VirtualHost=tcp
+      - RabbitMQ__UserName=tcp
+      - RabbitMQ__Password=Slzr!12345
       - Jwt__Key=${JWT_KEY:-YourSecretKeyHere12345678901234567890}
     volumes:
       - webadmin_storage:/app/storage
@@ -128,8 +132,8 @@ networks:
     driver: bridge
 
 volumes:
-  mysql_data:
-  rabbitmq_data:
+#  mysql_data:
+#  rabbitmq_data:
   api_storage:
   webadmin_storage:
   webadmin_keys:

@@ -53,8 +53,13 @@ namespace SlzrCrossGate.Tcp.Handler
                 await _terminalSignService.ProcessPropertyAndVersionUpdated(signDto);
                 var expectedVersions = _terminalSignService.QueryExpectedVersions(message.TerimalID);
                 var serverExpectedVersions = ConvertToExpectedVersionsForTerminal(expectedVersions, message.ProtocolVer);
+
                 response.SetField(46, serverExpectedVersions);
             }
+            var token = Encrypts.ComputeMD5($"slzr-token-{message.TerimalID}-{DateTime.Now.ToString("yyyyMMdd")}");
+            response.SetField(40, token);
+            var mackey = Encrypts.ComputeMD5($"slzr-mackey-{message.TerimalID}");
+            response.SetField(53, mackey);
             response.Ok();
 
             await _terminalEventService.RecordTerminalEventAsync(
