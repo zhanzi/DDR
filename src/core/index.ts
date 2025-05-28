@@ -202,12 +202,30 @@ class DDR implements DDRInstance {
    * @param metadata 要更新的元数据
    */
   updateMetadata(metadata: Record<string, any>): void {
-    this.metadata = { ...this.metadata, ...metadata };
+    // 检查是否包含数据更新
+    if (metadata.data && Array.isArray(metadata.data)) {
+      console.log('📊 通过updateMetadata更新数据，共', metadata.data.length, '条记录');
+      this.data = metadata.data;
 
-    if (this.initialized) {
-      // 重新渲染表头和表尾
-      this._renderHeaderFooter();
-      this._emitEvent('metadata-updated', { metadata: this.metadata });
+      // 从metadata中移除data，避免污染元数据
+      const { data, ...metadataWithoutData } = metadata;
+      this.metadata = { ...this.metadata, ...metadataWithoutData };
+
+      if (this.initialized) {
+        // 重新渲染整个报表（包括数据表格）
+        this._render();
+        this._emitEvent('data-loaded', { data: this.data });
+        this._emitEvent('metadata-updated', { metadata: this.metadata });
+      }
+    } else {
+      // 只更新元数据，不涉及数据变更
+      this.metadata = { ...this.metadata, ...metadata };
+
+      if (this.initialized) {
+        // 只重新渲染表头和表尾
+        this._renderHeaderFooter();
+        this._emitEvent('metadata-updated', { metadata: this.metadata });
+      }
     }
   }
 
@@ -298,9 +316,33 @@ class DDR implements DDRInstance {
   }
 
   /**
-   * 执行打印
+   * 执行打印 - 使用与PDF导出一致的逻辑
    */
-  print(): void {
+  async print(): Promise<void> {
+    try {
+      console.log('开始打印，使用PDF导出逻辑生成打印内容');
+
+      // 导入导出模块
+      const { Exporter } = await import('../core/exporter');
+
+      // 使用PDF导出的逻辑生成打印内容，但不保存文件
+      await Exporter.toPrint(this.container, this.config, {
+        watermark: this.config.features?.watermark,
+        pdf: this.config.features?.pdfConfig || {}
+      });
+
+    } catch (error) {
+      console.error('打印失败，降级到简单打印:', error);
+
+      // 降级到原来的简单打印方式
+      this._simplePrint();
+    }
+  }
+
+  /**
+   * 简单打印方式（降级方案）
+   */
+  private _simplePrint(): void {
     // 创建打印样式
     const style = document.createElement('style');
     style.textContent = `
@@ -315,6 +357,23 @@ class DDR implements DDRInstance {
           position: absolute;
           left: 0;
           top: 0;
+          width: 100% !important;
+          height: auto !important;
+          overflow: visible !important;
+        }
+        .ddr-table-container {
+          overflow: visible !important;
+          height: auto !important;
+        }
+        .ddr-table {
+          page-break-inside: auto;
+        }
+        .ddr-table-row {
+          page-break-inside: avoid;
+          page-break-after: auto;
+        }
+        .ddr-header, .ddr-footer {
+          page-break-inside: avoid;
         }
       }
     `;
@@ -324,7 +383,9 @@ class DDR implements DDRInstance {
     window.print();
 
     // 移除打印样式
-    document.head.removeChild(style);
+    setTimeout(() => {
+      document.head.removeChild(style);
+    }, 100);
   }
 
   /**
@@ -401,10 +462,29 @@ class DDR implements DDRInstance {
     metadata?: Record<string, any>;
     pagination?: Record<string, any>;
   }> {
-    // 如果有模拟数据则使用模拟数据
+    // 优先级1：如果直接提供了数据，则使用直接数据
+    if (dataSource.data && Array.isArray(dataSource.data)) {
+      console.log('📊 使用直接提供的数据，共', dataSource.data.length, '条记录');
+      return {
+        records: dataSource.data,
+        metadata: this.metadata
+      };
+    }
+
+    // 优先级2：如果有模拟数据则使用模拟数据
     if (dataSource.mock && (!this.options.debug || window.location.hostname === 'localhost')) {
+      console.log('📊 使用模拟数据，共', dataSource.mock.length, '条记录');
       return {
         records: dataSource.mock,
+        metadata: this.metadata
+      };
+    }
+
+    // 优先级3：如果没有API配置，则返回空数据
+    if (!dataSource.api) {
+      console.warn('⚠️ 未配置API地址且未提供直接数据，返回空数据集');
+      return {
+        records: [],
         metadata: this.metadata
       };
     }
@@ -1200,6 +1280,9 @@ class DDR implements DDRInstance {
     // 获取扁平化的列
     const flatColumns = this._getFlatColumns(columns);
 
+    // 记录需要合并的单元格
+    const merges: Map<string, { rowSpan: number, colSpan: number }> = new Map();
+
     // 如果没有数据，显示空表格提示
     if (!data.length) {
       const emptyRow = document.createElement('tr');
@@ -1221,17 +1304,26 @@ class DDR implements DDRInstance {
       row.className = 'ddr-body-row';
       row.setAttribute('data-index', String(rowIndex));
 
+      // 应用配置的行高
+      if (this.config.layout?.rowHeight) {
+        row.style.height = typeof this.config.layout.rowHeight === 'number'
+          ? `${this.config.layout.rowHeight}px`
+          : this.config.layout.rowHeight;
+      }
+
       // 创建单元格
+      let colIndex = 0;
       flatColumns.forEach(column => {
         // 跳过隐藏列
         if (column.visible === false) {
           return;
         }
 
-        // 检查是否需要合并单元格
-        if (column.merge) {
-          // 需要实现单元格合并逻辑
-          // 这里简化处理
+        // 检查是否已经被合并跳过
+        const cellKey = `${rowIndex}-${colIndex}`;
+        if (merges.has(cellKey) && merges.get(cellKey)?.rowSpan === 0) {
+          colIndex++;
+          return;
         }
 
         const cell = document.createElement('td');
@@ -1260,6 +1352,11 @@ class DDR implements DDRInstance {
           cell.style.textAlign = column.align;
         }
 
+        // 处理单元格合并
+        if (column.merge === 'vertical' || column.merge === true) {
+          this._handleCellMerge(cell, rowData, column, rowIndex, colIndex, data, merges);
+        }
+
         // 应用条件样式
         if (column.style?.conditional) {
           column.style.conditional.forEach((condition: { when: string; style: Record<string, any> }) => {
@@ -1278,12 +1375,55 @@ class DDR implements DDRInstance {
         }
 
         row.appendChild(cell);
+        colIndex++;
       });
 
       tbody.appendChild(row);
     });
 
     return tbody;
+  }
+
+  /**
+   * 处理单元格合并
+   */
+  private _handleCellMerge(
+    td: HTMLTableCellElement,
+    rowData: any,
+    column: any,
+    rowIndex: number,
+    colIndex: number,
+    data: any[],
+    merges: Map<string, { rowSpan: number, colSpan: number }>
+  ): void {
+    console.log(`🔄 处理列 "${column.key}" 的合并，当前行 ${rowIndex}，值: "${rowData[column.key]}"`);
+
+    const currentValue = rowData[column.key];
+    let rowSpan = 1;
+
+    // 向下查找相同值的连续单元格
+    for (let i = rowIndex + 1; i < data.length; i++) {
+      const nextValue = data[i][column.key];
+
+      if (nextValue === currentValue) {
+        rowSpan++;
+
+        // 标记被合并的单元格，后面遇到时跳过
+        const skipKey = `${i}-${colIndex}`;
+        merges.set(skipKey, { rowSpan: 0, colSpan: 0 });
+        console.log(`  ✅ 找到相同值，行 ${i}，值: "${nextValue}"，rowSpan: ${rowSpan}`);
+      } else {
+        console.log(`  ❌ 值不同，行 ${i}，值: "${nextValue}" !== "${currentValue}"，停止合并`);
+        break;
+      }
+    }
+
+    if (rowSpan > 1) {
+      td.rowSpan = rowSpan;
+      console.log(`🎯 列 "${column.key}" 第 ${rowIndex} 行设置 rowSpan = ${rowSpan}`);
+    } else {
+      console.log(`📝 列 "${column.key}" 第 ${rowIndex} 行无需合并`);
+    }
   }
 
   /**

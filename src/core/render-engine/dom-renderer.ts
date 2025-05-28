@@ -30,23 +30,23 @@ export class DOMRenderer {
     this.data = data;
     this.columns = columns;
     this.formatters = formatters;
-    
+
     // 创建表格结构
     this.tableElement = document.createElement('table');
     this.tableElement.className = 'ddr-table';
-    
+
     this.headerElement = document.createElement('thead');
     this.headerElement.className = 'ddr-table-header';
-    
+
     this.bodyElement = document.createElement('tbody');
     this.bodyElement.className = 'ddr-table-body';
-    
+
     this.tableElement.appendChild(this.headerElement);
     this.tableElement.appendChild(this.bodyElement);
-    
+
     // 添加到容器
     this.container.appendChild(this.tableElement);
-    
+
     // 渲染表格
     this.render();
   }
@@ -65,42 +65,42 @@ export class DOMRenderer {
   private renderHeader(): void {
     // 清空表头
     this.headerElement.innerHTML = '';
-    
+
     // 创建表头行
     const headerRow = document.createElement('tr');
-    
+
     // 创建表头单元格
     this.columns.forEach(column => {
       if (column.visible !== false) {
         const th = document.createElement('th');
         th.className = 'ddr-table-cell ddr-table-header-cell';
         th.textContent = column.title;
-        
+
         // 设置单元格宽度
         if (column.width) {
           th.style.width = typeof column.width === 'number' ? `${column.width}px` : column.width;
         }
-        
+
         // 设置对齐方式
         if (column.align) {
           th.style.textAlign = column.align;
         }
-        
+
         // 设置固定列
         if (column.fixed) {
           th.classList.add(`ddr-table-fixed-${column.fixed}`);
         }
-        
+
         // 添加排序功能(如果配置了)
         if (column.sort) {
           th.classList.add('ddr-table-sortable');
           th.addEventListener('click', () => this.handleSort(column.key));
         }
-        
+
         headerRow.appendChild(th);
       }
     });
-    
+
     this.headerElement.appendChild(headerRow);
   }
 
@@ -112,12 +112,12 @@ export class DOMRenderer {
     // 获取当前排序方向
     const headerCell = Array.from(this.headerElement.querySelectorAll('th'))
       .find(th => th.getAttribute('data-key') === key);
-    
+
     if (!headerCell) return;
-    
+
     const currentDirection = headerCell.getAttribute('data-sort-direction');
     let newDirection: 'asc' | 'desc' | null = null;
-    
+
     // 切换排序方向
     if (currentDirection === 'asc') {
       newDirection = 'desc';
@@ -126,18 +126,18 @@ export class DOMRenderer {
     } else {
       newDirection = 'asc';
     }
-    
+
     // 重置所有列的排序状态
     this.headerElement.querySelectorAll('th').forEach(th => {
       th.removeAttribute('data-sort-direction');
       th.classList.remove('ddr-table-sort-asc', 'ddr-table-sort-desc');
     });
-    
+
     // 设置当前列的排序状态
     if (newDirection) {
       headerCell.setAttribute('data-sort-direction', newDirection);
       headerCell.classList.add(`ddr-table-sort-${newDirection}`);
-      
+
       // 排序数据
       this.sortData(key, newDirection);
     } else {
@@ -156,24 +156,24 @@ export class DOMRenderer {
     const sortedData = [...this.data].sort((a, b) => {
       const valueA = a[key];
       const valueB = b[key];
-      
+
       // 处理null和undefined
       if (valueA == null && valueB == null) return 0;
       if (valueA == null) return direction === 'asc' ? -1 : 1;
       if (valueB == null) return direction === 'asc' ? 1 : -1;
-      
+
       // 比较值
       if (typeof valueA === 'number' && typeof valueB === 'number') {
         return direction === 'asc' ? valueA - valueB : valueB - valueA;
       } else {
         const strA = String(valueA).toLowerCase();
         const strB = String(valueB).toLowerCase();
-        return direction === 'asc' ? 
-          strA.localeCompare(strB) : 
+        return direction === 'asc' ?
+          strA.localeCompare(strB) :
           strB.localeCompare(strA);
       }
     });
-    
+
     // 更新数据并重新渲染表格体
     this.data = sortedData;
     this.renderBody();
@@ -194,7 +194,7 @@ export class DOMRenderer {
   private renderBody(): void {
     // 清空表格体
     this.bodyElement.innerHTML = '';
-    
+
     // 没有数据时显示空状态
     if (this.data.length === 0) {
       const emptyRow = document.createElement('tr');
@@ -202,25 +202,25 @@ export class DOMRenderer {
       emptyCell.className = 'ddr-table-empty';
       emptyCell.colSpan = this.columns.filter(col => col.visible !== false).length;
       emptyCell.textContent = '暂无数据';
-      
+
       emptyRow.appendChild(emptyCell);
       this.bodyElement.appendChild(emptyRow);
       return;
     }
-    
+
     // 记录需要合并的单元格
     const merges: Map<string, { rowSpan: number, colSpan: number }> = new Map();
-    
+
     // 遍历数据创建行
     this.data.forEach((rowData, rowIndex) => {
       const row = document.createElement('tr');
       row.className = 'ddr-table-row';
-      
+
       // 添加斑马纹样式
       if (rowIndex % 2 === 1) {
         row.classList.add('ddr-table-row-striped');
       }
-      
+
       // 创建单元格
       let colIndex = 0;
       this.columns.forEach(column => {
@@ -231,39 +231,39 @@ export class DOMRenderer {
             colIndex++;
             return;
           }
-          
+
           const cellValue = rowData[column.key];
           const formattedValue = this.formatCellValue(cellValue, column);
-          
+
           const td = document.createElement('td');
           td.className = 'ddr-table-cell';
           td.innerHTML = formattedValue;
-          
+
           // 设置对齐方式
           if (column.align) {
             td.style.textAlign = column.align;
           }
-          
+
           // 设置固定列
           if (column.fixed) {
             td.classList.add(`ddr-table-fixed-${column.fixed}`);
           }
-          
+
           // 处理单元格合并
           if (column.merge) {
             this.handleCellMerge(td, rowData, column, rowIndex, colIndex, merges);
           }
-          
+
           // 应用条件样式
           if (column.style?.conditional) {
             this.applyConditionalStyle(td, rowData, column);
           }
-          
+
           row.appendChild(td);
           colIndex++;
         }
       });
-      
+
       this.bodyElement.appendChild(row);
     });
   }
@@ -279,28 +279,35 @@ export class DOMRenderer {
     colIndex: number,
     merges: Map<string, { rowSpan: number, colSpan: number }>
   ): void {
-    // 只处理垂直合并(相同值的行合并)
-    if (column.merge === 'vertical') {
+    // 处理垂直合并(相同值的行合并)
+    if (column.merge === 'vertical' || column.merge === true) {
+      console.log(`🔄 处理列 "${column.key}" 的合并，当前行 ${rowIndex}，值: "${rowData[column.key]}"`);
+
       const currentValue = rowData[column.key];
       let rowSpan = 1;
-      
+
       // 向下查找相同值的连续单元格
       for (let i = rowIndex + 1; i < this.data.length; i++) {
         const nextValue = this.data[i][column.key];
-        
+
         if (nextValue === currentValue) {
           rowSpan++;
-          
+
           // 标记被合并的单元格，后面遇到时跳过
           const skipKey = `${i}-${colIndex}`;
           merges.set(skipKey, { rowSpan: 0, colSpan: 0 });
+          console.log(`  ✅ 找到相同值，行 ${i}，值: "${nextValue}"，rowSpan: ${rowSpan}`);
         } else {
+          console.log(`  ❌ 值不同，行 ${i}，值: "${nextValue}" !== "${currentValue}"，停止合并`);
           break;
         }
       }
-      
+
       if (rowSpan > 1) {
         td.rowSpan = rowSpan;
+        console.log(`🎯 列 "${column.key}" 第 ${rowIndex} 行设置 rowSpan = ${rowSpan}`);
+      } else {
+        console.log(`📝 列 "${column.key}" 第 ${rowIndex} 行无需合并`);
       }
     }
   }
@@ -310,10 +317,10 @@ export class DOMRenderer {
    */
   private applyConditionalStyle(td: HTMLTableCellElement, rowData: any, column: ColumnConfig): void {
     if (!column.style?.conditional) return;
-    
+
     for (const condition of column.style.conditional) {
       const { when, style } = condition;
-      
+
       // 简单的条件解析和执行
       try {
         const result = this.evaluateCondition(when, rowData);
@@ -347,14 +354,14 @@ export class DOMRenderer {
         '==': (a: any, b: any) => a == b,
         '!=': (a: any, b: any) => a != b
       };
-      
+
       // 解析表达式 - 示例: "amount > 50000" 或 "quantity < 10"
       // 匹配 字段 + 操作符 + 值
       const matches = condition.match(/^\s*(\w+)\s*(===|!==|==|!=|>=|<=|>|<)\s*([\d.]+|['"][^'"]*['"])\s*$/);
-      
+
       if (matches) {
         const [, field, operator, rawValue] = matches;
-        
+
         // 确保字段存在于行数据中
         if (field in rowData) {
           const fieldValue = rowData[field];
@@ -365,14 +372,14 @@ export class DOMRenderer {
           } else {
             value = Number(rawValue);
           }
-          
+
           // 应用操作符
           if (operator in operators) {
             return operators[operator as keyof typeof operators](fieldValue, value);
           }
         }
       }
-      
+
       return false;
     } catch (error) {
       console.error('条件表达式执行错误:', error, condition);
@@ -387,7 +394,7 @@ export class DOMRenderer {
     if (value === undefined || value === null) {
       return '';
     }
-    
+
     // 如果列有格式化配置
     if (column.formatter) {
       if (typeof column.formatter === 'string') {
@@ -395,7 +402,7 @@ export class DOMRenderer {
         if (this.formatters[column.formatter]) {
           return this.formatters[column.formatter](value);
         }
-        
+
         // 基本内置格式化器
         switch (column.formatter) {
           case 'date':
@@ -432,7 +439,7 @@ export class DOMRenderer {
         }
       }
     }
-    
+
     // 默认直接转为字符串
     return String(value);
   }

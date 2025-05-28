@@ -9,7 +9,8 @@ export interface DDRConfig {
         author?: string;
     };
     dataSource: {
-        api: string;
+        api?: string;
+        data?: any[];
         method?: "GET" | "POST";
         params?: Record<string, any>;
         headers?: Record<string, string>;
@@ -199,6 +200,7 @@ export interface ExportOptions {
         multiPage?: boolean;
         quality?: number;
         relayout?: boolean;
+        repeatTableHeader?: boolean;
     };
 }
 export interface APIResponse {

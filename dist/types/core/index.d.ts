@@ -74,9 +74,13 @@ declare class DDR implements DDRInstance {
      */
     off(event: DDREvent, callback: Function): void;
     /**
-     * 执行打印
+     * 执行打印 - 使用与PDF导出一致的逻辑
      */
-    print(): void;
+    print(): Promise<void>;
+    /**
+     * 简单打印方式（降级方案）
+     */
+    private _simplePrint;
     /**
      * 获取原始数据
      * @returns 数据数组
@@ -180,6 +184,10 @@ declare class DDR implements DDRInstance {
      * @returns 表体元素
      */
     private _createTableBody;
+    /**
+     * 处理单元格合并
+     */
+    private _handleCellMerge;
     /**
      * 评估条件表达式
      * @param condition 条件表达式

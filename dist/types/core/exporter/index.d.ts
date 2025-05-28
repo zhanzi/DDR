@@ -45,4 +45,31 @@ export declare class Exporter {
      * @param options 导出选项
      */
     static toPDF(element: HTMLElement, config?: any, options?: ExportOptions): Promise<void>;
+    /**
+     * 打印功能 - 重用PDF绘制逻辑
+     * @param element 要打印的DOM元素
+     * @param config 报表配置
+     * @param options 打印选项
+     */
+    static toPrint(element: HTMLElement, config?: any, options?: ExportOptions): Promise<void>;
+    /**
+     * 创建打印专用容器
+     */
+    private static _createPrintContainer;
+    /**
+     * 应用打印表格布局 - 重用PDF的列宽逻辑
+     */
+    private static _applyPrintTableLayout;
+    /**
+     * 获取扁平化的列配置（重用PDF逻辑）
+     */
+    private static _getFlatColumns;
+    /**
+     * 创建打印样式
+     */
+    private static _createPrintStyle;
+    /**
+     * 添加统一的全页面打印水印
+     */
+    private static _addPrintWatermark;
 }

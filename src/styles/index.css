@@ -77,7 +77,7 @@
 /* 表头样式 */
 .ddr-header, .ddr-report-header {
   flex: 0 0 auto;
-  padding: 20px 16px 16px;
+  padding: 20px 16px 0; /* 完全移除底部内边距 */
   background-color: var(--ddr-header-bg);
   border-bottom: 1px solid var(--ddr-border-color);
   position: relative;
@@ -86,7 +86,7 @@
   z-index: 10; /* 确保报表头部在表格头部之上 */
   display: flex;
   flex-direction: column;
-  margin-bottom: 10px; /* 添加与表格的间距 */
+  margin-bottom: 0; /* 移除与表格的间距 */
 }
 
 /* 表头标题 */
@@ -504,20 +504,20 @@
   .ddr-container {
     box-shadow: none;
   }
-  
+
   .ddr-table-container {
     overflow: visible;
   }
-  
+
   .ddr-table {
     page-break-inside: auto;
   }
-  
+
   .ddr-table-row {
     page-break-inside: avoid;
     page-break-after: auto;
   }
-  
+
   .ddr-header, .ddr-footer {
     page-break-inside: avoid;
   }

@@ -3,13 +3,13 @@
  * 此文件将合并到主CSS中
  */
 
-/* 表头样式修复 */
+/* 表头样式修复 - 使用!important确保优先级 */
 .ddr-header, .ddr-report-header {
   flex: 0 0 auto;
   height: auto !important; /* 强制使用自动高度 */
   min-height: 80px;
-  padding: 20px 25px 10px; /* 增加左右内边距，为Logo留出更多空间 */
-  margin-bottom: 5px; /* 保持较小间距 */
+  padding: 20px 25px 0 !important; /* 完全移除底部内边距 */
+  margin-bottom: 0 !important; /* 移除底部外边距 */
   z-index: 20;
   border-bottom: 1px solid var(--ddr-border-color);
   overflow: visible; /* 允许内容溢出 */
@@ -32,7 +32,7 @@
   gap: 12px;
   flex: 0 1 45%;
   min-width: 40%;
-  margin-bottom: 10px; /* 确保底部有足够空间 */
+  margin-bottom: 0; /* 完全移除底部间距 */
   padding: 0 10px; /* 添加内边距，避免与logo的布局冲突 */
 }
 
@@ -60,17 +60,17 @@
   max-width: 100%; /* 限制最大宽度 */
 }
 
-/* 表格容器修复 */
+/* 表格容器修复 - 使用!important确保优先级 */
 .ddr-table-container {
   flex: 1 1 auto;
   overflow: auto;
   position: relative;
-  margin-top: 8px; /* 减少与表头的间距 */
-  padding-top: 8px; /* 增加内边距，增加视觉空间 */
+  margin-top: -1px !important; /* 向上移动1px，让表格上边框与报表头下边框重合 */
+  padding-top: 0 !important; /* 完全移除顶部内边距 */
   height: auto !important;
   background-color: var(--ddr-table-odd-row, #fff);
   z-index: 5; /* 确保低于表头 */
-  border-top: 1px solid rgba(0,0,0,0.1); /* 增加边框可见度，提供更明显的视觉分隔 */
+  /* 移除border-top，让表格自身的边框与报表头边框重合 */
 }
 
 /* 表格头部修复 */

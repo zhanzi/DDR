@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>DDR报表组件示例</title>
-  <link rel="stylesheet" href="../../dist/ddr-core.css?v=17">
+  <link rel="stylesheet" href="../../dist/ddr-core.css?v=18">
   <style>
     body, html {
       margin: 0;
@@ -78,7 +78,7 @@
     </div>  </div>
 
   <!-- jsPDF库已内置到组件中，无需外部引入 -->
-  <script src="../../dist/ddr-core.browser.js?v=17"></script>
+  <script src="../../dist/ddr-core.browser.js?v=18"></script>
   <script>
     document.addEventListener('DOMContentLoaded', () => {
       // 模拟数据
@@ -89,7 +89,7 @@
           records: Array.from({ length: 100 }, (_, index) => ({
             id: index + 1,
             date: new Date(2025, 4, index % 30 + 1).toISOString().split('T')[0],
-            region: ['华东', '华南', '华北', '西南', '东北'][index % 5],
+            region: ['华东', '华南'][Math.floor(Math.random() * 2)],
             category: ['电子产品', '家居用品', '食品饮料', '服装鞋帽', '化妆品'][index % 5],
             product: `产品${String.fromCharCode(65 + (index % 26))}`,
             quantity: Math.floor(Math.random() * 100) + 1,
@@ -105,7 +105,7 @@
             },
             company: {
               name: '科技创新有限公司',
-              logo: 'https://via.placeholder.com/150x50?text=Company+Logo',
+              //logo: 'https://via.placeholder.com/150x50?text=Company+Logo',
               department: '销售部'
             },
             period: {
@@ -168,10 +168,10 @@
           title: {
             metadataPath: 'report.title'
           },
-          logo: {
-            //metadataKey: 'company.logo'
-            url:"data:image/png;base64,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"
-          },
+          // logo: {
+          //   //metadataKey: 'company.logo'
+          //   url:"data:image/png;base64,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"
+          // },
           fields: [
             {
               key: 'company',
@@ -184,11 +184,6 @@
               metadataPath: 'company.department'
             },
             {
-              key: 'department1',
-              label: '部门1:',
-              metadataPath: 'company.department'
-            },
-            {
               key: 'reportCode',
               label: '报表编号:',
               metadataPath: 'report.code',
@@ -197,12 +192,6 @@
             {
               key: 'period',
               label: '统计周期:',
-              metadataPath: 'period.description',
-              position: 'right'
-            },
-            {
-              key: 'period1',
-              label: '统计周期1:',
               metadataPath: 'period.description',
               position: 'right'
             }
@@ -225,7 +214,7 @@
             key: 'region',
             title: '地区',
             width: 100,
-            merge: 'vertical'
+            //merge: 'vertical'
           },
           {
             key: 'category',
@@ -346,10 +335,11 @@
         features: {
           exportExcel: true,
           exportPdf: true,
-          watermark: '机密文件',
+          watermark: '深圳市三联众瑞科技有限公司',
           pdfConfig: {
             //orientation: 'landscape',  // 横版导出，适合宽表格 (默认竖版)
             pageSize: 'A4',
+            repeatTableHeader: true,  // 每页都显示表头
             margins: {
               top: 15,
               right: 10,
@@ -363,7 +353,7 @@
         },
         layout: {
           height: '100%',
-          headerHeight: 50,
+          headerHeight: 25,
           rowHeight: 40,
           stripe: true,
           bordered: true,
@@ -411,7 +401,7 @@
       document.getElementById('exportPdf').addEventListener('click', () => {
         report.exportTo('pdf', {
           fileName: '销售日报_' + new Date().toISOString().split('T')[0],
-          watermark: '机密文件'
+          //watermark: '机密文件'
         });
       });
 

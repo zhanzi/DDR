@@ -27,6 +27,18 @@ this.DDR = (function () {
         return __assign$1.apply(this, arguments);
     };
 
+    function __rest(s, e) {
+        var t = {};
+        for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p) && e.indexOf(p) < 0)
+            t[p] = s[p];
+        if (s != null && typeof Object.getOwnPropertySymbols === "function")
+            for (var i = 0, p = Object.getOwnPropertySymbols(s); i < p.length; i++) {
+                if (e.indexOf(p[i]) < 0 && Object.prototype.propertyIsEnumerable.call(s, p[i]))
+                    t[p[i]] = s[p[i]];
+            }
+        return t;
+    }
+
     function __awaiter$1(thisArg, _arguments, P, generator) {
         function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
         return new (P || (P = Promise))(function (resolve, reject) {
@@ -287,13 +299,34 @@ this.DDR = (function () {
        * @param metadata 要更新的元数据
        */
       DDR.prototype.updateMetadata = function (metadata) {
-        this.metadata = __assign$1(__assign$1({}, this.metadata), metadata);
-        if (this.initialized) {
-          // 重新渲染表头和表尾
-          this._renderHeaderFooter();
-          this._emitEvent('metadata-updated', {
-            metadata: this.metadata
-          });
+        // 检查是否包含数据更新
+        if (metadata.data && Array.isArray(metadata.data)) {
+          console.log('📊 通过updateMetadata更新数据，共', metadata.data.length, '条记录');
+          this.data = metadata.data;
+          // 从metadata中移除data，避免污染元数据
+          metadata.data;
+            var metadataWithoutData = __rest(metadata, ["data"]);
+          this.metadata = __assign$1(__assign$1({}, this.metadata), metadataWithoutData);
+          if (this.initialized) {
+            // 重新渲染整个报表（包括数据表格）
+            this._render();
+            this._emitEvent('data-loaded', {
+              data: this.data
+            });
+            this._emitEvent('metadata-updated', {
+              metadata: this.metadata
+            });
+          }
+        } else {
+          // 只更新元数据，不涉及数据变更
+          this.metadata = __assign$1(__assign$1({}, this.metadata), metadata);
+          if (this.initialized) {
+            // 只重新渲染表头和表尾
+            this._renderHeaderFooter();
+            this._emitEvent('metadata-updated', {
+              metadata: this.metadata
+            });
+          }
         }
       };
       /**
@@ -399,17 +432,55 @@ this.DDR = (function () {
         }
       };
       /**
-       * 执行打印
+       * 执行打印 - 使用与PDF导出一致的逻辑
        */
       DDR.prototype.print = function () {
+        var _a, _b;
+        return __awaiter$1(this, void 0, void 0, function () {
+          var Exporter, error_5;
+          return __generator$1(this, function (_c) {
+            switch (_c.label) {
+              case 0:
+                _c.trys.push([0, 3,, 4]);
+                console.log('开始打印，使用PDF导出逻辑生成打印内容');
+                return [4 /*yield*/, Promise.resolve().then(function () { return index$1; })];
+              case 1:
+                Exporter = _c.sent().Exporter;
+                // 使用PDF导出的逻辑生成打印内容，但不保存文件
+                return [4 /*yield*/, Exporter.toPrint(this.container, this.config, {
+                  watermark: (_a = this.config.features) === null || _a === void 0 ? void 0 : _a.watermark,
+                  pdf: ((_b = this.config.features) === null || _b === void 0 ? void 0 : _b.pdfConfig) || {}
+                })];
+              case 2:
+                // 使用PDF导出的逻辑生成打印内容，但不保存文件
+                _c.sent();
+                return [3 /*break*/, 4];
+              case 3:
+                error_5 = _c.sent();
+                console.error('打印失败，降级到简单打印:', error_5);
+                // 降级到原来的简单打印方式
+                this._simplePrint();
+                return [3 /*break*/, 4];
+              case 4:
+                return [2 /*return*/];
+            }
+          });
+        });
+      };
+      /**
+       * 简单打印方式（降级方案）
+       */
+      DDR.prototype._simplePrint = function () {
         // 创建打印样式
         var style = document.createElement('style');
-        style.textContent = "\n      @media print {\n        body * {\n          visibility: hidden;\n        }\n        .ddr-container, .ddr-container * {\n          visibility: visible;\n        }\n        .ddr-container {\n          position: absolute;\n          left: 0;\n          top: 0;\n        }\n      }\n    ";
+        style.textContent = "\n      @media print {\n        body * {\n          visibility: hidden;\n        }\n        .ddr-container, .ddr-container * {\n          visibility: visible;\n        }\n        .ddr-container {\n          position: absolute;\n          left: 0;\n          top: 0;\n          width: 100% !important;\n          height: auto !important;\n          overflow: visible !important;\n        }\n        .ddr-table-container {\n          overflow: visible !important;\n          height: auto !important;\n        }\n        .ddr-table {\n          page-break-inside: auto;\n        }\n        .ddr-table-row {\n          page-break-inside: avoid;\n          page-break-after: auto;\n        }\n        .ddr-header, .ddr-footer {\n          page-break-inside: avoid;\n        }\n      }\n    ";
         document.head.appendChild(style);
         // 执行打印
         window.print();
         // 移除打印样式
-        document.head.removeChild(style);
+        setTimeout(function () {
+          document.head.removeChild(style);
+        }, 100);
       };
       /**
        * 获取原始数据
@@ -443,7 +514,7 @@ this.DDR = (function () {
        */
       DDR.prototype._loadConfig = function (config) {
         return __awaiter$1(this, void 0, void 0, function () {
-          var response, response, error_5;
+          var response, response, error_6;
           return __generator$1(this, function (_a) {
             switch (_a.label) {
               case 0:
@@ -470,8 +541,8 @@ this.DDR = (function () {
               case 5:
                 return [2 /*return*/, _a.sent()];
               case 6:
-                error_5 = _a.sent();
-                throw new Error("\u52A0\u8F7D\u914D\u7F6E\u5931\u8D25: ".concat(error_5 instanceof Error ? error_5.message : String(error_5)));
+                error_6 = _a.sent();
+                throw new Error("\u52A0\u8F7D\u914D\u7F6E\u5931\u8D25: ".concat(error_6 instanceof Error ? error_6.message : String(error_6)));
               case 7:
                 return [3 /*break*/, 9];
               case 8:
@@ -494,10 +565,27 @@ this.DDR = (function () {
           return __generator$1(this, function (_a) {
             switch (_a.label) {
               case 0:
-                // 如果有模拟数据则使用模拟数据
+                // 优先级1：如果直接提供了数据，则使用直接数据
+                if (dataSource.data && Array.isArray(dataSource.data)) {
+                  console.log('📊 使用直接提供的数据，共', dataSource.data.length, '条记录');
+                  return [2 /*return*/, {
+                    records: dataSource.data,
+                    metadata: this.metadata
+                  }];
+                }
+                // 优先级2：如果有模拟数据则使用模拟数据
                 if (dataSource.mock && (!this.options.debug || window.location.hostname === 'localhost')) {
+                  console.log('📊 使用模拟数据，共', dataSource.mock.length, '条记录');
                   return [2 /*return*/, {
                     records: dataSource.mock,
+                    metadata: this.metadata
+                  }];
+                }
+                // 优先级3：如果没有API配置，则返回空数据
+                if (!dataSource.api) {
+                  console.warn('⚠️ 未配置API地址且未提供直接数据，返回空数据集');
+                  return [2 /*return*/, {
+                    records: [],
                     metadata: this.metadata
                   }];
                 }
@@ -1162,6 +1250,8 @@ this.DDR = (function () {
         tbody.className = 'ddr-tbody';
         // 获取扁平化的列
         var flatColumns = this._getFlatColumns(columns);
+        // 记录需要合并的单元格
+        var merges = new Map();
         // 如果没有数据，显示空表格提示
         if (!data.length) {
           var emptyRow = document.createElement('tr');
@@ -1176,18 +1266,28 @@ this.DDR = (function () {
         }
         // 创建行
         data.forEach(function (rowData, rowIndex) {
+          var _a;
           var row = document.createElement('tr');
           row.className = 'ddr-body-row';
           row.setAttribute('data-index', String(rowIndex));
+          // 应用配置的行高
+          if ((_a = _this.config.layout) === null || _a === void 0 ? void 0 : _a.rowHeight) {
+            row.style.height = typeof _this.config.layout.rowHeight === 'number' ? "".concat(_this.config.layout.rowHeight, "px") : _this.config.layout.rowHeight;
+          }
           // 创建单元格
+          var colIndex = 0;
           flatColumns.forEach(function (column) {
-            var _a;
+            var _a, _b;
             // 跳过隐藏列
             if (column.visible === false) {
               return;
             }
-            // 检查是否需要合并单元格
-            if (column.merge) ;
+            // 检查是否已经被合并跳过
+            var cellKey = "".concat(rowIndex, "-").concat(colIndex);
+            if (merges.has(cellKey) && ((_a = merges.get(cellKey)) === null || _a === void 0 ? void 0 : _a.rowSpan) === 0) {
+              colIndex++;
+              return;
+            }
             var cell = document.createElement('td');
             cell.className = 'ddr-body-cell';
             // 获取单元格值
@@ -1209,8 +1309,12 @@ this.DDR = (function () {
             if (column.align) {
               cell.style.textAlign = column.align;
             }
+            // 处理单元格合并
+            if (column.merge === 'vertical' || column.merge === true) {
+              _this._handleCellMerge(cell, rowData, column, rowIndex, colIndex, data, merges);
+            }
             // 应用条件样式
-            if ((_a = column.style) === null || _a === void 0 ? void 0 : _a.conditional) {
+            if ((_b = column.style) === null || _b === void 0 ? void 0 : _b.conditional) {
               column.style.conditional.forEach(function (condition) {
                 // 简单条件表达式解析
                 // 实际项目中可能需要更复杂的表达式解析
@@ -1229,10 +1333,42 @@ this.DDR = (function () {
               });
             }
             row.appendChild(cell);
+            colIndex++;
           });
           tbody.appendChild(row);
         });
         return tbody;
+      };
+      /**
+       * 处理单元格合并
+       */
+      DDR.prototype._handleCellMerge = function (td, rowData, column, rowIndex, colIndex, data, merges) {
+        console.log("\uD83D\uDD04 \u5904\u7406\u5217 \"".concat(column.key, "\" \u7684\u5408\u5E76\uFF0C\u5F53\u524D\u884C ").concat(rowIndex, "\uFF0C\u503C: \"").concat(rowData[column.key], "\""));
+        var currentValue = rowData[column.key];
+        var rowSpan = 1;
+        // 向下查找相同值的连续单元格
+        for (var i = rowIndex + 1; i < data.length; i++) {
+          var nextValue = data[i][column.key];
+          if (nextValue === currentValue) {
+            rowSpan++;
+            // 标记被合并的单元格，后面遇到时跳过
+            var skipKey = "".concat(i, "-").concat(colIndex);
+            merges.set(skipKey, {
+              rowSpan: 0,
+              colSpan: 0
+            });
+            console.log("  \u2705 \u627E\u5230\u76F8\u540C\u503C\uFF0C\u884C ".concat(i, "\uFF0C\u503C: \"").concat(nextValue, "\"\uFF0CrowSpan: ").concat(rowSpan));
+          } else {
+            console.log("  \u274C \u503C\u4E0D\u540C\uFF0C\u884C ".concat(i, "\uFF0C\u503C: \"").concat(nextValue, "\" !== \"").concat(currentValue, "\"\uFF0C\u505C\u6B62\u5408\u5E76"));
+            break;
+          }
+        }
+        if (rowSpan > 1) {
+          td.rowSpan = rowSpan;
+          console.log("\uD83C\uDFAF \u5217 \"".concat(column.key, "\" \u7B2C ").concat(rowIndex, " \u884C\u8BBE\u7F6E rowSpan = ").concat(rowSpan));
+        } else {
+          console.log("\uD83D\uDCDD \u5217 \"".concat(column.key, "\" \u7B2C ").concat(rowIndex, " \u884C\u65E0\u9700\u5408\u5E76"));
+        }
       };
       /**
        * 评估条件表达式
@@ -35981,25 +36117,31 @@ this.DDR = (function () {
        * @param options 导出选项
        */
       Exporter.toPDF = function (element, config, options) {
-        var _a, _b, _c, _d, _e;
+        var _a, _b, _c, _d, _e, _f, _g, _h;
         if (options === void 0) {
           options = {};
         }
         return __awaiter$1(this, void 0, void 0, function () {
-          var _f, fileName, _g, watermark, _h, pdfOptions, configPdfSettings, mergedPdfOptions, pageSize, orientation_1, quality, multiPage, relayout, margins, originalScrollTop, tempContainer, pdfWidth, contentWidthMm, dpiRatio, contentWidthPx, tableElements, headerElement, footerElement, tableContainer, tableElement, cells, pdf, pageWidth, pageHeight, contentHeight, contentWidth, headerHeight, headerCanvas, headerRect, e_1, footerHeight, footerCanvas, footerRect, e_2, tableElement, tableRect, tableCanvas, tableWidth, tableHeight, rows, totalRows, headerRowCount, i, dataRowCount, pageBreakPoints, actualHeaderHeightMM, actualFooterHeightMM, avgRowHeightCanvas, dataRowHeightMM, firstPageNumberReserve, middlePageNumberReserve, headerFooterGap, dataFooterGap, safetyMargin, firstPageBaseHeight, middlePageBaseHeight, firstPageDataHeight, middlePageDataHeight, lastPageDataHeight, firstPageMaxRows, middlePageMaxRows, lastPageMaxRows, processedRows, pageIndex, maxRowsThisPage, remainingRows, rowsThisPage, headerHeightRatio, dataAreaHeightRatio, processedRowsRatio, breakYPercent, pagesNeeded, headerImgData, footerImgData, lastPageRows, lastPageDataHeightUsed, lastPageRemainingHeight, page, yOffset, tableStartPercent, tableEndPercent, endRow, startRow, endRow, sourceY, sourceHeight, tablePartHeight, endRow, headerHeightRatio, dataAreaHeightRatio, endRowRatio, endPercent, startRow, endRow, rowsThisPage, headerHeightRatio, dataAreaHeightRatio, startRowRatio, endRowRatio, startPercent, endPercent, currentPageNumberReserve, maxAllowedHeight, pageTableCanvas, pageTableCtx, pageTableImgData, pageNumberY, minFooterY, maxFooterY, footerY, newPageNumber, pageNumberY, watermarkCanvas, ctx, watermarkImgData, watermarkX, watermarkY, watermarkCanvas, ctx, watermarkImgData, e_3, canvas, imgData, canvasAspectRatio, pageAspectRatio, imgWidth, imgHeight, error_1;
-          return __generator$1(this, function (_j) {
-            switch (_j.label) {
+          var _j, fileName, watermark, _k, pdfOptions, configPdfSettings, mergedPdfOptions, finalWatermark, pageSize, orientation_1, quality, multiPage, relayout, margins, originalScrollTop, tempContainer, pdfWidth, contentWidthMm, dpiRatio, contentWidthPx, tableElements, headerElement, footerElement, tableContainer, tableElement, cells, pdf, pageWidth, pageHeight, contentHeight, contentWidth, headerHeight, headerCanvas, headerRect, e_1, footerHeight, footerCanvas, footerRect, e_2, tableElement, tableRect, tableCanvas, tableWidth, tableHeight, rows, totalRows, headerRowCount, i, dataRowCount, actualHeaderHeightMM, actualFooterHeightMM, dataRowHeightMM, avgRowHeightCanvas, configRowHeightPx, configRowHeightMM, pageNumberReserve, contentGap, safetyMargin, baseAvailableHeight, firstPageDataHeight, middlePageDataHeight, lastPageDataHeight, firstPageMaxRows, middlePageMaxRows, lastPageMaxRows, pageBreakPoints, processedRows, pageIndex, maxRowsThisPage, remainingRows, rowsThisPage, headerHeightRatio, dataAreaHeightRatio, processedRowsRatio, breakYPercent, pagesNeeded, headerImgData, footerImgData, lastPageRows, lastPageDataHeightUsed, lastPageRemainingHeight, page, yOffset, repeatTableHeader, headerOnlyCanvas, headerHeightInCanvas, headerCtx, headerHeightInPDF, headerImgData_1, tableStartPercent, tableEndPercent, endRow, startRow, endRow, sourceY, sourceHeight, tablePartHeight, endRow, headerRowHeightCanvas, dataRowHeightCanvas, endRowHeightCanvas, startRow, endRow, rowsThisPage, headerRowHeightCanvas, dataRowHeightCanvas, startRowHeightCanvas, endRowHeightCanvas, endY, maxAllowedHeight, overflow, pageTableCanvas, pageTableCtx, pageTableImgData, contentBottom, minPageNumberY, maxPageNumberY, pageNumberY, minFooterY, maxFooterY, footerY, newPageNumber, pageNumberY, watermarkCanvas, ctx, watermarkImgData, watermarkCanvas, scale, ctx, textLength, fontSize, textMetrics, textWidth, textHeight, spacingX, spacingY, cols, rows_1, row, col, x, y, watermarkImgData, centerX, centerY, e_3, canvas, imgData, canvasAspectRatio, pageAspectRatio, imgWidth, imgHeight, error_1;
+          return __generator$1(this, function (_l) {
+            switch (_l.label) {
               case 0:
-                _j.trys.push([0, 14,, 15]);
+                _l.trys.push([0, 14,, 15]);
                 console.log('PDF导出开始，使用内置jsPDF库');
-                _f = options.fileName, fileName = _f === void 0 ? '报表' : _f, _g = options.watermark, watermark = _g === void 0 ? '' : _g, _h = options.pdf, pdfOptions = _h === void 0 ? {} : _h;
+                _j = options.fileName, fileName = _j === void 0 ? '报表' : _j, watermark = options.watermark, _k = options.pdf, pdfOptions = _k === void 0 ? {} : _k;
                 configPdfSettings = ((_a = config === null || config === void 0 ? void 0 : config.features) === null || _a === void 0 ? void 0 : _a.pdfConfig) || {};
                 mergedPdfOptions = __assign$1(__assign$1({}, configPdfSettings), pdfOptions);
-                // 调试信息：输出PDF配置
+                finalWatermark = watermark !== undefined ? watermark : ((_b = config === null || config === void 0 ? void 0 : config.features) === null || _b === void 0 ? void 0 : _b.watermark) || '';
+                // 调试信息：输出PDF配置和水印处理
                 console.log('PDF导出配置:', {
                   configPdfSettings: configPdfSettings,
                   pdfOptions: pdfOptions,
                   mergedPdfOptions: mergedPdfOptions
+                });
+                console.log('水印处理:', {
+                  '方法参数watermark': watermark,
+                  '配置中的watermark': (_c = config === null || config === void 0 ? void 0 : config.features) === null || _c === void 0 ? void 0 : _c.watermark,
+                  '最终使用的watermark': finalWatermark
                 });
                 pageSize = mergedPdfOptions.pageSize || 'A4';
                 orientation_1 = mergedPdfOptions.orientation || 'portrait';
@@ -36008,10 +36150,10 @@ this.DDR = (function () {
                 relayout = mergedPdfOptions.relayout !== false;
                 console.log("PDF\u8BBE\u7F6E - \u9875\u9762\u5927\u5C0F: ".concat(pageSize, ", \u65B9\u5411: ").concat(orientation_1, ", \u91CD\u65B0\u6392\u7248: ").concat(relayout));
                 margins = {
-                  top: ((_b = mergedPdfOptions.margins) === null || _b === void 0 ? void 0 : _b.top) || 15,
-                  right: ((_c = mergedPdfOptions.margins) === null || _c === void 0 ? void 0 : _c.right) || 15,
-                  bottom: ((_d = mergedPdfOptions.margins) === null || _d === void 0 ? void 0 : _d.bottom) || 15,
-                  left: ((_e = mergedPdfOptions.margins) === null || _e === void 0 ? void 0 : _e.left) || 15
+                  top: ((_d = mergedPdfOptions.margins) === null || _d === void 0 ? void 0 : _d.top) || 15,
+                  right: ((_e = mergedPdfOptions.margins) === null || _e === void 0 ? void 0 : _e.right) || 15,
+                  bottom: ((_f = mergedPdfOptions.margins) === null || _f === void 0 ? void 0 : _f.bottom) || 15,
+                  left: ((_g = mergedPdfOptions.margins) === null || _g === void 0 ? void 0 : _g.left) || 15
                 };
                 originalScrollTop = element.scrollTop;
                 tempContainer = element.cloneNode(true);
@@ -36099,9 +36241,9 @@ this.DDR = (function () {
                 headerHeight = 0;
                 headerCanvas = void 0;
                 if (!headerElement) return [3 /*break*/, 4];
-                _j.label = 1;
+                _l.label = 1;
               case 1:
-                _j.trys.push([1, 3,, 4]);
+                _l.trys.push([1, 3,, 4]);
                 headerRect = headerElement.getBoundingClientRect();
                 console.log("\uD83D\uDCCF \u62A5\u8868\u5934DOM\u5C3A\u5BF8\uFF1A".concat(Math.round(headerRect.width), "px \u00D7 ").concat(Math.round(headerRect.height), "px"));
                 return [4 /*yield*/, html2canvas(headerElement, {
@@ -36112,7 +36254,7 @@ this.DDR = (function () {
                   backgroundColor: '#FFFFFF' // 确保背景色一致
                 })];
               case 2:
-                headerCanvas = _j.sent();
+                headerCanvas = _l.sent();
                 // 基于Canvas和DOM的比例关系计算PDF中的实际高度
                 // 这样可以避免DPI假设的问题
                 headerHeight = headerCanvas.height / headerCanvas.width * contentWidth;
@@ -36120,16 +36262,16 @@ this.DDR = (function () {
                 console.log("\uD83D\uDCCF \u62A5\u8868\u5934\u5B9E\u9645\u9AD8\u5EA6\uFF1A".concat(Math.round(headerHeight * 100) / 100, "mm"));
                 return [3 /*break*/, 4];
               case 3:
-                e_1 = _j.sent();
+                e_1 = _l.sent();
                 console.warn('渲染表头时出错:', e_1);
                 return [3 /*break*/, 4];
               case 4:
                 footerHeight = 0;
                 footerCanvas = void 0;
                 if (!footerElement) return [3 /*break*/, 8];
-                _j.label = 5;
+                _l.label = 5;
               case 5:
-                _j.trys.push([5, 7,, 8]);
+                _l.trys.push([5, 7,, 8]);
                 footerRect = footerElement.getBoundingClientRect();
                 console.log("\uD83D\uDCCF \u62A5\u8868\u5C3EDOM\u5C3A\u5BF8\uFF1A".concat(Math.round(footerRect.width), "px \u00D7 ").concat(Math.round(footerRect.height), "px"));
                 return [4 /*yield*/, html2canvas(footerElement, {
@@ -36140,7 +36282,7 @@ this.DDR = (function () {
                   backgroundColor: '#FFFFFF' // 确保背景色一致
                 })];
               case 6:
-                footerCanvas = _j.sent();
+                footerCanvas = _l.sent();
                 // 基于Canvas和DOM的比例关系计算PDF中的实际高度
                 // 这样可以避免DPI假设的问题
                 footerHeight = footerCanvas.height / footerCanvas.width * contentWidth;
@@ -36148,7 +36290,7 @@ this.DDR = (function () {
                 console.log("\uD83D\uDCCF \u62A5\u8868\u5C3E\u5B9E\u9645\u9AD8\u5EA6\uFF1A".concat(Math.round(footerHeight * 100) / 100, "mm"));
                 return [3 /*break*/, 8];
               case 7:
-                e_2 = _j.sent();
+                e_2 = _l.sent();
                 console.warn('渲染表尾时出错:', e_2);
                 return [3 /*break*/, 8];
               case 8:
@@ -36161,9 +36303,9 @@ this.DDR = (function () {
                 tableCanvas = void 0;
                 tableWidth = void 0;
                 tableHeight = void 0;
-                _j.label = 9;
+                _l.label = 9;
               case 9:
-                _j.trys.push([9, 11,, 13]);
+                _l.trys.push([9, 11,, 13]);
                 return [4 /*yield*/, html2canvas(tableElement, {
                   scale: 2.0,
                   useCORS: true,
@@ -36172,7 +36314,7 @@ this.DDR = (function () {
                   backgroundColor: '#FFFFFF' // 确保背景色一致
                 })];
               case 10:
-                tableCanvas = _j.sent();
+                tableCanvas = _l.sent();
                 // 基于Canvas和DOM的比例关系计算PDF中的实际尺寸
                 tableWidth = contentWidth; // PDF内容区域宽度
                 tableHeight = tableCanvas.height / tableCanvas.width * tableWidth; // 基于Canvas比例计算
@@ -36189,43 +36331,44 @@ this.DDR = (function () {
                   }
                 }
                 dataRowCount = totalRows - headerRowCount;
-                console.log("\u603B\u884C\u6570: ".concat(totalRows, ", \u8868\u5934\u884C\u6570: ").concat(headerRowCount, ", \u6570\u636E\u884C\u6570: ").concat(dataRowCount));
-                pageBreakPoints = [];
-                // 动态测量实际高度 - 不再使用估算
-                console.log("\uD83D\uDD0D \u5F00\u59CB\u7CBE\u786E\u6D4B\u91CF\u5404\u90E8\u5206\u5B9E\u9645\u9AD8\u5EA6...");
+                console.log("\uD83D\uDCCA \u8868\u683C\u884C\u6570\u7EDF\u8BA1\uFF1A\u603B\u884C\u6570=".concat(totalRows, ", \u8868\u5934\u884C\u6570=").concat(headerRowCount, ", \u6570\u636E\u884C\u6570=").concat(dataRowCount));
+                // 重构分页算法 - 精确计算每页可用空间和行数
+                console.log("\uD83D\uDD0D \u5F00\u59CB\u91CD\u6784PDF\u5206\u9875\u7B97\u6CD5...");
                 actualHeaderHeightMM = 0;
+                actualFooterHeightMM = 0;
                 if (headerCanvas) {
-                  // 报表头高度已经在前面通过html2canvas精确测量并转换为毫米
                   actualHeaderHeightMM = headerHeight;
                   console.log("\uD83D\uDCCF \u62A5\u8868\u5934\u5B9E\u9645\u9AD8\u5EA6\uFF1A".concat(Math.round(actualHeaderHeightMM), "mm"));
                 }
-                actualFooterHeightMM = 0;
                 if (footerCanvas) {
-                  // 报表尾高度已经在前面通过html2canvas精确测量并转换为毫米
                   actualFooterHeightMM = footerHeight;
                   console.log("\uD83D\uDCCF \u62A5\u8868\u5C3E\u5B9E\u9645\u9AD8\u5EA6\uFF1A".concat(Math.round(actualFooterHeightMM), "mm"));
                 }
+                dataRowHeightMM = void 0;
                 avgRowHeightCanvas = tableCanvas.height / totalRows;
                 dataRowHeightMM = avgRowHeightCanvas / tableCanvas.height * tableHeight;
-                console.log("\uD83D\uDCCF \u5355\u884C\u6570\u636E\u9AD8\u5EA6\uFF1A".concat(Math.round(dataRowHeightMM * 100) / 100, "mm"));
-                firstPageNumberReserve = 25;
-                middlePageNumberReserve = 18;
-                headerFooterGap = 5;
-                dataFooterGap = 10;
-                safetyMargin = 8;
-                console.log("\uD83D\uDD0D \u7CBE\u786E\u9AD8\u5EA6\u8BA1\u7B97\uFF1A");
+                console.log("\uD83D\uDCCF Canvas\u884C\u9AD8\u8BA1\u7B97\uFF1A\u603B\u9AD8\u5EA6".concat(tableCanvas.height, "px \u00F7 ").concat(totalRows, "\u884C = ").concat(Math.round(avgRowHeightCanvas * 100) / 100, "px/\u884C"));
+                console.log("\uD83D\uDCCF PDF\u884C\u9AD8\uFF1A".concat(Math.round(dataRowHeightMM * 100) / 100, "mm/\u884C"));
+                // 如果有配置的行高，进行对比但不直接使用（避免溢出）
+                if ((_h = config === null || config === void 0 ? void 0 : config.layout) === null || _h === void 0 ? void 0 : _h.rowHeight) {
+                  configRowHeightPx = typeof config.layout.rowHeight === 'number' ? config.layout.rowHeight : parseInt(config.layout.rowHeight);
+                  configRowHeightMM = configRowHeightPx * 25.4 / 96;
+                  console.log("\uD83D\uDCCF \u914D\u7F6E\u884C\u9AD8\uFF1A".concat(configRowHeightPx, "px \u2192 ").concat(Math.round(configRowHeightMM * 100) / 100, "mm"));
+                  console.log("\uD83D\uDCCF Canvas\u884C\u9AD8\uFF1A".concat(Math.round(dataRowHeightMM * 100) / 100, "mm"));
+                  console.log("\uD83D\uDCCF \u4F7F\u7528Canvas\u884C\u9AD8\u4EE5\u786E\u4FDD\u6570\u636E\u5B8C\u6574\u6027");
+                }
+                pageNumberReserve = 15;
+                contentGap = 5;
+                safetyMargin = 3;
+                console.log("\uD83D\uDCD0 \u9875\u9762\u5E03\u5C40\u53C2\u6570\uFF1A");
                 console.log("- \u9875\u9762\u603B\u9AD8\u5EA6\uFF1A".concat(Math.round(pageHeight), "mm"));
                 console.log("- \u4E0A\u4E0B\u8FB9\u8DDD\uFF1A".concat(margins.top + margins.bottom, "mm"));
-                console.log("- \u7B2C\u4E00\u9875\u9875\u7801\u9884\u7559\uFF1A".concat(firstPageNumberReserve, "mm"));
-                console.log("- \u4E2D\u95F4\u9875\u9875\u7801\u9884\u7559\uFF1A".concat(middlePageNumberReserve, "mm"));
-                console.log("- \u62A5\u8868\u5934\u9AD8\u5EA6\uFF1A".concat(Math.round(actualHeaderHeightMM), "mm"));
-                console.log("- \u5355\u884C\u6570\u636E\u9AD8\u5EA6\uFF1A".concat(Math.round(dataRowHeightMM * 100) / 100, "mm"));
-                console.log("- \u62A5\u8868\u5C3E\u9AD8\u5EA6\uFF1A".concat(Math.round(actualFooterHeightMM), "mm"));
-                firstPageBaseHeight = pageHeight - margins.top - margins.bottom - firstPageNumberReserve - safetyMargin;
-                middlePageBaseHeight = pageHeight - margins.top - margins.bottom - middlePageNumberReserve - safetyMargin;
-                firstPageDataHeight = firstPageBaseHeight - actualHeaderHeightMM - headerFooterGap;
-                middlePageDataHeight = middlePageBaseHeight;
-                lastPageDataHeight = middlePageBaseHeight - actualFooterHeightMM - dataFooterGap;
+                console.log("- \u9875\u7801\u9884\u7559\uFF1A".concat(pageNumberReserve, "mm"));
+                console.log("- \u5B89\u5168\u8FB9\u8DDD\uFF1A".concat(safetyMargin, "mm"));
+                baseAvailableHeight = pageHeight - margins.top - margins.bottom - pageNumberReserve - safetyMargin;
+                firstPageDataHeight = baseAvailableHeight - actualHeaderHeightMM - contentGap;
+                middlePageDataHeight = baseAvailableHeight;
+                lastPageDataHeight = baseAvailableHeight - actualFooterHeightMM - contentGap;
                 console.log("\uD83D\uDCD0 \u5404\u9875\u53EF\u7528\u6570\u636E\u9AD8\u5EA6\uFF1A");
                 console.log("- \u7B2C\u4E00\u9875\u6570\u636E\u533A\uFF1A".concat(Math.round(firstPageDataHeight), "mm"));
                 console.log("- \u4E2D\u95F4\u9875\u6570\u636E\u533A\uFF1A".concat(Math.round(middlePageDataHeight), "mm"));
@@ -36233,30 +36376,40 @@ this.DDR = (function () {
                 firstPageMaxRows = Math.floor(firstPageDataHeight / dataRowHeightMM);
                 middlePageMaxRows = Math.floor(middlePageDataHeight / dataRowHeightMM);
                 lastPageMaxRows = Math.floor(lastPageDataHeight / dataRowHeightMM);
-                console.log("\uD83D\uDCCA \u7CBE\u786E\u8BA1\u7B97\u7684\u5404\u9875\u6700\u5927\u884C\u6570\uFF1A");
-                console.log("- \u7B2C\u4E00\u9875\u6700\u5927\uFF1A".concat(firstPageMaxRows, "\u884C (").concat(Math.round(firstPageDataHeight), "mm \u00F7 ").concat(Math.round(dataRowHeightMM * 100) / 100, "mm)"));
-                console.log("- \u4E2D\u95F4\u9875\u6700\u5927\uFF1A".concat(middlePageMaxRows, "\u884C (").concat(Math.round(middlePageDataHeight), "mm \u00F7 ").concat(Math.round(dataRowHeightMM * 100) / 100, "mm)"));
-                console.log("- \u6700\u540E\u9875\u6700\u5927\uFF1A".concat(lastPageMaxRows, "\u884C (").concat(Math.round(lastPageDataHeight), "mm \u00F7 ").concat(Math.round(dataRowHeightMM * 100) / 100, "mm)"));
+                console.log("\uD83D\uDCCA \u4FDD\u5B88\u8BA1\u7B97\u7684\u5404\u9875\u6700\u5927\u884C\u6570\uFF1A");
+                console.log("- \u7B2C\u4E00\u9875\uFF1A".concat(firstPageMaxRows, "\u884C (").concat(Math.round(firstPageDataHeight), "mm \u00F7 ").concat(Math.round(dataRowHeightMM * 100) / 100, "mm)"));
+                console.log("- \u4E2D\u95F4\u9875\uFF1A".concat(middlePageMaxRows, "\u884C (").concat(Math.round(middlePageDataHeight), "mm \u00F7 ").concat(Math.round(dataRowHeightMM * 100) / 100, "mm)"));
+                console.log("- \u6700\u540E\u9875\uFF1A".concat(lastPageMaxRows, "\u884C (").concat(Math.round(lastPageDataHeight), "mm \u00F7 ").concat(Math.round(dataRowHeightMM * 100) / 100, "mm)"));
+                // 验证计算准确性
+                console.log("\uD83D\uDD0D \u7A7A\u95F4\u5229\u7528\u7387\u9A8C\u8BC1\uFF1A");
+                console.log("- \u7B2C\u4E00\u9875\uFF1A".concat(firstPageMaxRows, "\u884C \u00D7 ").concat(Math.round(dataRowHeightMM * 100) / 100, "mm = ").concat(Math.round(firstPageMaxRows * dataRowHeightMM), "mm\uFF0C\u53EF\u7528").concat(Math.round(firstPageDataHeight), "mm\uFF0C\u5229\u7528\u7387").concat(Math.round(firstPageMaxRows * dataRowHeightMM / firstPageDataHeight * 100), "%"));
+                console.log("- \u4E2D\u95F4\u9875\uFF1A".concat(middlePageMaxRows, "\u884C \u00D7 ").concat(Math.round(dataRowHeightMM * 100) / 100, "mm = ").concat(Math.round(middlePageMaxRows * dataRowHeightMM), "mm\uFF0C\u53EF\u7528").concat(Math.round(middlePageDataHeight), "mm\uFF0C\u5229\u7528\u7387").concat(Math.round(middlePageMaxRows * dataRowHeightMM / middlePageDataHeight * 100), "%"));
+                pageBreakPoints = [];
                 processedRows = 0;
                 pageIndex = 0;
+                console.log("\uD83D\uDD04 \u5F00\u59CB\u667A\u80FD\u5206\u9875\u7B97\u6CD5\uFF0C\u603B\u6570\u636E\u884C\u6570\uFF1A".concat(dataRowCount));
                 while (processedRows < dataRowCount) {
                   maxRowsThisPage = void 0;
                   if (pageIndex === 0) {
-                    // 第一页
+                    // 第一页：包含报表头
                     maxRowsThisPage = firstPageMaxRows;
+                    console.log("\uD83D\uDCC4 \u7B2C".concat(pageIndex + 1, "\u9875\uFF08\u9996\u9875\uFF09\uFF1A\u6700\u5927\u53EF\u5BB9\u7EB3").concat(maxRowsThisPage, "\u884C"));
                   } else {
                     remainingRows = dataRowCount - processedRows;
-                    // 如果剩余行数可以放在一页中，且能容纳报表尾，则为最后一页
                     if (remainingRows <= lastPageMaxRows) {
-                      maxRowsThisPage = remainingRows; // 最后一页，显示所有剩余行
-                      console.log("\uD83D\uDCC4 \u7B2C".concat(pageIndex + 1, "\u9875\u4E3A\u6700\u540E\u4E00\u9875\uFF0C\u663E\u793A\u5269\u4F59").concat(remainingRows, "\u884C\uFF0C\u62A5\u8868\u5C3E\u5C06\u5728\u6B64\u9875\u6216\u65B0\u9875\u663E\u793A"));
+                      // 最后一页：需要容纳报表尾
+                      maxRowsThisPage = remainingRows;
+                      console.log("\uD83D\uDCC4 \u7B2C".concat(pageIndex + 1, "\u9875\uFF08\u672B\u9875\uFF09\uFF1A\u663E\u793A\u5269\u4F59").concat(remainingRows, "\u884C"));
                     } else {
-                      // 中间页，使用中间页最大行数
+                      // 中间页：全部用于数据
                       maxRowsThisPage = middlePageMaxRows;
+                      console.log("\uD83D\uDCC4 \u7B2C".concat(pageIndex + 1, "\u9875\uFF08\u4E2D\u95F4\u9875\uFF09\uFF1A\u6700\u5927\u53EF\u5BB9\u7EB3").concat(maxRowsThisPage, "\u884C"));
                     }
                   }
                   rowsThisPage = Math.min(maxRowsThisPage, dataRowCount - processedRows);
                   processedRows += rowsThisPage;
+                  console.log("\uD83D\uDCCA \u7B2C".concat(pageIndex + 1, "\u9875\u5B9E\u9645\u663E\u793A\uFF1A").concat(rowsThisPage, "\u884C\uFF0C\u7D2F\u8BA1\u5904\u7406\uFF1A").concat(processedRows, "/").concat(dataRowCount, "\u884C"));
+                  // 如果还有剩余数据，创建分页点
                   if (processedRows < dataRowCount) {
                     headerHeightRatio = actualHeaderHeightMM / tableHeight;
                     dataAreaHeightRatio = 1 - headerHeightRatio - actualFooterHeightMM / tableHeight;
@@ -36266,10 +36419,11 @@ this.DDR = (function () {
                       yPercent: breakYPercent,
                       endRow: processedRows
                     });
-                    console.log("\uD83D\uDCC4 \u521B\u5EFA\u5206\u9875\u70B9 ".concat(pageIndex + 1, "\uFF1A\u7B2C").concat(processedRows, "\u884C\u7ED3\u675F\uFF0CY=").concat(Math.round(breakYPercent * 100), "% (\u5934\u90E8").concat(Math.round(headerHeightRatio * 100), "% + \u6570\u636E").concat(Math.round(processedRowsRatio * dataAreaHeightRatio * 100), "%)"));
+                    console.log("\uD83D\uDCCD \u521B\u5EFA\u5206\u9875\u70B9".concat(pageIndex + 1, "\uFF1A\u7B2C").concat(processedRows, "\u884C\u7ED3\u675F\uFF0CY=").concat(Math.round(breakYPercent * 100), "%"));
                   }
                   pageIndex++;
                 }
+                console.log("\u2705 \u5206\u9875\u7B97\u6CD5\u5B8C\u6210\uFF1A\u5171".concat(pageIndex, "\u9875\uFF0C\u5904\u7406").concat(processedRows, "\u884C\u6570\u636E\uFF0C\u521B\u5EFA").concat(pageBreakPoints.length, "\u4E2A\u5206\u9875\u70B9"));
                 pagesNeeded = pageBreakPoints.length + 1;
                 console.log("\uD83D\uDCCA \u603B\u8BA1\u9700\u8981 ".concat(pagesNeeded, " \u9875\u663E\u793A ").concat(dataRowCount, " \u884C\u6570\u636E"));
                 headerImgData = headerCanvas ? headerCanvas.toDataURL('image/jpeg', quality) : null;
@@ -36283,8 +36437,8 @@ this.DDR = (function () {
                   console.log("- \u6700\u540E\u4E00\u9875\u6570\u636E\u884C\u6570\uFF1A".concat(lastPageRows));
                   console.log("- \u6700\u540E\u4E00\u9875\u6570\u636E\u5360\u7528\u9AD8\u5EA6\uFF1A".concat(Math.round(lastPageDataHeightUsed), "mm"));
                   console.log("- \u6700\u540E\u4E00\u9875\u5269\u4F59\u9AD8\u5EA6\uFF1A".concat(Math.round(lastPageRemainingHeight), "mm"));
-                  console.log("- \u62A5\u8868\u5C3E\u9700\u8981\u9AD8\u5EA6\uFF1A".concat(Math.round(actualFooterHeightMM + dataFooterGap), "mm"));
-                  if (lastPageRemainingHeight < actualFooterHeightMM + dataFooterGap) {
+                  console.log("- \u62A5\u8868\u5C3E\u9700\u8981\u9AD8\u5EA6\uFF1A".concat(Math.round(actualFooterHeightMM + contentGap), "mm"));
+                  if (lastPageRemainingHeight < actualFooterHeightMM + contentGap) {
                     console.log("\u26A0\uFE0F \u6700\u540E\u4E00\u9875\u7A7A\u95F4\u4E0D\u8DB3\uFF0C\u62A5\u8868\u5C3E\u5C06\u5728\u65B0\u9875\u663E\u793A");
                   } else {
                     console.log("\u2705 \u6700\u540E\u4E00\u9875\u7A7A\u95F4\u5145\u8DB3\uFF0C\u62A5\u8868\u5C3E\u5C06\u5728\u5F53\u524D\u9875\u663E\u793A");
@@ -36297,10 +36451,36 @@ this.DDR = (function () {
                     pdf.addPage();
                   }
                   yOffset = margins.top;
-                  // 添加表头（只在第一页显示）
+                  // 添加报表头（只在第一页显示）
                   if (headerImgData && page === 0) {
                     pdf.addImage(headerImgData, 'JPEG', margins.left, yOffset, contentWidth, headerHeight);
                     yOffset += headerHeight + 5; // 5mm的间距
+                  }
+                  repeatTableHeader = mergedPdfOptions.repeatTableHeader !== false;
+                  if (repeatTableHeader && page > 0 && headerRowCount > 0) {
+                    // 在非首页添加表格标题行
+                    try {
+                      console.log("\uD83D\uDCC4 \u7B2C".concat(page + 1, "\u9875\u6DFB\u52A0\u8868\u683C\u6807\u9898\u884C"));
+                      headerOnlyCanvas = document.createElement('canvas');
+                      headerOnlyCanvas.width = tableCanvas.width;
+                      headerHeightInCanvas = headerRowCount / totalRows * tableCanvas.height;
+                      headerOnlyCanvas.height = Math.ceil(headerHeightInCanvas);
+                      headerCtx = headerOnlyCanvas.getContext('2d');
+                      if (headerCtx) {
+                        // 设置白色背景
+                        headerCtx.fillStyle = '#ffffff';
+                        headerCtx.fillRect(0, 0, headerOnlyCanvas.width, headerOnlyCanvas.height);
+                        // 从原表格canvas中精确复制表头部分
+                        headerCtx.drawImage(tableCanvas, 0, 0, tableCanvas.width, headerHeightInCanvas, 0, 0, headerOnlyCanvas.width, headerOnlyCanvas.height);
+                        headerHeightInPDF = headerOnlyCanvas.height / tableCanvas.height * tableHeight;
+                        headerImgData_1 = headerOnlyCanvas.toDataURL('image/jpeg', quality);
+                        pdf.addImage(headerImgData_1, 'JPEG', margins.left, yOffset, contentWidth, headerHeightInPDF);
+                        yOffset += headerHeightInPDF; // 不添加额外间距，确保与数据行紧密连接
+                        console.log("\uD83D\uDCC4 \u7B2C".concat(page + 1, "\u9875\u8868\u683C\u6807\u9898\u884C\u6DFB\u52A0\u5B8C\u6210\uFF0C\u9AD8\u5EA6\uFF1A").concat(Math.round(headerHeightInPDF), "mm"));
+                      }
+                    } catch (e) {
+                      console.warn("\u7B2C".concat(page + 1, "\u9875\u6DFB\u52A0\u8868\u683C\u6807\u9898\u884C\u5931\u8D25:"), e);
+                    }
                   }
                   tableStartPercent = 0;
                   tableEndPercent = 1;
@@ -36328,31 +36508,37 @@ this.DDR = (function () {
                   sourceHeight = void 0;
                   tablePartHeight = void 0;
                   if (pageBreakPoints.length > 0) {
-                    // 多页模式：使用精确的高度比例计算
+                    // 多页模式：基于行边界进行精确裁剪
                     if (page === 0) {
                       endRow = pageBreakPoints[0].endRow;
                       sourceY = 0; // 从表头开始
-                      headerHeightRatio = actualHeaderHeightMM / tableHeight;
-                      dataAreaHeightRatio = 1 - headerHeightRatio - actualFooterHeightMM / tableHeight;
-                      endRowRatio = endRow / dataRowCount;
-                      endPercent = headerHeightRatio + endRowRatio * dataAreaHeightRatio;
-                      sourceHeight = Math.floor(endPercent * tableCanvas.height);
+                      headerRowHeightCanvas = headerRowCount / totalRows * tableCanvas.height;
+                      dataRowHeightCanvas = tableCanvas.height / totalRows;
+                      endRowHeightCanvas = headerRowHeightCanvas + endRow * dataRowHeightCanvas;
+                      sourceHeight = Math.floor(endRowHeightCanvas);
                       tablePartHeight = sourceHeight / tableCanvas.height * tableHeight;
-                      console.log("\uD83D\uDCD0 \u7B2C1\u9875\u7CBE\u786E\u88C1\u526A\uFF1A\u8868\u5934+".concat(endRow, "\u884C\u6570\u636E\uFF0C\u6E90\u9AD8\u5EA6=").concat(Math.round(sourceHeight), "px\uFF0C\u76EE\u6807\u9AD8\u5EA6=").concat(Math.round(tablePartHeight), "mm\uFF0C\u7ED3\u675F\u6BD4\u4F8B=").concat(Math.round(endPercent * 100), "%"));
+                      console.log("\uD83D\uDCD0 \u7B2C1\u9875\u884C\u8FB9\u754C\u88C1\u526A\uFF1A\u8868\u5934".concat(headerRowCount, "\u884C+\u6570\u636E").concat(endRow, "\u884C\uFF0CCanvas\u9AD8\u5EA6=").concat(Math.round(sourceHeight), "px\uFF0CPDF\u9AD8\u5EA6=").concat(Math.round(tablePartHeight), "mm"));
                     } else {
                       startRow = pageBreakPoints[page - 1].endRow;
                       endRow = page < pageBreakPoints.length ? pageBreakPoints[page].endRow : dataRowCount;
                       rowsThisPage = endRow - startRow;
-                      headerHeightRatio = actualHeaderHeightMM / tableHeight;
-                      dataAreaHeightRatio = 1 - headerHeightRatio - actualFooterHeightMM / tableHeight;
-                      startRowRatio = startRow / dataRowCount;
-                      endRowRatio = endRow / dataRowCount;
-                      startPercent = headerHeightRatio + startRowRatio * dataAreaHeightRatio;
-                      endPercent = headerHeightRatio + endRowRatio * dataAreaHeightRatio;
-                      sourceY = Math.floor(startPercent * tableCanvas.height);
-                      sourceHeight = Math.floor((endPercent - startPercent) * tableCanvas.height);
+                      console.log("\uD83D\uDCD0 \u7B2C".concat(page + 1, "\u9875\u6570\u636E\u884C\uFF1A\u7B2C").concat(startRow + 1, "-").concat(endRow, "\u884C\uFF08").concat(rowsThisPage, "\u884C\uFF09"));
+                      headerRowHeightCanvas = headerRowCount / totalRows * tableCanvas.height;
+                      dataRowHeightCanvas = tableCanvas.height / totalRows;
+                      startRowHeightCanvas = headerRowHeightCanvas + startRow * dataRowHeightCanvas;
+                      endRowHeightCanvas = headerRowHeightCanvas + endRow * dataRowHeightCanvas;
+                      // 更精确的裁剪位置计算
+                      if (startRow === 0) {
+                        // 如果是第一批数据行，从表头结束位置开始，但要包含第一行的完整上边框
+                        sourceY = Math.floor(headerRowHeightCanvas - 1); // 向前包含1px确保边框完整
+                      } else {
+                        // 非第一批数据行，精确从行开始位置裁剪
+                        sourceY = Math.floor(startRowHeightCanvas);
+                      }
+                      endY = Math.floor(endRowHeightCanvas);
+                      sourceHeight = Math.min(endY - sourceY, tableCanvas.height - sourceY);
                       tablePartHeight = sourceHeight / tableCanvas.height * tableHeight;
-                      console.log("\uD83D\uDCD0 \u7B2C".concat(page + 1, "\u9875\u7CBE\u786E\u88C1\u526A\uFF1A\u7B2C").concat(startRow + 1, "-").concat(endRow, "\u884C\uFF08").concat(rowsThisPage, "\u884C\uFF09\uFF0C\u6E90\u9AD8\u5EA6=").concat(Math.round(sourceHeight), "px\uFF0C\u76EE\u6807\u9AD8\u5EA6=").concat(Math.round(tablePartHeight), "mm\uFF0C\u8303\u56F4=").concat(Math.round(startPercent * 100), "%-").concat(Math.round(endPercent * 100), "%"));
+                      console.log("\uD83D\uDCD0 \u7B2C".concat(page + 1, "\u9875\u6570\u636E\u884C\u88C1\u526A\uFF1A\u7B2C").concat(startRow + 1, "-").concat(endRow, "\u884C\uFF0CCanvas\u8303\u56F4=").concat(Math.round(sourceY), "-").concat(Math.round(sourceY + sourceHeight), "px\uFF0CPDF\u9AD8\u5EA6=").concat(Math.round(tablePartHeight), "mm"));
                     }
                   } else {
                     // 单页模式：使用原有逻辑
@@ -36361,10 +36547,15 @@ this.DDR = (function () {
                     tablePartHeight = sourceHeight / tableCanvas.height * tableHeight;
                     console.log("\uD83D\uDCD0 \u5355\u9875\u6A21\u5F0F\uFF1A\u6E90\u9AD8\u5EA6=".concat(Math.round(sourceHeight), "px\uFF0C\u76EE\u6807\u9AD8\u5EA6=").concat(Math.round(tablePartHeight), "mm"));
                   }
-                  currentPageNumberReserve = 15;
-                  maxAllowedHeight = pageHeight - yOffset - margins.bottom - currentPageNumberReserve;
+                  maxAllowedHeight = pageHeight - yOffset - margins.bottom - pageNumberReserve;
                   if (tablePartHeight > maxAllowedHeight) {
-                    console.warn("\u26A0\uFE0F \u7B2C".concat(page + 1, "\u9875\u5185\u5BB9\u9AD8\u5EA6").concat(Math.round(tablePartHeight), "mm\u8D85\u51FA\u53EF\u7528\u7A7A\u95F4").concat(Math.round(maxAllowedHeight), "mm\uFF0C\u53EF\u80FD\u9700\u8981\u8C03\u6574\u5206\u9875\u7B97\u6CD5"));
+                    console.warn("\u26A0\uFE0F \u7B2C".concat(page + 1, "\u9875\u5185\u5BB9\u9AD8\u5EA6").concat(Math.round(tablePartHeight), "mm\u8D85\u51FA\u53EF\u7528\u7A7A\u95F4").concat(Math.round(maxAllowedHeight), "mm"));
+                    overflow = tablePartHeight - maxAllowedHeight;
+                    if (overflow <= 8) {
+                      // 如果超出不超过8mm，可以压缩页码空间
+                      console.log("\uD83D\uDCD0 \u52A8\u6001\u8C03\u6574\uFF1A\u538B\u7F29\u9875\u7801\u9884\u7559\u7A7A\u95F4".concat(Math.round(overflow), "mm"));
+                      // 继续使用原始高度，页码位置会自动调整
+                    }
                   }
                   try {
                     pageTableCanvas = document.createElement('canvas');
@@ -36372,8 +36563,22 @@ this.DDR = (function () {
                     pageTableCanvas.height = sourceHeight;
                     pageTableCtx = pageTableCanvas.getContext('2d');
                     if (pageTableCtx) {
+                      // 设置白色背景
+                      pageTableCtx.fillStyle = '#ffffff';
+                      pageTableCtx.fillRect(0, 0, pageTableCanvas.width, pageTableCanvas.height);
                       // 将表格对应部分裁剪到新canvas
                       pageTableCtx.drawImage(tableCanvas, 0, sourceY, tableCanvas.width, sourceHeight, 0, 0, pageTableCanvas.width, pageTableCanvas.height);
+                      // 如果是非首页且没有表头，需要在顶部添加边框线
+                      if (page > 0 && (!repeatTableHeader || headerRowCount === 0)) {
+                        // 在数据行顶部绘制边框线，补充被裁剪掉的上边框
+                        pageTableCtx.strokeStyle = '#ddd';
+                        pageTableCtx.lineWidth = 1;
+                        pageTableCtx.beginPath();
+                        pageTableCtx.moveTo(0, 0.5);
+                        pageTableCtx.lineTo(pageTableCanvas.width, 0.5);
+                        pageTableCtx.stroke();
+                        console.log("\uD83D\uDCC4 \u7B2C".concat(page + 1, "\u9875\u6DFB\u52A0\u9876\u90E8\u8FB9\u6846\u7EBF\uFF08\u65E0\u8868\u5934\u6A21\u5F0F\uFF09"));
+                      }
                       pageTableImgData = pageTableCanvas.toDataURL('image/jpeg', quality);
                       // 添加裁剪后的表格部分
                       pdf.addImage(pageTableImgData, 'JPEG', margins.left, yOffset, contentWidth, tablePartHeight);
@@ -36388,22 +36593,25 @@ this.DDR = (function () {
                     try {
                       pdf.setFontSize(10);
                       pdf.setTextColor(80, 80, 80);
-                      pageNumberY = pageHeight - margins.bottom + 3;
+                      contentBottom = yOffset;
+                      minPageNumberY = contentBottom + 5;
+                      maxPageNumberY = pageHeight - margins.bottom + 3;
+                      pageNumberY = Math.min(maxPageNumberY, Math.max(minPageNumberY, pageHeight - 8));
                       pdf.text("Page ".concat(page + 1, " / ").concat(pagesNeeded), pageWidth / 2, pageNumberY, {
                         align: 'center'
                       });
-                      console.log("\u7B2C".concat(page + 1, "\u9875\u6DFB\u52A0\u9875\u7801\uFF0C\u4F4D\u7F6E\uFF1AY=").concat(Math.round(pageNumberY), "mm"));
+                      console.log("\u7B2C".concat(page + 1, "\u9875\u6DFB\u52A0\u9875\u7801\uFF0C\u5185\u5BB9\u5E95\u90E8\uFF1A").concat(Math.round(contentBottom), "mm\uFF0C\u9875\u7801\u4F4D\u7F6E\uFF1AY=").concat(Math.round(pageNumberY), "mm"));
                     } catch (e) {
                       console.warn('页码渲染失败:', e);
                     }
                   }
                   // 添加表尾（只在最后一页显示）
                   if (footerImgData && page === pagesNeeded - 1) {
-                    minFooterY = yOffset + dataFooterGap;
-                    maxFooterY = pageHeight - margins.bottom - currentPageNumberReserve - footerHeight;
+                    minFooterY = yOffset + contentGap;
+                    maxFooterY = pageHeight - margins.bottom - pageNumberReserve - footerHeight;
                     footerY = Math.max(minFooterY, maxFooterY);
                     // 如果当前页没有足够空间显示表尾，则创建新页
-                    if (footerY + footerHeight > pageHeight - margins.bottom - currentPageNumberReserve) {
+                    if (footerY + footerHeight > pageHeight - margins.bottom - pageNumberReserve) {
                       console.log("\uD83D\uDCC4 \u8868\u5C3E\u9700\u8981\u65B0\u9875\u663E\u793A\uFF0C\u5F53\u524D\u9875\u5269\u4F59\u7A7A\u95F4\u4E0D\u8DB3");
                       pdf.addPage();
                       // 在新页添加表尾
@@ -36419,7 +36627,7 @@ this.DDR = (function () {
                         });
                       }
                       // 在新页添加水印
-                      if (watermark) {
+                      if (finalWatermark) {
                         try {
                           watermarkCanvas = document.createElement('canvas');
                           watermarkCanvas.width = 400;
@@ -36432,7 +36640,7 @@ this.DDR = (function () {
                             ctx.textBaseline = 'middle';
                             ctx.translate(200, 50);
                             ctx.rotate(45 * Math.PI / 180);
-                            ctx.fillText(watermark, 0, 0);
+                            ctx.fillText(finalWatermark, 0, 0);
                             watermarkImgData = watermarkCanvas.toDataURL('image/png');
                             pdf.addImage(watermarkImgData, 'PNG', pageWidth / 2 - 50, pageHeight / 2 - 12.5, 100, 25, undefined, 'NONE');
                           }
@@ -36446,67 +36654,83 @@ this.DDR = (function () {
                       pdf.addImage(footerImgData, 'JPEG', margins.left, footerY, contentWidth, footerHeight);
                     }
                   }
-                  // 在每页添加水印
-                  if (watermark) {
+                  // 在每页添加水印 - 改进版：全页面平铺水印
+                  if (finalWatermark) {
                     try {
-                      // 设置水印样式
-                      pdf.setTextColor(200, 200, 200);
-                      pdf.setFontSize(40);
-                      watermarkX = pageWidth / 2;
-                      watermarkY = pageHeight / 2;
-                      // 处理中文水印问题 - 使用图像方式
-                      try {
-                        watermarkCanvas = document.createElement('canvas');
-                        watermarkCanvas.width = 400;
-                        watermarkCanvas.height = 100;
-                        ctx = watermarkCanvas.getContext('2d');
-                        if (ctx) {
-                          // 设置字体和样式
-                          ctx.font = '40px Arial, sans-serif';
-                          ctx.fillStyle = 'rgba(200, 200, 200, 0.3)';
-                          ctx.textAlign = 'center';
-                          ctx.textBaseline = 'middle';
-                          // 旋转画布
-                          ctx.translate(200, 50);
+                      console.log("\u7B2C".concat(page + 1, "\u9875\u5F00\u59CB\u6DFB\u52A0\u5168\u9875\u9762\u6C34\u5370: \"").concat(finalWatermark, "\""));
+                      watermarkCanvas = document.createElement('canvas');
+                      scale = 2;
+                      watermarkCanvas.width = pageWidth * scale * 4; // 转换为像素并放大
+                      watermarkCanvas.height = pageHeight * scale * 4;
+                      ctx = watermarkCanvas.getContext('2d');
+                      if (!ctx) {
+                        throw new Error('无法创建canvas上下文');
+                      }
+                      // 设置透明背景
+                      ctx.clearRect(0, 0, watermarkCanvas.width, watermarkCanvas.height);
+                      textLength = finalWatermark.length;
+                      fontSize = Math.max(24, Math.min(48, 600 / textLength));
+                      ctx.font = "".concat(fontSize, "px Arial, sans-serif");
+                      ctx.fillStyle = 'rgba(180, 180, 180, 0.15)'; // 更淡的水印
+                      ctx.textAlign = 'center';
+                      ctx.textBaseline = 'middle';
+                      textMetrics = ctx.measureText(finalWatermark);
+                      textWidth = textMetrics.width;
+                      textHeight = fontSize;
+                      spacingX = textWidth * 1.8;
+                      spacingY = textHeight * 4.5;
+                      cols = Math.ceil(watermarkCanvas.width / spacingX) + 2;
+                      rows_1 = Math.ceil(watermarkCanvas.height / spacingY) + 2;
+                      console.log("\u6C34\u5370\u53C2\u6570: \u5B57\u4F53".concat(fontSize, "px, \u6587\u5B57\u5BBD\u5EA6").concat(Math.round(textWidth), "px, \u95F4\u8DDD").concat(Math.round(spacingX), "x").concat(Math.round(spacingY), "px, \u7F51\u683C").concat(cols, "x").concat(rows_1));
+                      // 平铺绘制水印
+                      for (row = 0; row < rows_1; row++) {
+                        for (col = 0; col < cols; col++) {
+                          ctx.save();
+                          x = col * spacingX - spacingX / 2;
+                          y = row * spacingY - spacingY / 2;
+                          // 移动到水印位置
+                          ctx.translate(x, y);
+                          // 旋转45度
                           ctx.rotate(45 * Math.PI / 180);
                           // 绘制水印文字
-                          ctx.fillText(watermark, 0, 0);
-                          watermarkImgData = watermarkCanvas.toDataURL('image/png');
-                          // 添加水印图像到PDF
-                          pdf.addImage(watermarkImgData, 'PNG', watermarkX - 50,
-                          // 调整位置
-                          watermarkY - 12.5, 100,
-                          // 宽度
-                          25,
-                          // 高度
-                          undefined, 'NONE');
-                          console.log("\u7B2C".concat(page + 1, "\u9875\u6DFB\u52A0\u6C34\u5370\u56FE\u50CF: \"").concat(watermark, "\""));
-                        } else {
-                          throw new Error('无法创建canvas上下文');
-                        }
-                      } catch (canvasError) {
-                        console.warn('Canvas水印失败，使用文字水印:', canvasError);
-                        // 降级到文字水印
-                        try {
-                          pdf.text('CONFIDENTIAL', watermarkX, watermarkY, {
-                            align: 'center',
-                            baseline: 'middle',
-                            angle: 45
-                          });
-                          console.log("\u7B2C".concat(page + 1, "\u9875\u6DFB\u52A0\u82F1\u6587\u6C34\u5370: \"CONFIDENTIAL\""));
-                        } catch (textError) {
-                          console.warn('文字水印也失败:', textError);
+                          ctx.fillText(finalWatermark, 0, 0);
+                          ctx.restore();
                         }
                       }
+                      watermarkImgData = watermarkCanvas.toDataURL('image/png');
+                      // 添加水印图像到PDF（覆盖整个页面）
+                      pdf.addImage(watermarkImgData, 'PNG', 0,
+                      // 从页面左上角开始
+                      0, pageWidth,
+                      // 覆盖整个页面宽度
+                      pageHeight,
+                      // 覆盖整个页面高度
+                      undefined, 'NONE');
+                      console.log("\u7B2C".concat(page + 1, "\u9875\u6210\u529F\u6DFB\u52A0\u5168\u9875\u9762\u5E73\u94FA\u6C34\u5370"));
                     } catch (watermarkError) {
-                      console.warn("\u7B2C".concat(page + 1, "\u9875\u6DFB\u52A0\u6C34\u5370\u5931\u8D25:"), watermarkError);
+                      console.warn("\u7B2C".concat(page + 1, "\u9875\u6DFB\u52A0\u6C34\u5370\u5931\u8D25\uFF0C\u5C1D\u8BD5\u7B80\u5316\u6C34\u5370:"), watermarkError);
+                      // 降级方案：使用PDF原生文字水印
+                      try {
+                        pdf.setTextColor(200, 200, 200);
+                        pdf.setFontSize(30);
+                        centerX = pageWidth / 2;
+                        centerY = pageHeight / 2;
+                        pdf.text(finalWatermark, centerX, centerY, {
+                          align: 'center',
+                          baseline: 'middle',
+                          angle: 45
+                        });
+                        console.log("\u7B2C".concat(page + 1, "\u9875\u6DFB\u52A0\u7B80\u5316\u6C34\u5370: \"").concat(finalWatermark, "\""));
+                      } catch (fallbackError) {
+                        console.warn("\u7B2C".concat(page + 1, "\u9875\u7B80\u5316\u6C34\u5370\u4E5F\u5931\u8D25:"), fallbackError);
+                      }
                     }
                   }
                   // 注意：新页的添加已经在循环开始时处理了，这里不需要重复添加
                 }
                 return [3 /*break*/, 13];
               case 11:
-                e_3 = _j.sent();
+                e_3 = _l.sent();
                 console.warn('处理表格时出错:', e_3);
                 return [4 /*yield*/, html2canvas(tempContainer, {
                   scale: 1.5,
@@ -36516,7 +36740,7 @@ this.DDR = (function () {
                   backgroundColor: '#FFFFFF'
                 })];
               case 12:
-                canvas = _j.sent();
+                canvas = _l.sent();
                 imgData = canvas.toDataURL('image/jpeg', quality);
                 canvasAspectRatio = canvas.width / canvas.height;
                 pageAspectRatio = contentWidth / contentHeight;
@@ -36559,7 +36783,7 @@ this.DDR = (function () {
                 pdf.save("".concat(fileName, ".pdf"));
                 return [2 /*return*/, Promise.resolve()];
               case 14:
-                error_1 = _j.sent();
+                error_1 = _l.sent();
                 console.error('PDF导出失败:', error_1);
                 return [2 /*return*/, Promise.reject(error_1)];
               case 15:
@@ -36567,6 +36791,313 @@ this.DDR = (function () {
             }
           });
         });
+      };
+      /**
+       * 打印功能 - 重用PDF绘制逻辑
+       * @param element 要打印的DOM元素
+       * @param config 报表配置
+       * @param options 打印选项
+       */
+      Exporter.toPrint = function (element, config, options) {
+        var _a, _b;
+        if (options === void 0) {
+          options = {};
+        }
+        return __awaiter$1(this, void 0, void 0, function () {
+          var watermark, _c, pdfOptions, configPdfSettings, mergedPdfOptions, finalWatermark, orientation_2, pageSize, printContainer_1, printStyle_1, originalElements_1, error_2;
+          return __generator$1(this, function (_d) {
+            switch (_d.label) {
+              case 0:
+                _d.trys.push([0, 3,, 4]);
+                console.log('开始打印，重用PDF绘制逻辑');
+                watermark = options.watermark, _c = options.pdf, pdfOptions = _c === void 0 ? {} : _c;
+                configPdfSettings = ((_a = config === null || config === void 0 ? void 0 : config.features) === null || _a === void 0 ? void 0 : _a.pdfConfig) || {};
+                mergedPdfOptions = __assign$1(__assign$1({}, configPdfSettings), pdfOptions);
+                finalWatermark = watermark !== undefined ? watermark : ((_b = config === null || config === void 0 ? void 0 : config.features) === null || _b === void 0 ? void 0 : _b.watermark) || '';
+                orientation_2 = mergedPdfOptions.orientation || 'portrait';
+                pageSize = mergedPdfOptions.pageSize || 'A4';
+                console.log("\u6253\u5370\u8BBE\u7F6E - \u9875\u9762\u5927\u5C0F: ".concat(pageSize, ", \u65B9\u5411: ").concat(orientation_2));
+                return [4 /*yield*/, this._createPrintContainer(element, config, mergedPdfOptions, finalWatermark)];
+              case 1:
+                printContainer_1 = _d.sent();
+                printStyle_1 = this._createPrintStyle(orientation_2, pageSize);
+                // 添加样式到页面
+                document.head.appendChild(printStyle_1);
+                // 将打印容器添加到页面（隐藏）
+                printContainer_1.style.position = 'fixed';
+                printContainer_1.style.left = '-9999px';
+                printContainer_1.style.top = '0';
+                printContainer_1.style.zIndex = '9999';
+                document.body.appendChild(printContainer_1);
+                // 等待内容渲染完成
+                return [4 /*yield*/, new Promise(function (resolve) {
+                  return setTimeout(resolve, 100);
+                })];
+              case 2:
+                // 等待内容渲染完成
+                _d.sent();
+                // 显示打印容器并隐藏其他内容
+                printContainer_1.style.left = '0';
+                printContainer_1.style.position = 'absolute';
+                originalElements_1 = document.querySelectorAll('body > *:not(.ddr-print-container)');
+                originalElements_1.forEach(function (el) {
+                  el.style.display = 'none';
+                });
+                // 执行打印
+                window.print();
+                // 清理：恢复原始内容并移除打印容器和水印
+                setTimeout(function () {
+                  originalElements_1.forEach(function (el) {
+                    el.style.display = '';
+                  });
+                  document.body.removeChild(printContainer_1);
+                  document.head.removeChild(printStyle_1);
+                  // 清理打印水印
+                  var printWatermarks = document.querySelectorAll('[data-ddr-print-watermark="true"]');
+                  printWatermarks.forEach(function (wm) {
+                    return wm.remove();
+                  });
+                }, 100);
+                console.log('打印完成');
+                return [2 /*return*/, Promise.resolve()];
+              case 3:
+                error_2 = _d.sent();
+                console.error('打印失败:', error_2);
+                return [2 /*return*/, Promise.reject(error_2)];
+              case 4:
+                return [2 /*return*/];
+            }
+          });
+        });
+      };
+      /**
+       * 创建打印专用容器
+       */
+      Exporter._createPrintContainer = function (element, config, pdfOptions, watermark) {
+        return __awaiter$1(this, void 0, void 0, function () {
+          var printContainer, existingWatermarks, headerFooterElements, headerElement, footerElement;
+          return __generator$1(this, function (_a) {
+            switch (_a.label) {
+              case 0:
+                printContainer = element.cloneNode(true);
+                printContainer.className = 'ddr-print-container';
+                // 设置打印容器样式
+                printContainer.style.width = '100%';
+                printContainer.style.height = 'auto';
+                printContainer.style.overflow = 'visible';
+                printContainer.style.backgroundColor = '#ffffff';
+                printContainer.style.color = '#000000';
+                existingWatermarks = printContainer.querySelectorAll('.ddr-watermark, .ddr-watermark-content');
+                existingWatermarks.forEach(function (wm) {
+                  return wm.remove();
+                });
+                headerFooterElements = printContainer.querySelectorAll('.ddr-report-header, .ddr-report-footer');
+                headerFooterElements.forEach(function (element) {
+                  // 移除背景水印样式
+                  var el = element;
+                  el.style.backgroundImage = 'none';
+                  el.style.background = 'none';
+                  // 移除内部的水印元素
+                  var innerWatermarks = el.querySelectorAll('[class*="watermark"]');
+                  innerWatermarks.forEach(function (wm) {
+                    return wm.remove();
+                  });
+                });
+                // 重用PDF的列宽重制逻辑
+                return [4 /*yield*/, this._applyPrintTableLayout(printContainer, config, pdfOptions)];
+              case 1:
+                // 重用PDF的列宽重制逻辑
+                _a.sent();
+                headerElement = printContainer.querySelector('.ddr-report-header');
+                if (headerElement) {
+                  headerElement.style.pageBreakInside = 'avoid';
+                  headerElement.style.marginBottom = '20px';
+                }
+                footerElement = printContainer.querySelector('.ddr-report-footer');
+                if (footerElement) {
+                  footerElement.style.pageBreakInside = 'avoid';
+                  footerElement.style.marginTop = '20px';
+                }
+                // 添加统一的全页面水印
+                if (watermark) {
+                  this._addPrintWatermark(printContainer, watermark);
+                }
+                return [2 /*return*/, printContainer];
+            }
+          });
+        });
+      };
+      /**
+       * 应用打印表格布局 - 重用PDF的列宽逻辑
+       */
+      Exporter._applyPrintTableLayout = function (container, config, pdfOptions) {
+        return __awaiter$1(this, void 0, void 0, function () {
+          var tableContainer, tableElement, orientation, pageSize, pageWidthMm, contentWidthMm, contentWidthPx, columns, visibleColumns_1, totalConfigWidth_1, colElements_1, allRows_1, cells, headerCells;
+          return __generator$1(this, function (_a) {
+            tableContainer = container.querySelector('.ddr-table-container');
+            if (!tableContainer) return [2 /*return*/];
+            tableContainer.style.maxHeight = 'none';
+            tableContainer.style.height = 'auto';
+            tableContainer.style.overflow = 'visible';
+            tableElement = tableContainer.querySelector('table');
+            if (!tableElement) return [2 /*return*/];
+            orientation = pdfOptions.orientation || 'portrait';
+            pageSize = pdfOptions.pageSize || 'A4';
+            console.log("\uD83D\uDDA8\uFE0F \u5E94\u7528\u6253\u5370\u8868\u683C\u5E03\u5C40\uFF1A".concat(pageSize, " ").concat(orientation));
+            pageWidthMm = orientation === 'landscape' ? pageSize === 'A4' ? 297 : 279 :
+            // A4横版297mm, Letter横版279mm
+            pageSize === 'A4' ? 210 : 216;
+            contentWidthMm = pageWidthMm - 30;
+            contentWidthPx = Math.floor(contentWidthMm * 3.78);
+            console.log("\uD83D\uDDA8\uFE0F \u6253\u5370\u9875\u9762\u5BBD\u5EA6\uFF1A".concat(pageWidthMm, "mm\uFF0C\u5185\u5BB9\u5BBD\u5EA6\uFF1A").concat(contentWidthMm, "mm (").concat(contentWidthPx, "px)"));
+            // 设置表格宽度和布局
+            tableElement.style.width = '100%';
+            tableElement.style.maxWidth = "".concat(contentWidthPx, "px");
+            tableElement.style.tableLayout = 'fixed';
+            tableElement.style.borderCollapse = 'collapse';
+            // 重新计算列宽（类似PDF逻辑）
+            if (config === null || config === void 0 ? void 0 : config.columns) {
+              columns = this._getFlatColumns(config.columns);
+              visibleColumns_1 = columns.filter(function (col) {
+                return col.visible !== false;
+              });
+              totalConfigWidth_1 = 0;
+              visibleColumns_1.forEach(function (col) {
+                if (col.width) {
+                  totalConfigWidth_1 += typeof col.width === 'number' ? col.width : parseInt(col.width);
+                }
+              });
+              console.log("\uD83D\uDDA8\uFE0F \u5217\u914D\u7F6E\u603B\u5BBD\u5EA6\uFF1A".concat(totalConfigWidth_1, "px\uFF0C\u76EE\u6807\u5BBD\u5EA6\uFF1A").concat(contentWidthPx, "px"));
+              colElements_1 = tableElement.querySelectorAll('col');
+              allRows_1 = tableElement.querySelectorAll('tr');
+              visibleColumns_1.forEach(function (col, index) {
+                var columnWidth;
+                if (col.width) {
+                  var configWidth = typeof col.width === 'number' ? col.width : parseInt(col.width);
+                  // 按比例缩放到打印页面宽度
+                  columnWidth = Math.floor(configWidth / totalConfigWidth_1 * contentWidthPx);
+                } else {
+                  // 平均分配剩余宽度
+                  columnWidth = Math.floor(contentWidthPx / visibleColumns_1.length);
+                }
+                console.log("\uD83D\uDDA8\uFE0F \u5217 \"".concat(col.key, "\" \u5BBD\u5EA6\uFF1A").concat(columnWidth, "px"));
+                // 设置col元素宽度
+                if (colElements_1[index]) {
+                  colElements_1[index].style.width = "".concat(columnWidth, "px");
+                }
+                // 设置所有行的对应单元格宽度
+                allRows_1.forEach(function (row) {
+                  var cells = row.querySelectorAll('td, th');
+                  if (cells[index]) {
+                    var cell = cells[index];
+                    cell.style.width = "".concat(columnWidth, "px");
+                    cell.style.maxWidth = "".concat(columnWidth, "px");
+                    cell.style.minWidth = "".concat(columnWidth, "px");
+                    cell.style.boxSizing = 'border-box';
+                  }
+                });
+              });
+            }
+            cells = tableElement.querySelectorAll('td, th');
+            cells.forEach(function (cell) {
+              var cellElement = cell;
+              cellElement.style.border = '1px solid #ddd';
+              cellElement.style.padding = '6px 8px';
+              cellElement.style.fontSize = '11px';
+              cellElement.style.lineHeight = '1.3';
+              cellElement.style.wordWrap = 'break-word';
+              cellElement.style.overflow = 'hidden';
+            });
+            headerCells = tableElement.querySelectorAll('th');
+            headerCells.forEach(function (cell) {
+              var cellElement = cell;
+              cellElement.style.backgroundColor = '#f5f5f5';
+              cellElement.style.fontWeight = 'bold';
+              cellElement.style.fontSize = '11px';
+            });
+            return [2 /*return*/];
+          });
+        });
+      };
+      /**
+       * 获取扁平化的列配置（重用PDF逻辑）
+       */
+      Exporter._getFlatColumns = function (columns) {
+        var flatColumns = [];
+        var flatten = function (cols) {
+          cols.forEach(function (col) {
+            if (col.children && col.children.length > 0) {
+              flatten(col.children);
+            } else {
+              flatColumns.push(col);
+            }
+          });
+        };
+        flatten(columns);
+        return flatColumns;
+      };
+      /**
+       * 创建打印样式
+       */
+      Exporter._createPrintStyle = function (orientation, pageSize) {
+        var style = document.createElement('style');
+        style.className = 'ddr-print-style';
+        // 根据页面方向和大小设置样式
+        var pageRule = orientation === 'landscape' ? 'landscape' : 'portrait';
+        var sizeRule = pageSize.toLowerCase();
+        style.textContent = "\n      @media print {\n        @page {\n          size: ".concat(sizeRule, " ").concat(pageRule, ";\n          margin: 15mm;\n        }\n\n        body {\n          margin: 0;\n          padding: 0;\n          font-family: Arial, sans-serif;\n          font-size: 12px;\n          line-height: 1.4;\n          color: #000;\n          background: #fff;\n        }\n\n        .ddr-print-container {\n          width: 100% !important;\n          height: auto !important;\n          overflow: visible !important;\n          position: relative !important;\n          left: 0 !important;\n          top: 0 !important;\n          margin: 0 !important;\n          padding: 0 !important;\n          box-shadow: none !important;\n          border: none !important;\n        }\n\n        .ddr-table-container {\n          overflow: visible !important;\n          height: auto !important;\n          max-height: none !important;\n        }\n\n        .ddr-table {\n          width: 100% !important;\n          border-collapse: collapse !important;\n          page-break-inside: auto !important;\n        }\n\n        .ddr-table-row {\n          page-break-inside: avoid !important;\n          page-break-after: auto !important;\n        }\n\n        .ddr-header, .ddr-report-header {\n          page-break-inside: avoid !important;\n          page-break-after: avoid !important;\n        }\n\n        .ddr-footer, .ddr-report-footer {\n          page-break-inside: avoid !important;\n          page-break-before: avoid !important;\n        }\n\n        .ddr-print-watermark {\n          position: fixed !important;\n          top: 0 !important;\n          left: 0 !important;\n          width: 100vw !important;\n          height: 100vh !important;\n          pointer-events: none !important;\n          z-index: 999 !important;\n          opacity: 0.15 !important;\n          overflow: hidden !important;\n        }\n\n        .ddr-print-watermark-text {\n          position: absolute !important;\n          font-size: 24px !important;\n          font-weight: bold !important;\n          color: #ccc !important;\n          transform: rotate(-45deg) !important;\n          white-space: nowrap !important;\n          user-select: none !important;\n        }\n\n        /* \u9690\u85CF\u4E0D\u9700\u8981\u6253\u5370\u7684\u5143\u7D20 */\n        .no-print {\n          display: none !important;\n        }\n      }\n    ");
+        return style;
+      };
+      /**
+       * 添加统一的全页面打印水印
+       */
+      Exporter._addPrintWatermark = function (container, watermark) {
+        console.log("\uD83D\uDDA8\uFE0F \u6DFB\u52A0\u7EDF\u4E00\u7684\u5168\u9875\u9762\u6253\u5370\u6C34\u5370: \"".concat(watermark, "\""));
+        // 创建水印容器，覆盖整个打印容器
+        var watermarkContainer = document.createElement('div');
+        watermarkContainer.className = 'ddr-print-watermark';
+        // 设置水印容器样式 - 覆盖整个容器
+        watermarkContainer.style.position = 'fixed'; // 使用fixed定位确保覆盖整个视口
+        watermarkContainer.style.top = '0';
+        watermarkContainer.style.left = '0';
+        watermarkContainer.style.width = '100vw';
+        watermarkContainer.style.height = '100vh';
+        watermarkContainer.style.pointerEvents = 'none';
+        watermarkContainer.style.zIndex = '999'; // 提高z-index确保显示在最上层
+        watermarkContainer.style.overflow = 'hidden';
+        watermarkContainer.style.opacity = '0.15'; // 设置透明度
+        // 计算水印布局 - 更密集的平铺
+        var rows = 8; // 增加行数
+        var cols = 6; // 增加列数
+        for (var row = 0; row < rows; row++) {
+          for (var col = 0; col < cols; col++) {
+            var watermarkText = document.createElement('div');
+            watermarkText.className = 'ddr-print-watermark-text';
+            watermarkText.textContent = watermark;
+            // 设置水印文字样式
+            watermarkText.style.position = 'absolute';
+            watermarkText.style.fontSize = '24px'; // 统一的字体大小
+            watermarkText.style.fontWeight = 'bold';
+            watermarkText.style.color = '#ccc'; // 调整颜色
+            watermarkText.style.opacity = '1'; // 不设置额外透明度，由容器控制
+            watermarkText.style.whiteSpace = 'nowrap';
+            watermarkText.style.userSelect = 'none';
+            watermarkText.style.pointerEvents = 'none';
+            // 计算位置 - 均匀分布
+            var x = (col + 0.5) * (100 / cols);
+            var y = (row + 0.5) * (100 / rows);
+            watermarkText.style.left = "".concat(x, "%");
+            watermarkText.style.top = "".concat(y, "%");
+            watermarkText.style.transform = 'translate(-50%, -50%) rotate(-45deg)';
+            watermarkText.style.transformOrigin = 'center';
+            watermarkContainer.appendChild(watermarkText);
+          }
+        }
+        // 将水印容器添加到body，确保在打印时覆盖整个页面
+        document.body.appendChild(watermarkContainer);
+        // 标记水印容器，以便后续清理
+        watermarkContainer.setAttribute('data-ddr-print-watermark', 'true');
+        console.log("\uD83D\uDDA8\uFE0F \u6C34\u5370\u6DFB\u52A0\u5B8C\u6210\uFF0C\u5171\u521B\u5EFA ".concat(rows * cols, " \u4E2A\u6C34\u5370\u5143\u7D20"));
       };
       return Exporter;
     }();

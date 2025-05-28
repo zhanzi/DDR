@@ -14,7 +14,8 @@ export interface DDRConfig {
 
   // 数据源
   dataSource: {
-    api: string;              // API地址
+    api?: string;             // API地址（可选）
+    data?: any[];             // 直接提供的数据数组（可选）
     method?: "GET" | "POST";  // 请求方法
     params?: Record<string, any>; // 固定参数
     headers?: Record<string, string>; // 自定义请求头
@@ -219,6 +220,7 @@ export interface ExportOptions {
     multiPage?: boolean;           // 是否支持多页
     quality?: number;              // 图像质量(0-1)
     relayout?: boolean;            // 是否重新排版(true)而不是缩放(false)
+    repeatTableHeader?: boolean;   // 是否在每页重复表格标题行
   };
 }
 
