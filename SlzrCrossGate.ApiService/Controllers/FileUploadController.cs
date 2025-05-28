@@ -48,7 +48,7 @@ namespace SlzrCrossGate.ApiService.Controllers
                 using (var stream = new FileStream(localFilePath, FileMode.Open, FileAccess.Read))
                 {
                     var fileName = Path.GetFileName(localFilePath);
-                    var formFile = new FormFile(stream, 0, stream.Length, null, fileName)
+                    var formFile = new FormFile(stream, 0, stream.Length, "file", fileName)
                     {
                         Headers = new HeaderDictionary(),
                         ContentType = "application/octet-stream"

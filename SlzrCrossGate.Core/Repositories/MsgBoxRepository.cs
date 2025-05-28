@@ -11,14 +11,21 @@ using SlzrCrossGate.Core.Service;
 
 namespace SlzrCrossGate.Core.Repositories
 {
-    public class MsgBoxRepository(TcpDbContext context) : Repository<MsgBox>(context)
+    public class MsgBoxRepository : Repository<MsgBox>
     {
+        private readonly TcpDbContext _tcpContext;
+
+        public MsgBoxRepository(TcpDbContext context) : base(context)
+        {
+            _tcpContext = context;
+        }
+
         //获取第一条未回复消息
         public async Task<MsgReadDto?> GetFirstUnRepliedMessageAsync(string terminalId, string merchantId)
         {
-            var query = from msgbox in _context.MsgBoxes
-                        join msgcontent in _context.MsgContents on msgbox.MsgContentID equals msgcontent.ID
-                        join msgtype in _context.MsgTypes on msgcontent.MsgTypeID equals msgtype.ID
+            var query = from msgbox in _tcpContext.MsgBoxes
+                        join msgcontent in _tcpContext.MsgContents on msgbox.MsgContentID equals msgcontent.ID
+                        join msgtype in _tcpContext.MsgTypes on msgcontent.MsgTypeID equals msgtype.ID
                         where msgbox.MerchantID == merchantId && msgbox.TerminalID == terminalId && msgbox.Status != MessageStatus.Replied
                         select new MsgReadDto
                         {
@@ -38,7 +45,7 @@ namespace SlzrCrossGate.Core.Repositories
             {
                 message.Status = MessageStatus.Read;
                 message.ReadTime = DateTime.Now;
-                await _context.SaveChangesAsync();
+                await _tcpContext.SaveChangesAsync();
             }
         }
 
@@ -48,7 +55,7 @@ namespace SlzrCrossGate.Core.Repositories
             var confirmDtoIds = msgConfirmDtos.Select(c => c.ID).ToArray();
             var messages = await FindAsync(m => confirmDtoIds.Contains(m.ID));
 
-            var confirmDtoDict = msgConfirmDtos.ToDictionary(c => c.ID); 
+            var confirmDtoDict = msgConfirmDtos.ToDictionary(c => c.ID);
             foreach (var message in messages)
             {
                 if (confirmDtoDict.TryGetValue(message.ID, out var confirmDto))
@@ -60,11 +67,11 @@ namespace SlzrCrossGate.Core.Repositories
                 }
             }
 
-            await _context.SaveChangesAsync();
+            await _tcpContext.SaveChangesAsync();
         }
 
         public List<KeyValuePair<string, int>> GetTerminalUnreadCount() {
-            var terminalMsgCount = context.MsgBoxes.Where(p => p.Status != MessageStatus.Replied).GroupBy(p => p.TerminalID)
+            var terminalMsgCount = _tcpContext.MsgBoxes.Where(p => p.Status != MessageStatus.Replied).GroupBy(p => p.TerminalID)
                 .Select(g => new KeyValuePair<string, int>(g.Key, g.Count()))
                 .ToList();
             return terminalMsgCount;

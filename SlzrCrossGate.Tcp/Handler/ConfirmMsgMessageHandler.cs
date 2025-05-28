@@ -45,10 +45,14 @@ namespace SlzrCrossGate.Tcp.Handler
                 });
             }
 
-            return null;
+            // 创建一个确认响应
+            var response = new Iso8583Message(_schema, Iso8583MessageType.MsgConfirmResponse);
+            response.Ok();
+            response.SetField(52, content);
+            return response;
         }
 
-        
+
 
         static List<MsgConfirmDto> ConvertToMsgConfirmDtos(string content)
         {

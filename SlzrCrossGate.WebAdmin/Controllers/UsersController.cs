@@ -50,10 +50,10 @@ namespace SlzrCrossGate.WebAdmin.Controllers
                 return Ok(new UserDto
                 {
                     Id = currentUser.Id,
-                    UserName = currentUser.UserName,
-                    Email = currentUser.Email,
-                    RealName = currentUser.RealName,
-                    MerchantId = currentUser.MerchantID,
+                    UserName = currentUser.UserName ?? "",
+                    Email = currentUser.Email ?? "",
+                    RealName = currentUser.RealName ?? "",
+                    MerchantId = currentUser.MerchantID ?? "",
                     Roles = roles.ToList(),
                     EmailConfirmed = currentUser.EmailConfirmed,
                     LockoutEnd = currentUser.LockoutEnd,
@@ -103,9 +103,9 @@ namespace SlzrCrossGate.WebAdmin.Controllers
                 if (!string.IsNullOrEmpty(search))
                 {
                     query = query.Where(u =>
-                        u.UserName.Contains(search) ||
-                        u.Email.Contains(search) ||
-                        u.RealName.Contains(search));
+                        (u.UserName != null && u.UserName.Contains(search)) ||
+                        (u.Email != null && u.Email.Contains(search)) ||
+                        (u.RealName != null && u.RealName.Contains(search)));
                 }
 
                 // 计算总数
@@ -125,10 +125,10 @@ namespace SlzrCrossGate.WebAdmin.Controllers
                     userDtos.Add(new UserDto
                     {
                         Id = user.Id,
-                        UserName = user.UserName,
-                        Email = user.Email,
-                        RealName = user.RealName,
-                        MerchantId = user.MerchantID,
+                        UserName = user.UserName ?? "",
+                        Email = user.Email ?? "",
+                        RealName = user.RealName ?? "",
+                        MerchantId = user.MerchantID ?? "",
                         Roles = roles.ToList(),
                         EmailConfirmed = user.EmailConfirmed,
                         LockoutEnd = user.LockoutEnd,
@@ -191,10 +191,10 @@ namespace SlzrCrossGate.WebAdmin.Controllers
                 return Ok(new UserDto
                 {
                     Id = user.Id,
-                    UserName = user.UserName,
-                    Email = user.Email,
-                    RealName = user.RealName,
-                    MerchantId = user.MerchantID,
+                    UserName = user.UserName ?? "",
+                    Email = user.Email ?? "",
+                    RealName = user.RealName ?? "",
+                    MerchantId = user.MerchantID ?? "",
                     Roles = roles.ToList(),
                     EmailConfirmed = user.EmailConfirmed,
                     LockoutEnd = user.LockoutEnd,

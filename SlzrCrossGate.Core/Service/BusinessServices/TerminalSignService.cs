@@ -64,7 +64,7 @@ namespace SlzrCrossGate.Core.Service.BusinessServices
         }
 
         public static Dictionary<string, VersionOptions> ConvertClientVersionToFileVersion(Dictionary<string, string> clientVersions) {
-            return clientVersions.Select(x => new KeyValuePair<string, VersionOptions>(x.Key, new VersionOptions { Current = x.Value, IsExpired = true })).ToDictionary(x => x.Key, x => x.Value);
+            return clientVersions.Select(x => new KeyValuePair<string, VersionOptions>(x.Key, new VersionOptions { Current = x.Value, Expected = "", ExpectedFileCrc = "", IsExpired = true })).ToDictionary(x => x.Key, x => x.Value);
         }
 
         /// <summary>
@@ -78,7 +78,7 @@ namespace SlzrCrossGate.Core.Service.BusinessServices
             if (terminal != null)
             {
                 //TODO：检查属性是否变更，检查版本是否有变更，检查版本是否需要更新
-                await _terminalManager.ProcessPropertyChange(terminal, signDto);
+                _terminalManager.ProcessPropertyChange(terminal, signDto);
                 await _terminalManager.ProcessFileVersionChange(terminal, signDto);
             }
         }

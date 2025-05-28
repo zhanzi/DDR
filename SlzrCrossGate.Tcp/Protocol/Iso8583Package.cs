@@ -349,7 +349,7 @@ namespace SlzrCrossGate.Tcp.Protocol
                 case Iso8583DataType.B:
                     throw new Exception("格式不符。");
                 default:
-                    return this.values[bitNum].ToString();
+                    return this.values[bitNum]?.ToString() ?? string.Empty;
             }
         }
         /// <summary>
@@ -703,7 +703,7 @@ namespace SlzrCrossGate.Tcp.Protocol
             int pos = 0;
             if (buf == null)
                 throw new ArgumentNullException("buf");
-            if ((haveMT && messageTypeIsBCD && buf.Length < 18) 
+            if ((haveMT && messageTypeIsBCD && buf.Length < 18)
                 || (haveMT && !messageTypeIsBCD && buf.Length < 204))
                 throw new ArgumentException("数据包长度不符合定义", "buf");
             if (haveMT)

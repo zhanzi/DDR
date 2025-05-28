@@ -10,13 +10,13 @@ namespace SlzrCrossGate.Core.Service.BusinessServices
     public class TerminalEventMessage
     {
         public TerminalEventMessage() { }
-        
-        public string MerchantID { get; set; }
 
-        public string TerminalID { get; set; }
+        public required string MerchantID { get; set; }
+
+        public required string TerminalID { get; set; }
         public DateTime EventTime { get; set; } = DateTime.Now;
 
-        public string EventName { get; private set; }
+        public string EventName { get; private set; } = string.Empty;
 
         TerminalEventType _eventType;
         public TerminalEventType EventType

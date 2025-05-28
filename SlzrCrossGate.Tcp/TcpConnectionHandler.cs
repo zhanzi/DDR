@@ -27,9 +27,9 @@ namespace SlzrCrossGate.Tcp
         private readonly ILogger<TcpConnectionHandler> _logger;
         private readonly IServiceProvider _serviceProvider;
         // 使用静态的 Lazy<T> 来存储 handler 类型映射
-        private static readonly Lazy<IDictionary<string, Type>> _messageHandlerTypes = 
+        private static readonly Lazy<IDictionary<string, Type>> _messageHandlerTypes =
         new Lazy<IDictionary<string, Type>>(() => LoadMessageHandlerTypes());
-        
+
         private readonly TerminalManager _terminalManager;
 
         //private static readonly ActivitySource _activitySource = new ActivitySource("SlzrCrossGate.Tcp");
@@ -200,7 +200,7 @@ namespace SlzrCrossGate.Tcp
 
                         //package.GetCurBuffer()
                         //TODO：登录指令需要使用登录密钥校验MAC (VER>="0300")
-                        //TODO：其他指令需要使用会话密钥校验MAC 
+                        //TODO：其他指令需要使用会话密钥校验MAC
 
                         return iso8583Message;
                     }
@@ -278,7 +278,7 @@ namespace SlzrCrossGate.Tcp
                 _logger.LogInformation("Message {MessageType} from {TerminalID} processed in {ElapsedMilliseconds}ms",
                     message.MessageType, context.TerminalID, processingTime);
 
-                _messageProcessedCounter.Add(1, 
+                _messageProcessedCounter.Add(1,
                     new KeyValuePair<string, object?>("MessageType", message.MessageType),
                     new KeyValuePair<string, object?>("TerminalID", context.TerminalID),
                     new KeyValuePair<string, object?>("MerchantID", context.MerchantID));
@@ -342,7 +342,7 @@ namespace SlzrCrossGate.Tcp
                 msgcount = _terminalManager.GetUnReadMessageCount(request.TerimalID);
             }
 
-            if (request.MessageType == Iso8583MessageType.MsgRequest) { 
+            if (request.MessageType == Iso8583MessageType.MsgRequest) {
                 if(response.GetField<string>(39) == "0010")
                 {
                     //未取得消息，清空消息
@@ -361,7 +361,7 @@ namespace SlzrCrossGate.Tcp
             }
             else
             {
-                _logger.LogWarning("Failed to send response {MessageType} to terminal {TerminalID}", 
+                _logger.LogWarning("Failed to send response {MessageType} to terminal {TerminalID}",
                     response.MessageType, context.TerminalID);
             }
         }
@@ -389,8 +389,8 @@ namespace SlzrCrossGate.Tcp
             return handlerTypes;
         }
 
-        
+
     }
 
-    
+
 }

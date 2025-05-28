@@ -212,7 +212,7 @@ namespace SlzrCrossGate.WebAdmin.Controllers
             // 保存文件
             var filePath=await _fileService.UploadFileAsync(model.File, username);
 
- 
+
             // 创建上传文件记录
             var uploadFile = new UploadFile
             {
@@ -341,6 +341,10 @@ namespace SlzrCrossGate.WebAdmin.Controllers
             }
 
             var fileBytes = await _fileService.GetFileContentAsync(uploadFile.FilePath);
+            if (fileBytes == null)
+            {
+                return NotFound("文件内容不存在");
+            }
 
             return File(fileBytes, "application/octet-stream", uploadFile.FileName);
         }

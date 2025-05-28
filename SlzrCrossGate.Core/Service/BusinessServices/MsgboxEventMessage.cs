@@ -15,8 +15,8 @@ namespace SlzrCrossGate.Core.Service.BusinessServices
         public MsgboxEventActionType ActionType { get; set; }
         public DateTime ActionTime { get; set; } = DateTime.Now;
         public int ID { get; set; }
-        public string MerchantID { get; set; }
-        public string TerminalID { get; set; }
+        public required string MerchantID { get; set; }
+        public required string TerminalID { get; set; }
         public int MesgContentID { get; set; }
     }
 

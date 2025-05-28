@@ -30,12 +30,50 @@ if (!Directory.Exists(keysDirectory))
     Directory.CreateDirectory(keysDirectory);
 }
 
-builder.Services.AddDataProtection()
+var dataProtectionBuilder = builder.Services.AddDataProtection()
     .PersistKeysToFileSystem(new DirectoryInfo(keysDirectory))
-    .SetApplicationName("SlzrCrossGate.WebAdmin")
-    // 添加XML加密器配置
-    .ProtectKeysWithDpapi();  // 在Windows环境下使用DPAPI加密
-    // 在Linux环境下可以使用X509证书加密: .ProtectKeysWithCertificate(certificateX509);
+    .SetApplicationName("SlzrCrossGate.WebAdmin");
+
+// 简化的数据保护配置
+// 在开发环境下，密钥以明文存储到文件系统即可
+// 在生产环境下，建议配置环境变量或使用云服务的密钥管理
+if (builder.Environment.IsDevelopment())
+{
+    // 开发环境：使用默认保护即可
+    var logger = LoggerFactory.Create(builder => builder.AddConsole()).CreateLogger("DataProtection");
+    logger.LogInformation("开发环境：数据保护密钥存储在 {KeysDirectory}", keysDirectory);
+}
+else
+{
+    // 生产环境：如果有配置证书则使用，否则使用默认方式并记录提醒
+    var keyEncryptionCertPath = builder.Configuration["DataProtection:CertificatePath"];
+    var keyEncryptionPassword = builder.Configuration["DataProtection:CertificatePassword"];
+
+    if (!string.IsNullOrEmpty(keyEncryptionCertPath) && File.Exists(keyEncryptionCertPath))
+    {
+        try
+        {
+            var certificate = new System.Security.Cryptography.X509Certificates.X509Certificate2(
+                keyEncryptionCertPath,
+                keyEncryptionPassword);
+            dataProtectionBuilder.ProtectKeysWithCertificate(certificate);
+
+            var logger = LoggerFactory.Create(builder => builder.AddConsole()).CreateLogger("DataProtection");
+            logger.LogInformation("生产环境：使用X509证书保护数据密钥");
+        }
+        catch (Exception ex)
+        {
+            var logger = LoggerFactory.Create(builder => builder.AddConsole()).CreateLogger("DataProtection");
+            logger.LogWarning(ex, "无法加载X509证书，使用默认保护方式");
+        }
+    }
+    else
+    {
+        var logger = LoggerFactory.Create(builder => builder.AddConsole()).CreateLogger("DataProtection");
+        logger.LogInformation("生产环境：使用默认数据保护方式，密钥存储在 {KeysDirectory}", keysDirectory);
+        logger.LogInformation("如需更高安全性，可配置 DataProtection:CertificatePath 使用证书加密");
+    }
+}
 
 
 // 在 ConfigureServices 中添加

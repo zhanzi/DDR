@@ -133,8 +133,8 @@ namespace SlzrCrossGate.WebAdmin.Controllers
                     {
                         ActiveStatus = t.Status.ActiveStatus,
                         LastActiveTime = t.Status.LastActiveTime,
-                        ConnectionProtocol = t.Status.ConnectionProtocol,
-                        EndPoint = t.Status.EndPoint,
+                        ConnectionProtocol = t.Status.ConnectionProtocol ?? "",
+                        EndPoint = t.Status.EndPoint ?? "",
                         FileVersionMetadata = t.Status.FileVersionMetadata,
                         PropertyMetadata = t.Status.PropertyMetadata
                     } : null,
@@ -177,8 +177,8 @@ namespace SlzrCrossGate.WebAdmin.Controllers
                 {
                     ActiveStatus = t.Status.ActiveStatus,
                     LastActiveTime = t.Status.LastActiveTime,
-                    ConnectionProtocol = t.Status.ConnectionProtocol,
-                    EndPoint = t.Status.EndPoint,
+                    ConnectionProtocol = t.Status.ConnectionProtocol ?? "",
+                    EndPoint = t.Status.EndPoint ?? "",
                     FileVersionMetadata = t.Status.FileVersionMetadata,
                     PropertyMetadata = t.Status.PropertyMetadata
                 } : null,
@@ -236,8 +236,8 @@ namespace SlzrCrossGate.WebAdmin.Controllers
                 {
                     ActiveStatus = terminal.Status.ActiveStatus,
                     LastActiveTime = terminal.Status.LastActiveTime,
-                    ConnectionProtocol = terminal.Status.ConnectionProtocol,
-                    EndPoint = terminal.Status.EndPoint,
+                    ConnectionProtocol = terminal.Status.ConnectionProtocol ?? "",
+                    EndPoint = terminal.Status.EndPoint ?? "",
                     FileVersionMetadata = terminal.Status.FileVersionMetadata,
                     PropertyMetadata = terminal.Status.PropertyMetadata
                 } : null,
@@ -485,7 +485,7 @@ namespace SlzrCrossGate.WebAdmin.Controllers
                 return Forbid();
             }
 
-            
+
             // 创建文件发布记录
             var filePublish = new FilePublish
             {

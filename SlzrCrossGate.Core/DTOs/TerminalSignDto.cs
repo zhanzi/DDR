@@ -13,15 +13,15 @@ namespace SlzrCrossGate.Core.DTOs
     public class TerminalSignDto
     {
 
-        public string ID { get; set; }
-        public string MerchantID { get; set; }
-        public string MachineID { get; set; }
+        public required string ID { get; set; }
+        public required string MerchantID { get; set; }
+        public required string MachineID { get; set; }
 
-        public string DeviceNO { get; set; }
+        public required string DeviceNO { get; set; }
 
-        public string LineNO { get; set; }
+        public required string LineNO { get; set; }
 
-        public string TerminalType { get; set; }
+        public required string TerminalType { get; set; }
 
         public string ClientFileVersions { get; set; } = "";
 

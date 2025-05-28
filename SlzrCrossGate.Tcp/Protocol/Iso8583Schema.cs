@@ -4,7 +4,7 @@ using System.Xml.Serialization;
 namespace SlzrCrossGate.Tcp.Protocol
 {
     /// <summary>
-    /// ±íÊ¾ ISO 8583 °üµÄËùÓÐÊý¾ÝÓò¼¯ºÏ
+    /// ï¿½ï¿½Ê¾ ISO 8583 ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ò¼¯ºï¿½
     /// </summary>
     public class Iso8583Schema
     {
@@ -12,7 +12,7 @@ namespace SlzrCrossGate.Tcp.Protocol
         internal SortedList<int, Iso8583Field> fields;
 
         /// <summary>
-        /// Ä¬ÈÏ¹¹Ôìº¯Êý
+        /// Ä¬ï¿½Ï¹ï¿½ï¿½ìº¯ï¿½ï¿½
         /// </summary>
         public Iso8583Schema()
         {
@@ -20,7 +20,7 @@ namespace SlzrCrossGate.Tcp.Protocol
             this.fields = new SortedList<int, Iso8583Field>(Bitmap.FieldCount);
         }
         /// <summary>
-        /// ´ÓÖ¸¶¨ÎÄ¼þ¼ÓÔØ²¢¹¹ÔìÊµÀý
+        /// ï¿½ï¿½Ö¸ï¿½ï¿½ï¿½Ä¼ï¿½ï¿½ï¿½ï¿½Ø²ï¿½ï¿½ï¿½ï¿½ï¿½Êµï¿½ï¿½
         /// </summary>
         /// <param name="fileName"></param>
         public Iso8583Schema(string fileName)
@@ -30,7 +30,7 @@ namespace SlzrCrossGate.Tcp.Protocol
         }
 
         /// <summary>
-        /// »ñÈ¡Ò»¸öÖµ£¬Ö¸Ê¾°ü¶¨ÒåÊÇ·ñÊÇÈ«128×Ö¶ÎµÄ¡£
+        /// ï¿½ï¿½È¡Ò»ï¿½ï¿½Öµï¿½ï¿½Ö¸Ê¾ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ç·ï¿½ï¿½ï¿½È«128ï¿½Ö¶ÎµÄ¡ï¿½
         /// </summary>
         public bool IsFullBitmap
         {
@@ -41,22 +41,22 @@ namespace SlzrCrossGate.Tcp.Protocol
         }
 
         /// <summary>
-        /// Ôö¼ÓÒ»¸öÊý¾ÝÓò
+        /// ï¿½ï¿½ï¿½ï¿½Ò»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
         /// </summary>
-        /// <param name="field">Êý¾ÝÓòÐÅÏ¢</param>
+        /// <param name="field">ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ï¢</param>
         public void AddField(Iso8583Field field)
         {
             if (field == null)
                 throw new ArgumentNullException("field");
             if (this.fields.ContainsKey(field.BitNum))
-                throw new Exception("Êý¾ÝÓò×ÖÒåÒÑ¾­´æÔÚ¡£");
+                throw new Exception("ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ñ¾ï¿½ï¿½ï¿½ï¿½Ú¡ï¿½");
             if (field.BitNum < 1 || field.BitNum > Bitmap.FieldCount)
-                throw new Exception("Î»ÓòÖµ²»ºÏ·¨¡£");
+                throw new Exception("Î»ï¿½ï¿½Öµï¿½ï¿½ï¿½Ï·ï¿½ï¿½ï¿½");
             this.fields.Add(field.BitNum, field);
             this.bitmap.Set(field.BitNum, true);
         }
         /// <summary>
-        /// ÒÆ³ýÒ»¸öÊý¾ÝÓò
+        /// ï¿½Æ³ï¿½Ò»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
         /// </summary>
         /// <param name="bitNum"></param>
         public void RemoveField(int bitNum)
@@ -66,24 +66,27 @@ namespace SlzrCrossGate.Tcp.Protocol
         }
 
         /// <summary>
-        /// ´ÓXmlÎÄ±¾µ¼Èë¼Ü¹¹
+        /// ï¿½ï¿½Xmlï¿½Ä±ï¿½ï¿½ï¿½ï¿½ï¿½Ü¹ï¿½
         /// </summary>
-        /// <param name="xml">xmlÎÄ±¾</param>
+        /// <param name="xml">xmlï¿½Ä±ï¿½</param>
         /// <returns></returns>
         public void LoadFromXml(string xml)
         {
             XmlSerializer serial = new XmlSerializer(typeof(Iso8583Field[]));
             StringReader reader = new StringReader(xml);
-            Iso8583Field[] array = serial.Deserialize(reader) as Iso8583Field[];
-            foreach (Iso8583Field field in array)
+            Iso8583Field[]? array = serial.Deserialize(reader) as Iso8583Field[];
+            if (array != null)
             {
-                this.AddField(field);
+                foreach (Iso8583Field field in array)
+                {
+                    this.AddField(field);
+                }
             }
         }
         /// <summary>
-        /// ´ÓÎÄ¼þµ¼Èë¼Ü¹¹
+        /// ï¿½ï¿½ï¿½Ä¼ï¿½ï¿½ï¿½ï¿½ï¿½Ü¹ï¿½
         /// </summary>
-        /// <param name="fileName">ÎÄ¼þÃû</param>
+        /// <param name="fileName">ï¿½Ä¼ï¿½ï¿½ï¿½</param>
         /// <returns></returns>
         public void LoadFromFile(string fileName)
         {
@@ -93,7 +96,7 @@ namespace SlzrCrossGate.Tcp.Protocol
             this.LoadFromXml(xml);
         }
         /// <summary>
-        /// °Ñ¼Ü¹¹µ¼³ö³ÉÎÄ±¾
+        /// ï¿½Ñ¼Ü¹ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä±ï¿½
         /// </summary>
         /// <returns></returns>
         public string ExportToXml()
@@ -111,9 +114,9 @@ namespace SlzrCrossGate.Tcp.Protocol
             return sb.ToString();
         }
         /// <summary>
-        /// ±£´æ¼Ü¹¹µ½ÎÄ¼þ
+        /// ï¿½ï¿½ï¿½ï¿½Ü¹ï¿½ï¿½ï¿½ï¿½Ä¼ï¿½
         /// </summary>
-        /// <param name="fileName">ÎÄ¼þÃû</param>
+        /// <param name="fileName">ï¿½Ä¼ï¿½ï¿½ï¿½</param>
         public void SaveToFile(string fileName)
         {
             string xml = this.ExportToXml();

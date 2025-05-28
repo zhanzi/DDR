@@ -907,7 +907,7 @@ namespace SlzrCrossGate.WebAdmin.Controllers
                 var success = await _wechatAuthService.UpdateLoginSessionAsync(
                     request.LoginId,
                     request.OpenId,
-                    request.UnionId,
+                    request.UnionId ?? "",
                     request.Nickname);
 
                 if (success)
@@ -1104,7 +1104,7 @@ namespace SlzrCrossGate.WebAdmin.Controllers
                 var success = await _wechatAuthService.BindWechatToUserAsync(
                     user,
                     request.OpenId,
-                    request.UnionId,
+                    request.UnionId ?? "",
                     request.Nickname);
 
                 if (success)

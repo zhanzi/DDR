@@ -30,6 +30,7 @@ namespace SlzrCrossGate.Tcp.Protocol
         public const string MsgResponse = "0510";
 
         public const string MsgConfirmResquest = "0520";
+        public const string MsgConfirmResponse = "0530";
 
         public const string IncrementRequest = "0540";
         public const string IncrementResponse = "0550";

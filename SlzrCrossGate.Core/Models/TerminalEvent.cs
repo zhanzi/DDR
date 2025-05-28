@@ -20,7 +20,7 @@ namespace SlzrCrossGate.Core.Models
         public required string TerminalID { get; set; }
         public DateTime EventTime { get; set; } = DateTime.Now;
         [MaxLength(100)]
-        public string EventName { get; private set; }
+        public string EventName { get; private set; } = string.Empty;
 
         TerminalEventType _eventType;
         public TerminalEventType EventType

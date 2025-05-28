@@ -15,7 +15,7 @@ namespace SlzrCrossGate.Core.Models
         public required string FileName { get; set; }
 
         [MaxLength(500)]
-        public string FilePath { get; set; }
+        public required string FilePath { get; set; }
 
         public int FileSize { get; set; }
 

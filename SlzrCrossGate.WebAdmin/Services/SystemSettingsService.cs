@@ -11,7 +11,7 @@ namespace SlzrCrossGate.WebAdmin.Services
     {
         private readonly TcpDbContext _context;
         private readonly ILogger<SystemSettingsService> _logger;
-        private SystemSettings _cachedSettings;
+        private SystemSettings? _cachedSettings;
         private DateTime _cacheTime = DateTime.MinValue;
         private readonly TimeSpan _cacheDuration = TimeSpan.FromMinutes(5);
 
@@ -34,7 +34,7 @@ namespace SlzrCrossGate.WebAdmin.Services
 
             // 从数据库获取设置
             var settings = await _context.SystemSettings.FirstOrDefaultAsync();
-            
+
             // 如果没有设置记录，创建默认设置
             if (settings == null)
             {
@@ -46,16 +46,16 @@ namespace SlzrCrossGate.WebAdmin.Services
                     LastModified = DateTime.UtcNow,
                     LastModifiedBy = "System"
                 };
-                
+
                 _context.SystemSettings.Add(settings);
                 await _context.SaveChangesAsync();
                 _logger.LogInformation("Created default system settings");
             }
-            
+
             // 更新缓存
             _cachedSettings = settings;
             _cacheTime = DateTime.UtcNow;
-            
+
             return settings;
         }
 
@@ -65,7 +65,7 @@ namespace SlzrCrossGate.WebAdmin.Services
         public async Task<SystemSettings> UpdateSettingsAsync(SystemSettings settings, string userName)
         {
             var existingSettings = await _context.SystemSettings.FirstOrDefaultAsync();
-            
+
             if (existingSettings == null)
             {
                 // 如果没有设置记录，创建新记录
@@ -82,15 +82,15 @@ namespace SlzrCrossGate.WebAdmin.Services
                 existingSettings.LastModified = DateTime.UtcNow;
                 existingSettings.LastModifiedBy = userName;
             }
-            
+
             await _context.SaveChangesAsync();
-            
+
             // 更新缓存
             _cachedSettings = existingSettings ?? settings;
             _cacheTime = DateTime.UtcNow;
-            
+
             _logger.LogInformation("Updated system settings by {UserName}", userName);
-            
+
             return _cachedSettings;
         }
 
@@ -105,31 +105,31 @@ namespace SlzrCrossGate.WebAdmin.Services
             }
 
             var settings = await GetSettingsAsync();
-            
+
             // 如果系统禁用了双因素认证，则不需要
             if (!settings.EnableTwoFactorAuth)
             {
                 return false;
             }
-            
+
             // 如果用户启用了双因素认证，则需要
             if (user.TwoFactorEnabled)
             {
                 return true;
             }
-            
+
             // 如果系统强制要求双因素认证，则需要
             if (settings.ForceTwoFactorAuth)
             {
                 return true;
             }
-            
+
             // 如果用户被单独设置为需要双因素认证，则需要
             if (user.IsTwoFactorRequired)
             {
                 return true;
             }
-            
+
             return false;
         }
 

@@ -1,32 +1,32 @@
 namespace SlzrCrossGate.Tcp.Protocol
 {
     /// <summary>
-    /// ±íÊ¾ ISO 8583 °üµÄÊý¾ÝÓò¶¨Òå
+    /// ï¿½ï¿½Ê¾ ISO 8583 ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
     /// </summary>
     [Serializable]
     public class Iso8583Field
     {
         private int bitNum;
-        private string fieldName;
+        private string fieldName = string.Empty;
         private Iso8583DataType dataType;
         private int length;
         private Iso8583Format format;
-        private string description;
+        private string description = string.Empty;
 
         /// <summary>
-        /// Ä¬ÈÏ¹¹Ôìº¯Êý
+        /// Ä¬ï¿½Ï¹ï¿½ï¿½ìº¯ï¿½ï¿½
         /// </summary>
         public Iso8583Field()
         {
         }
         /// <summary>
-        /// ÓÃÖ¸¶¨²ÎÊý¹¹ÔìÊµÀý
+        /// ï¿½ï¿½Ö¸ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Êµï¿½ï¿½
         /// </summary>
-        /// <param name="bitNum">Î»Óò</param>
-        /// <param name="fieldName">×Ö¶ÎÃû³Æ</param>
-        /// <param name="dataType">Êý¾ÝÀàÐÍ</param>
-        /// <param name="length">³¤¶È</param>
-        /// <param name="format">¸ñÊ½ÉèÖÃ</param>
+        /// <param name="bitNum">Î»ï¿½ï¿½</param>
+        /// <param name="fieldName">ï¿½Ö¶ï¿½ï¿½ï¿½ï¿½ï¿½</param>
+        /// <param name="dataType">ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½</param>
+        /// <param name="length">ï¿½ï¿½ï¿½ï¿½</param>
+        /// <param name="format">ï¿½ï¿½Ê½ï¿½ï¿½ï¿½ï¿½</param>
         public Iso8583Field(int bitNum, string fieldName, Iso8583DataType dataType, int length, Iso8583Format format)
         {
             this.bitNum = bitNum;
@@ -64,7 +64,7 @@ namespace SlzrCrossGate.Tcp.Protocol
         }
 
         /// <summary>
-        /// Î»Óò
+        /// Î»ï¿½ï¿½
         /// </summary>
         public int BitNum
         {
@@ -72,7 +72,7 @@ namespace SlzrCrossGate.Tcp.Protocol
             set { this.bitNum = value; }
         }
         /// <summary>
-        /// ×Ö¶ÎÃû³Æ
+        /// ï¿½Ö¶ï¿½ï¿½ï¿½ï¿½ï¿½
         /// </summary>
         public string FieldName
         {
@@ -80,7 +80,7 @@ namespace SlzrCrossGate.Tcp.Protocol
             set { this.fieldName = value; }
         }
         /// <summary>
-        /// Êý¾ÝÀàÐÍ
+        /// ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
         /// </summary>
         public Iso8583DataType DataType
         {
@@ -88,7 +88,7 @@ namespace SlzrCrossGate.Tcp.Protocol
             set { this.dataType = value; }
         }
         /// <summary>
-        /// ³¤¶È£¨¶¨³¤Óò£©»ò×î´ó³¤¶È£¨±ä³ÉÓò£©
+        /// ï¿½ï¿½ï¿½È£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ò£©»ï¿½ï¿½ï¿½ó³¤¶È£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
         /// </summary>
         public int Length
         {
@@ -96,7 +96,7 @@ namespace SlzrCrossGate.Tcp.Protocol
             set { this.length = value; }
         }
         /// <summary>
-        /// ¸ñÊ½ÉèÖÃ
+        /// ï¿½ï¿½Ê½ï¿½ï¿½ï¿½ï¿½
         /// </summary>
         public Iso8583Format Format
         {
@@ -104,7 +104,7 @@ namespace SlzrCrossGate.Tcp.Protocol
             set { this.format = value; }
         }
         /// <summary>
-        /// ×Ö¶ÎÃèÊö
+        /// ï¿½Ö¶ï¿½ï¿½ï¿½ï¿½ï¿½
         /// </summary>
         public string Description
         {

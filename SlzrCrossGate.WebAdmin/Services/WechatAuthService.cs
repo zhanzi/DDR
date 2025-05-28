@@ -141,7 +141,7 @@ namespace SlzrCrossGate.WebAdmin.Services
         }
 
         // 检查登录会话状态
-        public WechatLoginSession GetLoginSession(string loginId)
+        public WechatLoginSession? GetLoginSession(string loginId)
         {
             if (_loginSessions.TryGetValue(loginId, out var session))
             {
@@ -156,7 +156,7 @@ namespace SlzrCrossGate.WebAdmin.Services
         }
 
         // 更新登录会话状态（模拟微信扫码成功）
-        public async Task<bool> UpdateLoginSessionAsync(string loginId, string openId, string unionId, string nickname)
+        public Task<bool> UpdateLoginSessionAsync(string loginId, string openId, string unionId, string nickname)
         {
             if (_loginSessions.TryGetValue(loginId, out var session))
             {
@@ -167,14 +167,14 @@ namespace SlzrCrossGate.WebAdmin.Services
                     session.Nickname = nickname;
                     session.Status = WechatLoginStatus.Scanned;
                     session.ScannedAt = DateTime.UtcNow;
-                    return true;
+                    return Task.FromResult(true);
                 }
             }
-            return false;
+            return Task.FromResult(false);
         }
 
         // 确认登录（模拟用户在微信中确认登录）
-        public async Task<bool> ConfirmLoginAsync(string loginId)
+        public Task<bool> ConfirmLoginAsync(string loginId)
         {
             if (_loginSessions.TryGetValue(loginId, out var session))
             {
@@ -182,14 +182,14 @@ namespace SlzrCrossGate.WebAdmin.Services
                 {
                     session.Status = WechatLoginStatus.Confirmed;
                     session.ConfirmedAt = DateTime.UtcNow;
-                    return true;
+                    return Task.FromResult(true);
                 }
             }
-            return false;
+            return Task.FromResult(false);
         }
 
         // 查找或创建与微信账号关联的用户
-        public async Task<ApplicationUser> FindOrCreateUserByWechatAsync(string openId, string unionId, string nickname)
+        public async Task<ApplicationUser?> FindOrCreateUserByWechatAsync(string openId, string unionId, string nickname)
         {
             // 首先尝试通过OpenID查找用户
             var user = await _userManager.Users.Where(u => u.WechatOpenId == openId).FirstOrDefaultAsync();

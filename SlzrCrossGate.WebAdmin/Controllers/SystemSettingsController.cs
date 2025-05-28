@@ -53,14 +53,18 @@ namespace SlzrCrossGate.WebAdmin.Controllers
             try
             {
                 var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+                if (userId == null)
+                {
+                    return Unauthorized(new { message = "未找到用户ID" });
+                }
+
                 var user = await _userManager.FindByIdAsync(userId);
-                
                 if (user == null)
                 {
                     return Unauthorized(new { message = "未找到用户" });
                 }
-                
-                var updatedSettings = await _settingsService.UpdateSettingsAsync(settings, user.UserName);
+
+                var updatedSettings = await _settingsService.UpdateSettingsAsync(settings, user.UserName ?? "Unknown");
                 return Ok(updatedSettings);
             }
             catch (Exception ex)

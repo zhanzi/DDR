@@ -37,10 +37,10 @@ namespace SlzrCrossGate.Tcp
 
         public string TerminalID { get; set; } = "";
         public string Token { get; set; } = "";
-        public string MerchantID { get; set; }
-        public string MachineID { get; set; }
-        public string MachineNO { get; set; }
-        public string LineNO { get; set; }
+        public string MerchantID { get; set; } = string.Empty;
+        public string MachineID { get; set; } = string.Empty;
+        public string MachineNO { get; set; } = string.Empty;
+        public string LineNO { get; set; } = string.Empty;
         public string FileVerInfo { get; set; } = "";
         public string PropertyInfo { get; set; } = "";
 

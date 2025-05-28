@@ -10,21 +10,21 @@ public class FilePublishEventMessage
     public DateTime ActionTime { get; set; } = DateTime.Now;
 
     public int FilePublishID { get; set; }
-    public string MerchantID { get; set; }
+    public required string MerchantID { get; set; }
 
-    public string FileTypeID { get; set; }
+    public required string FileTypeID { get; set; }
 
-    public string FilePara { get; set; }
+    public required string FilePara { get; set; }
 
-    public string FileFullType { get; set; }
+    public required string FileFullType { get; set; }
 
-    public string Ver { get; set; }
-    public string FileCrc { get; set; }
+    public required string Ver { get; set; }
+    public required string FileCrc { get; set; }
     public int FileSize { get; set; }
 
-    public string Operator { get; set; }
+    public required string Operator { get; set; }
 
-    public PublishTypeOption PublishType { get; set; }//1:ÉÌ»§ 2:ÏßÂ· 3:ÖÕ¶Ë 
+    public PublishTypeOption PublishType { get; set; }//1:ï¿½Ì»ï¿½ 2:ï¿½ï¿½Â· 3:ï¿½Õ¶ï¿½
 
     public required string PublishTarget { get; set; }
 }

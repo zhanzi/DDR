@@ -92,12 +92,12 @@ namespace SlzrCrossGate.Core.Service
             {
                 using var scope = _scopeFactory.CreateScope();
                 var dbContext = scope.ServiceProvider.GetRequiredService<TcpDbContext>();
-                
+
                 // 检查终端是否已存在
                 var existingTerminal = await dbContext.Terminals
                     .Include(t => t.Status)
                     .FirstOrDefaultAsync(t => t.ID == terminal.ID);
-                    
+
                 if (existingTerminal != null)
                 {
                     // 更新现有终端
@@ -108,7 +108,7 @@ namespace SlzrCrossGate.Core.Service
                     existingTerminal.IsDeleted = false;
                     existingTerminal.TerminalType = terminal.TerminalType;
                     existingTerminal.StatusUpdateTime = DateTime.Now;
-                    
+
                     if (existingTerminal.Status != null)
                     {
                         existingTerminal.Status.LastActiveTime = DateTime.Now;
@@ -128,7 +128,7 @@ namespace SlzrCrossGate.Core.Service
                     // 添加新终端
                     dbContext.Terminals.Add(terminal);
                 }
-                
+
                 await dbContext.SaveChangesAsync();
                 return true;
             }
@@ -269,7 +269,7 @@ namespace SlzrCrossGate.Core.Service
         }
 
 
-        public async Task<bool> ProcessPropertyChange(Terminal terminal, TerminalSignDto dto)
+        public bool ProcessPropertyChange(Terminal terminal, TerminalSignDto dto)
         {
             if (terminal.ID != dto.ID) return false;
             if (terminal.MerchantID == dto.MerchantID && terminal.LineNO == dto.LineNO && terminal.DeviceNO == dto.DeviceNO)
@@ -391,6 +391,7 @@ namespace SlzrCrossGate.Core.Service
                     {
                         Current = item.Value,
                         Expected = "",
+                        ExpectedFileCrc = "",
                         IsExpired = true
                     });
                     result = true;
@@ -424,7 +425,7 @@ namespace SlzrCrossGate.Core.Service
 
         public static Dictionary<string, VersionOptions> ConvertClientVersionToFileVersion(Dictionary<string, string> clientVersions)
         {
-            return clientVersions.Select(x => new KeyValuePair<string, VersionOptions>(x.Key, new VersionOptions { Current = x.Value, IsExpired = true })).ToDictionary(x => x.Key, x => x.Value);
+            return clientVersions.Select(x => new KeyValuePair<string, VersionOptions>(x.Key, new VersionOptions { Current = x.Value, Expected = "", ExpectedFileCrc = "", IsExpired = true })).ToDictionary(x => x.Key, x => x.Value);
         }
 
         //实现一个方法，监听一个RabbitMQ的队列，处理文件发布和取消的事件
@@ -463,7 +464,7 @@ namespace SlzrCrossGate.Core.Service
             {
                 IncreaseUnreadMessageCount(msgboxEvent.TerminalID);
             }
-            else if (msgboxEvent.ActionType == MsgboxEventActionType.Reply) { 
+            else if (msgboxEvent.ActionType == MsgboxEventActionType.Reply) {
                 DecreaseUnreadMessageCount(msgboxEvent.TerminalID);
             }
             return Task.CompletedTask;
@@ -585,8 +586,7 @@ namespace SlzrCrossGate.Core.Service
 
                 foreach (var item in terminal.Status.FileVersionMetadata)
                 {
-                    FilePublish publish;
-                    if (filePublishCachedService.TryGetValue(filePublishCachedService.GetKey(terminal.MerchantID, item.Key, PublishTypeOption.Terminal, terminal.ID), out publish))
+                    if (filePublishCachedService.TryGetValue(filePublishCachedService.GetKey(terminal.MerchantID, item.Key, PublishTypeOption.Terminal, terminal.ID), out FilePublish? publish) && publish != null)
                     {
                         item.Value.Expected = publish.Ver;
                         item.Value.ExpectedFileCrc = publish.Crc;
@@ -594,7 +594,7 @@ namespace SlzrCrossGate.Core.Service
                         item.Value.IsExpired = false;
                         continue;
                     }
-                    if (filePublishCachedService.TryGetValue(filePublishCachedService.GetKey(terminal.MerchantID, item.Key, PublishTypeOption.Line, terminal.LineNO), out publish))
+                    if (filePublishCachedService.TryGetValue(filePublishCachedService.GetKey(terminal.MerchantID, item.Key, PublishTypeOption.Line, terminal.LineNO), out publish) && publish != null)
                     {
                         item.Value.Expected = publish.Ver;
                         item.Value.ExpectedFileCrc = publish.Crc;
@@ -602,7 +602,7 @@ namespace SlzrCrossGate.Core.Service
                         item.Value.IsExpired = false;
                         continue;
                     }
-                    if (filePublishCachedService.TryGetValue(filePublishCachedService.GetKey(terminal.MerchantID, item.Key, PublishTypeOption.Merchant, terminal.MerchantID), out publish))
+                    if (filePublishCachedService.TryGetValue(filePublishCachedService.GetKey(terminal.MerchantID, item.Key, PublishTypeOption.Merchant, terminal.MerchantID), out publish) && publish != null)
                     {
                         item.Value.Expected = publish.Ver;
                         item.Value.ExpectedFileCrc = publish.Crc;
@@ -662,13 +662,13 @@ namespace SlzrCrossGate.Core.Service
 
     }
 
-    // Replace the problematic record declaration with a proper class definition  
+    // Replace the problematic record declaration with a proper class definition
     public class MessageCount
     {
         private int _count;
         public int Count { get; private set; }
 
-        //Count增加1 
+        //Count增加1
         public void Increase()
         {
             Count++;

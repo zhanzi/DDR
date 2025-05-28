@@ -26,7 +26,7 @@ namespace SlzrCrossGate.Core.Service.BusinessServices
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
-        public bool TryGetValue(string key, out FilePublish filePublish)
+        public bool TryGetValue(string key, out FilePublish? filePublish)
         {
             return _filePublishCache.TryGetValue(key, out filePublish);
         }

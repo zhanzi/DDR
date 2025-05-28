@@ -42,7 +42,7 @@ namespace SlzrCrossGate.Core.Models
             set => Properties = JsonSerializer.Serialize(value);
         }
 
-        // µ¼º½ÊôÐÔ
+        // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
         [ForeignKey("ID")]
         public virtual Terminal? Terminal { get; set; }
     }
@@ -50,20 +50,20 @@ namespace SlzrCrossGate.Core.Models
     public class VersionOptions
     {
         /// <summary>
-        /// Éè±¸µ±Ç°°æ±¾
+        /// ï¿½è±¸ï¿½ï¿½Ç°ï¿½æ±¾
         /// </summary>
-        public string Current { get; set; }
+        public required string Current { get; set; }
 
         /// <summary>
-        /// Ô¤ÆÚ°æ±¾£¨Èç¹ûÎª¿Õ£¬Ôò±íÃ÷Ã»ÓÐÏàÓ¦°æ±¾·¢²¼£©
+        /// Ô¤ï¿½Ú°æ±¾ï¿½ï¿½ï¿½ï¿½ï¿½Îªï¿½Õ£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ã»ï¿½ï¿½ï¿½ï¿½Ó¦ï¿½æ±¾ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
         /// </summary>
-        public string Expected { get; set; }
+        public required string Expected { get; set; }
         public int ExpectedFileSize { get; set; }
-        public string ExpectedFileCrc { get; set; }
+        public required string ExpectedFileCrc { get; set; }
         public PublishTypeOption PublishType { get; set; }
 
         /// <summary>
-        /// ÆÚÍû°æ±¾ÊÇ·ñ¹ýÆÚ(ÒÑ¹ýÆÚµÄÆÚÍû°æ±¾²»×÷Êý£¬ÐèÒªÖØÐÂ²éÑ¯À´È·ÈÏ)
+        /// ï¿½ï¿½ï¿½ï¿½ï¿½æ±¾ï¿½Ç·ï¿½ï¿½ï¿½ï¿½(ï¿½Ñ¹ï¿½ï¿½Úµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½æ±¾ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Òªï¿½ï¿½ï¿½Â²ï¿½Ñ¯ï¿½ï¿½È·ï¿½ï¿½)
         /// </summary>
         public bool IsExpired { get; set; } = true;
     }

@@ -939,3 +939,18 @@ app.MapControllers();
    - 确保操作按钮在移动端可见且可点击
    - 添加水平滚动支持，防止表格溢出容器
 9. 实现微信扫码登录功能
+
+## 最近更新记录
+
+### 2024-12-19
+- **修复了大量C# 8.0可空引用类型警告**：
+  - **SlzrCrossGate.Core项目**：为所有必需的字符串属性添加了`required`修饰符或默认值，修复了FormFile构造函数中的null参数问题，解决了异步方法缺少await的警告，优化了MsgBoxRepository的主构造函数参数捕获问题，添加了缺失的Iso8583MessageType.MsgConfirmResponse常量
+  - **SlzrCrossGate.WebAdmin项目**：修复了SystemSettingsService、UsersController、WechatAuthService、SystemSettingsController、TerminalsController、FileVersionsController、AuthController中的null引用问题
+  - **总计修复了32个编译警告**，项目现在可以无警告构建
+- **简化了数据保护配置**：
+  - 移除了复杂的平台特定加密配置
+  - 开发环境使用默认文件系统存储，生产环境可选配置X509证书加密
+  - 统一了跨平台的数据保护策略，避免了Linux环境下的兼容性问题
+- 修复了RabbitMQService的连接管理问题，改进了连接恢复机制
+- 优化了消息发布的错误处理逻辑
+- 添加了连接状态监控和自动重连功能

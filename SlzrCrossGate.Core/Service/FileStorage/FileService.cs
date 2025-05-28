@@ -45,7 +45,7 @@ namespace SlzrCrossGate.Core.Service.FileStorage
         public async Task<string> SaveTemporaryFile(byte[] file, string filename, string uploadedBy, string storageType = "")
         {
             using var memoryStream = new MemoryStream(file);
-            var formFile = new FormFile(memoryStream, 0, file.Length, null, filename)
+            var formFile = new FormFile(memoryStream, 0, file.Length, "file", filename)
             {
                 Headers = new HeaderDictionary(),
                 ContentType = "application/octet-stream"
@@ -65,7 +65,7 @@ namespace SlzrCrossGate.Core.Service.FileStorage
             using (var stream = new FileStream(localFilePath, FileMode.Open, FileAccess.Read))
             {
                 var fileName = Path.GetFileName(localFilePath);
-                var formFile = new FormFile(stream, 0, stream.Length, null, fileName)
+                var formFile = new FormFile(stream, 0, stream.Length, "file", fileName)
                 {
                     Headers = new HeaderDictionary(),
                     ContentType = "application/octet-stream"

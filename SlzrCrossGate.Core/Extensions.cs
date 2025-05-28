@@ -27,7 +27,7 @@ namespace SlzrCrossGate.Core
             // 注册仓储
             builder.Services.AddScoped(typeof(Repository<>));
             builder.Services.AddScoped<MsgBoxRepository>();
-            builder.Services.AddScoped<Repository<UploadFile>>(); 
+            builder.Services.AddScoped<Repository<UploadFile>>();
             builder.Services.AddScoped<Repository<FileVer>>();
             builder.Services.AddScoped<Repository<TerminalEvent>>();
             builder.Services.AddScoped<UnionPayTerminalKeyRepository>();
@@ -51,7 +51,7 @@ namespace SlzrCrossGate.Core
             builder.Services.AddSingleton<TerminalEventService>();
             builder.Services.AddSingleton<MsgboxEventService>();
 
-            
+
 
 
 
@@ -165,7 +165,7 @@ namespace SlzrCrossGate.Core
         /// </summary>
         /// <param name="services"></param>
         /// <returns></returns>
-        public static async Task<IServiceCollection> AddFileService(this IServiceCollection services, Action<FileServiceOptions> configureOptions)
+        public static IServiceCollection AddFileService(this IServiceCollection services, Action<FileServiceOptions> configureOptions)
         {
             var options = new FileServiceOptions();
             configureOptions(options);
@@ -187,11 +187,11 @@ namespace SlzrCrossGate.Core
 
     public record FileServiceOptions
     {
-        public string DefaultStorageType { get; set; }
-        public string LocalFilePath { get; set; }
-        public string MinioEndpoint { get; set; }
-        public string MinioAccessKey { get; set; }
-        public string MinioSecretKey { get; set; }
-        public string MinioBucketName { get; set; }
+        public string DefaultStorageType { get; set; } = string.Empty;
+        public string LocalFilePath { get; set; } = string.Empty;
+        public string MinioEndpoint { get; set; } = string.Empty;
+        public string MinioAccessKey { get; set; } = string.Empty;
+        public string MinioSecretKey { get; set; } = string.Empty;
+        public string MinioBucketName { get; set; } = string.Empty;
     }
 }
