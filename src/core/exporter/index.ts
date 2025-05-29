@@ -855,7 +855,7 @@ export class Exporter {
 
           // 3. 页面布局常量 - 保守的空间配置
           const pageNumberReserve = 15; // 页码预留空间(mm) - 适中预留
-          const contentGap = 5; // 内容间距(mm) - 适中间距
+          const contentGap = 0; // 内容间距(mm) - 移除间距实现无缝连接
           const safetyMargin = 3; // 安全边距(mm) - 适中安全边距
 
           console.log(`📐 页面布局参数：`);
@@ -994,7 +994,7 @@ export class Exporter {
                 contentWidth,
                 headerHeight
               );
-              yOffset += headerHeight + 5; // 5mm的间距
+              yOffset += headerHeight; // 移除额外间距，实现无缝连接
             }
 
             // 添加表格标题行（根据配置决定是否在每页显示）
@@ -1228,7 +1228,7 @@ export class Exporter {
             // 添加表尾（只在最后一页显示）
             if (footerImgData && page === pagesNeeded - 1) {
               // 计算表尾位置，确保不覆盖表格内容和页码
-              const minFooterY = yOffset + contentGap; // 表格内容下方预留间距
+              const minFooterY = yOffset; // 表格内容下方无间距，实现无缝连接
               const maxFooterY = pageHeight - margins.bottom - pageNumberReserve - footerHeight; // 考虑页码空间
 
               const footerY = Math.max(minFooterY, maxFooterY);

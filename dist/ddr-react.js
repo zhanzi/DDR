@@ -3107,7 +3107,7 @@ var Exporter = /** @class */function () {
               console.log("\uD83D\uDCCF \u4F7F\u7528Canvas\u884C\u9AD8\u4EE5\u786E\u4FDD\u6570\u636E\u5B8C\u6574\u6027");
             }
             pageNumberReserve = 15;
-            contentGap = 5;
+            contentGap = 0;
             safetyMargin = 3;
             console.log("\uD83D\uDCD0 \u9875\u9762\u5E03\u5C40\u53C2\u6570\uFF1A");
             console.log("- \u9875\u9762\u603B\u9AD8\u5EA6\uFF1A".concat(Math.round(pageHeight), "mm"));
@@ -3203,7 +3203,7 @@ var Exporter = /** @class */function () {
               // 添加报表头（只在第一页显示）
               if (headerImgData && page === 0) {
                 pdf.addImage(headerImgData, 'JPEG', margins.left, yOffset, contentWidth, headerHeight);
-                yOffset += headerHeight + 5; // 5mm的间距
+                yOffset += headerHeight; // 移除额外间距，实现无缝连接
               }
               repeatTableHeader = mergedPdfOptions.repeatTableHeader !== false;
               if (repeatTableHeader && page > 0 && headerRowCount > 0) {
@@ -3356,7 +3356,7 @@ var Exporter = /** @class */function () {
               }
               // 添加表尾（只在最后一页显示）
               if (footerImgData && page === pagesNeeded - 1) {
-                minFooterY = yOffset + contentGap;
+                minFooterY = yOffset;
                 maxFooterY = pageHeight - margins.bottom - pageNumberReserve - footerHeight;
                 footerY = Math.max(minFooterY, maxFooterY);
                 // 如果当前页没有足够空间显示表尾，则创建新页
