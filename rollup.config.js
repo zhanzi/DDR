@@ -13,13 +13,19 @@ const input = 'src/index.ts';
 
 // 外部依赖，不打包进库中
 const external = [
-  ...Object.keys(pkg.dependencies || {}),
+  // 排除xlsx-js-style，让它被打包进组件中
+  ...Object.keys(pkg.dependencies || {}).filter(dep => dep !== 'xlsx-js-style'),
   ...Object.keys(pkg.peerDependencies || {})
 ];
 
-export default [  
+// 浏览器构建时，将所有依赖都打包进去
+const browserExternal = [
+  ...Object.keys(pkg.peerDependencies || {})
+];
+
+export default [
   // CommonJS构建，用于Node.js和传统打包工具
-  {    
+  {
     input,
     inlineDynamicImports: true,
     output: {
@@ -28,12 +34,12 @@ export default [
       sourcemap: true,
       exports: 'named'
     },    plugins: [
-      nodeResolve({ 
+      nodeResolve({
         extensions,
         preferBuiltins: false
       }),
       commonjs(),
-      typescript({ 
+      typescript({
         tsconfig: './tsconfig.json',
         sourceMap: true,
         inlineSources: true
@@ -48,7 +54,7 @@ export default [
       terser()
     ],
     external
-  },  
+  },
   // IIFE构建，可直接在浏览器中使用
   {
     input: 'src/browser-entry.ts',
@@ -63,9 +69,14 @@ export default [
       extend: true
     },
     plugins: [
-      nodeResolve({ extensions }),
+      nodeResolve({
+        extensions,
+        // 确保能够解析node_modules中的依赖
+        preferBuiltins: false,
+        browser: true
+      }),
       commonjs(),
-      typescript({ 
+      typescript({
         tsconfig: './tsconfig.json',
         // 确保类型检查不会影响构建
         noEmitOnError: false
@@ -78,7 +89,9 @@ export default [
       // 添加CSS处理插件
       copyCssPlugin()
       // 暂时移除terser，先确保输出格式正确
-    ]
+    ],
+    // 浏览器构建只排除peerDependencies
+    external: browserExternal
   },  // ES模块构建，用于现代打包工具
   {
     input,
@@ -115,7 +128,7 @@ export default [
       }
     })]
   },
-  // React适配器构建 
+  // React适配器构建
   {
     input: 'src/adapters/react.ts',
     inlineDynamicImports: true,

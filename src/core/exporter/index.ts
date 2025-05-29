@@ -1,18 +1,13 @@
 import * as XLSX from 'xlsx';
-// 尝试导入支持样式的XLSX库
-let XLSXStyle: any;
-try {
-  XLSXStyle = require('xlsx-js-style');
-  console.log('使用支持样式的XLSX库');
-} catch (e) {
-  XLSXStyle = XLSX;
-  console.log('使用标准XLSX库（样式支持有限）');
-}
+// 直接导入支持样式的XLSX库
+import * as XLSXStyle from 'xlsx-js-style';
+import { ConfigBasedExporter } from './config-based-exporter';
+
+console.log('使用内置的支持样式的XLSX库');
 import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
 import { ExportOptions } from '../../types';
 import { fixPDFExport, setupChineseSupport } from './pdf-fixes';
-import { applyExcelStyles } from './excel-fixes';
 
 // 应用PDF导出修复
 if (typeof window !== 'undefined') {
@@ -46,13 +41,33 @@ interface PageBreakPoint {
  * 支持Excel和PDF格式导出
  */
 export class Exporter {
+  // 移除exportExcelFromConfig方法，使用ConfigBasedExporter代替
+
   /**
-   * 导出为Excel
+   * 导出为Excel（增强版，支持配置和DOM两种方式）
    * @param data 报表数据或DOM元素
    * @param options 导出选项
+   * @param config 可选的DDR配置（如果提供，将使用基于配置的导出）
+   * @param reportData 可选的报表数据（配合config使用）
    */
-  static async toExcel(data: any[] | HTMLElement, options: ExportOptions = {}): Promise<void> {
+  static async toExcel(
+    data: any[] | HTMLElement,
+    options: ExportOptions = {},
+    config?: any,
+    reportData?: any
+  ): Promise<void> {
     try {
+      console.log('🚀 开始Excel导出');
+
+      // 如果提供了配置和报表数据，使用新的基于配置的导出器
+      if (config && reportData) {
+        console.log('📊 使用基于配置的Excel导出');
+        return ConfigBasedExporter.exportExcel(config, reportData, options);
+      }
+
+      // 否则使用原有的DOM抓取方式（保持兼容性）
+      console.log('⚠️ 使用DOM抓取方式导出Excel');
+
       // 默认选项
       const {
         fileName = '报表',
@@ -99,15 +114,49 @@ export class Exporter {
         lastRow: excelData[excelData.length - 1]
       });
 
-      // 尝试使用增强样式方法
-      console.log('使用增强样式应用到Excel');
-      try {
-        // 直接调用增强样式方法
-        this.applyEnhancedStylesToExcel(ws, excelData);
-        console.log('增强样式应用成功');
-      } catch (enhancedError) {
-        console.warn('增强样式应用失败，回退到基础样式:', enhancedError);
-        this.applyBasicStylesToExcel(ws, excelData);
+      // 检查工作表数据
+      console.log('📊 工作表数据检查:');
+      const range = XLSXStyle.utils.decode_range(ws['!ref'] || 'A1');
+      console.log(`  工作表范围: ${ws['!ref']}`);
+      console.log(`  行数: ${range.e.r + 1}, 列数: ${range.e.c + 1}`);
+
+      // 检查前几行的数据
+      for (let r = 0; r <= Math.min(range.e.r, 9); r++) {
+        const rowData: string[] = [];
+        for (let c = 0; c <= Math.min(range.e.c, 8); c++) {
+          const cellRef = XLSXStyle.utils.encode_cell({ r, c });
+          const cell = ws[cellRef];
+          rowData.push(cell ? (cell.v || '').toString() : '空');
+        }
+        console.log(`  行${r}: ${rowData.join(' | ')}`);
+      }
+
+      // 优先使用DOM样式，如果有DOM元素的话
+      if (domElement) {
+        console.log('使用DOM样式应用到Excel');
+        try {
+          this.applyDOMStylesToExcel(ws, excelData, domElement);
+          console.log('DOM样式应用成功');
+        } catch (domError) {
+          console.warn('DOM样式应用失败，回退到增强样式:', domError);
+          try {
+            this.applyEnhancedStylesToExcel(ws, excelData);
+            console.log('增强样式应用成功');
+          } catch (enhancedError) {
+            console.warn('增强样式应用失败，回退到基础样式:', enhancedError);
+            this.applyBasicStylesToExcel(ws, excelData);
+          }
+        }
+      } else {
+        // 没有DOM元素时使用增强样式
+        console.log('使用增强样式应用到Excel');
+        try {
+          this.applyEnhancedStylesToExcel(ws, excelData);
+          console.log('增强样式应用成功');
+        } catch (enhancedError) {
+          console.warn('增强样式应用失败，回退到基础样式:', enhancedError);
+          this.applyBasicStylesToExcel(ws, excelData);
+        }
       }
 
       // 检查样式是否被应用
@@ -212,45 +261,101 @@ export class Exporter {
    */
   static extractDataFromDOM(element: HTMLElement): any[][] {
     const result: any[][] = [];
+    console.log('🔍 开始从DOM提取数据');
+
+    // 先获取表格的列数来确定行格式
+    const table = element.querySelector('table');
+    let tableColumnCount = 0;
+    if (table) {
+      const firstRow = table.querySelector('tr');
+      if (firstRow) {
+        const cells = firstRow.querySelectorAll('td, th');
+        cells.forEach(cell => {
+          const colSpan = (cell as HTMLTableCellElement).colSpan || 1;
+          tableColumnCount += colSpan;
+        });
+      }
+    }
+    console.log(`📊 表格列数: ${tableColumnCount}`);
 
     // 提取报表标题
     const titleElement = element.querySelector('.ddr-report-header .ddr-header-title');
     if (titleElement) {
-      result.push([titleElement.textContent?.trim() || '']);
+      const titleRow: string[] = [titleElement.textContent?.trim() || ''];
+      // 填充其余列为空，以便后续合并
+      for (let i = 1; i < Math.max(tableColumnCount, 1); i++) {
+        titleRow.push('');
+      }
+      result.push(titleRow);
       result.push([]); // 空行分隔
     }
 
-    // 提取元数据字段
+    // 提取元数据字段 - 改为按表格列数对齐
     const fieldsElements = element.querySelectorAll('.ddr-header-fields .ddr-header-field');
     if (fieldsElements.length > 0) {
-      const metadataRow: string[] = [];
+      // 创建元数据行，将所有元数据信息合并到第一列
+      const metadataTexts: string[] = [];
       fieldsElements.forEach(field => {
         const label = field.querySelector('.ddr-field-label')?.textContent?.trim() || '';
         const value = field.querySelector('.ddr-field-value')?.textContent?.trim() || '';
         if (label && value) {
-          metadataRow.push(`${label} ${value}`);
+          metadataTexts.push(`${label} ${value}`);
         }
       });
-      if (metadataRow.length > 0) {
+
+      if (metadataTexts.length > 0) {
+        // 将所有元数据合并到第一列，其他列留空
+        const metadataRow: string[] = [metadataTexts.join('  ')];
+        // 填充其余列为空
+        for (let i = 1; i < Math.max(tableColumnCount, 1); i++) {
+          metadataRow.push('');
+        }
         result.push(metadataRow);
         result.push([]); // 空行分隔
       }
     }
 
-    // 提取表格数据
-    const table = element.querySelector('table');
+    // 提取表格数据 - 重用之前获取的table变量
     if (table) {
-      const rows = table.querySelectorAll('tr');
-      rows.forEach(row => {
-        const cells = row.querySelectorAll('td, th');
-        const rowData: string[] = [];
-        cells.forEach(cell => {
-          rowData.push(cell.textContent?.trim() || '');
+      console.log('开始提取表格数据');
+
+      // 分别处理表头和表体
+      const thead = table.querySelector('thead');
+      const tbody = table.querySelector('tbody');
+
+      // 如果有明确的thead和tbody结构
+      if (thead && tbody) {
+        console.log('发现thead和tbody结构');
+
+        // 提取表头
+        const headerRows = thead.querySelectorAll('tr');
+        headerRows.forEach(row => {
+          const headerData = this.extractRowData(row);
+          if (headerData.length > 0) {
+            result.push(headerData);
+          }
         });
-        if (rowData.length > 0) {
-          result.push(rowData);
-        }
-      });
+
+        // 提取表体数据
+        const bodyRows = tbody.querySelectorAll('tr');
+        bodyRows.forEach(row => {
+          const rowData = this.extractRowData(row);
+          if (rowData.length > 0) {
+            result.push(rowData);
+          }
+        });
+      } else {
+        // 没有明确的thead/tbody结构，按行处理
+        console.log('没有thead/tbody结构，按行处理');
+        const rows = table.querySelectorAll('tr');
+
+        rows.forEach((row, index) => {
+          const rowData = this.extractRowData(row);
+          if (rowData.length > 0) {
+            result.push(rowData);
+          }
+        });
+      }
     }
 
     // 提取表尾信息
@@ -291,7 +396,42 @@ export class Exporter {
       }
     }
 
+    console.log('📋 数据提取完成，总行数:', result.length);
+    console.log('📋 前5行数据:', result.slice(0, 5));
+    console.log('📋 详细数据检查:');
+    result.slice(0, 10).forEach((row, index) => {
+      console.log(`  行${index}: [${row.length}列] ${JSON.stringify(row.slice(0, 3))}...`);
+    });
     return result;
+  }
+
+  /**
+   * 从表格行中提取数据
+   * @param row 表格行元素
+   */
+  static extractRowData(row: HTMLTableRowElement): string[] {
+    const cells = row.querySelectorAll('td, th');
+    const rowData: string[] = [];
+
+    cells.forEach((cell, cellIndex) => {
+      const cellValue = cell.textContent?.trim() || '';
+      const colSpan = (cell as HTMLTableCellElement).colSpan || 1;
+      const rowSpan = (cell as HTMLTableCellElement).rowSpan || 1;
+
+      // 对于合并的列，只添加一次值，不重复
+      // 这样可以保持列数的一致性
+      if (rowSpan > 1) {
+        // 如果是跨行合并的单元格，只在第一行添加值
+        rowData.push(cellValue);
+      } else {
+        // 普通单元格或跨列合并的单元格
+        for (let i = 0; i < colSpan; i++) {
+          rowData.push(i === 0 ? cellValue : ''); // 只在第一列填入值，其他列为空
+        }
+      }
+    });
+
+    return rowData;
   }
 
   /**
@@ -303,13 +443,12 @@ export class Exporter {
   static applyDOMStylesToExcel(ws: any, data: any[][], element: HTMLElement): void {
     console.log('开始应用DOM样式到Excel');
 
-    // 使用简化的样式应用方式，提高兼容性
     try {
       // 查找表格元素
       const table = element.querySelector('table');
       if (!table) {
         console.log('未找到表格，使用默认样式');
-        applyExcelStyles(ws, data);
+        this.applyBasicStylesToExcel(ws, data);
         return;
       }
 
@@ -318,62 +457,156 @@ export class Exporter {
       const hasTitle = !!titleElement;
       const hasMetadata = element.querySelectorAll('.ddr-header-fields .ddr-header-field').length > 0;
 
-      console.log('DOM结构分析:', { hasTitle, hasMetadata });
+      // 计算表格列数
+      let tableColumnCount = 0;
+      const firstRow = table.querySelector('tr');
+      if (firstRow) {
+        const cells = firstRow.querySelectorAll('td, th');
+        cells.forEach(cell => {
+          const colSpan = (cell as HTMLTableCellElement).colSpan || 1;
+          tableColumnCount += colSpan;
+        });
+      }
+
+      console.log('DOM结构分析:', { hasTitle, hasMetadata, tableColumnCount });
 
       // 计算各部分在Excel中的行索引
       let currentRowIndex = 0;
 
-      // 简化的样式定义
-      const headerStyle = {
-        font: { bold: true, sz: 12, color: { rgb: "FFFFFF" } },
-        fill: { fgColor: { rgb: "4472C4" } },
-        alignment: { horizontal: "center", vertical: "center" }
-      };
-
-      const dataStyle = {
-        font: { sz: 11 },
-        alignment: { vertical: "center" }
-      };
-
-      // 标题行样式
+      // 如果有标题，跳过标题行和空行
       if (hasTitle) {
-        const cellRef = XLSX.utils.encode_cell({ r: currentRowIndex, c: 0 });
-        if (ws[cellRef]) {
-          ws[cellRef].s = {
-            font: { bold: true, sz: 16 },
-            alignment: { horizontal: "center", vertical: "center" }
-          };
-          console.log(`应用标题样式到 ${cellRef}`);
-        }
-        currentRowIndex += 2; // 标题 + 空行
+        currentRowIndex += 2; // 标题行 + 空行
       }
 
-      // 元数据行样式
+      // 如果有元数据，跳过元数据行和空行
       if (hasMetadata) {
-        currentRowIndex += 2; // 元数据 + 空行
+        currentRowIndex += 2; // 元数据行 + 空行
       }
 
-      // 表格样式 - 简化处理
+      console.log(`📍 表格数据在Excel中的起始行索引: ${currentRowIndex}`);
+
+      // 定义样式 - 与页面样式保持一致
+      const styles = this._getExcelStylesFromDOM(element);
+
+      // 为标题行和元数据行应用样式
+      let excelRowIndex = 0;
+
+      // 应用标题行样式 - 更接近PDF效果
+      if (hasTitle) {
+        for (let col = 0; col < tableColumnCount; col++) {
+          const cellRef = XLSXStyle.utils.encode_cell({ r: excelRowIndex, c: col });
+          if (ws[cellRef]) {
+            ws[cellRef].s = {
+              font: { bold: true, sz: 16, color: { rgb: "000000" } },
+              alignment: { horizontal: "center", vertical: "center" },
+              fill: { fgColor: { rgb: "FFFFFF" } },
+              border: {
+                bottom: { style: "thin", color: { rgb: "CCCCCC" } }
+              }
+            };
+          }
+        }
+        excelRowIndex += 2; // 标题行 + 空行
+      }
+
+      // 应用元数据行样式 - 更接近PDF效果
+      if (hasMetadata) {
+        for (let col = 0; col < tableColumnCount; col++) {
+          const cellRef = XLSXStyle.utils.encode_cell({ r: excelRowIndex, c: col });
+          if (ws[cellRef]) {
+            ws[cellRef].s = {
+              font: { sz: 10, color: { rgb: "666666" } },
+              alignment: { horizontal: "left", vertical: "center" },
+              fill: { fgColor: { rgb: "FFFFFF" } },
+              border: {
+                bottom: { style: "thin", color: { rgb: "CCCCCC" } }
+              }
+            };
+          }
+        }
+        excelRowIndex += 2; // 元数据行 + 空行
+      }
+
+      // 添加标题行和元数据行的合并单元格
+      const merges: any[] = []; // 存储合并单元格信息
+
+      // 标题行合并（第1行，A1:I1）
+      if (hasTitle && tableColumnCount > 1) {
+        merges.push({
+          s: { r: 0, c: 0 },
+          e: { r: 0, c: tableColumnCount - 1 }
+        });
+        console.log(`📋 添加标题行合并: A1:${String.fromCharCode(65 + tableColumnCount - 1)}1`);
+      }
+
+      // 元数据行合并（第3行，A3:I3）
+      if (hasMetadata && tableColumnCount > 1) {
+        const metadataRowIndex = hasTitle ? 2 : 0; // 如果有标题，元数据在第3行；否则在第1行
+        merges.push({
+          s: { r: metadataRowIndex, c: 0 },
+          e: { r: metadataRowIndex, c: tableColumnCount - 1 }
+        });
+        console.log(`📋 添加元数据行合并: A${metadataRowIndex + 1}:${String.fromCharCode(65 + tableColumnCount - 1)}${metadataRowIndex + 1}`);
+      }
+
+      // 处理表格行和合并单元格
       const rows = table.querySelectorAll('tr');
       let isFirstRow = true;
 
       rows.forEach((row, rowIndex) => {
         const cells = row.querySelectorAll('td, th');
         const isHeader = row.querySelector('th') !== null || isFirstRow;
+        const rowType = this._getRowType(row as HTMLElement);
+        const excelRowIndex = currentRowIndex + rowIndex;
 
-        cells.forEach((cell, cellIndex) => {
-          const excelRowIndex = currentRowIndex + rowIndex;
+        let cellIndex = 0; // 实际的列索引，考虑合并单元格的影响
+
+        cells.forEach((cell, originalCellIndex) => {
+          // 跳过被合并覆盖的单元格位置
+          while (this._isCellMerged(merges, excelRowIndex, cellIndex)) {
+            cellIndex++;
+          }
+
           const cellRef = XLSXStyle.utils.encode_cell({ r: excelRowIndex, c: cellIndex });
 
-          if (!ws[cellRef]) return;
-
-          // 应用简化样式
-          if (isHeader) {
-            ws[cellRef].s = headerStyle;
-            console.log(`应用表头样式到 ${cellRef}`);
-          } else {
-            ws[cellRef].s = dataStyle;
+          // 确保单元格存在
+          if (!ws[cellRef]) {
+            ws[cellRef] = { v: cell.textContent || '', t: 's' };
           }
+
+          // 处理合并单元格
+          const htmlCell = cell as HTMLTableCellElement;
+          const rowSpan = htmlCell.rowSpan || 1;
+          const colSpan = htmlCell.colSpan || 1;
+
+          if (rowSpan > 1 || colSpan > 1) {
+            const merge = {
+              s: { r: excelRowIndex, c: cellIndex },
+              e: { r: excelRowIndex + rowSpan - 1, c: cellIndex + colSpan - 1 }
+            };
+            merges.push(merge);
+            console.log(`📋 添加合并单元格: ${cellRef} (${rowSpan}x${colSpan}) - 原始列${originalCellIndex}`);
+          }
+
+          // 应用样式
+          let cellStyle;
+          if (isHeader) {
+            cellStyle = styles.header;
+          } else if (rowType === 'subtotal') {
+            cellStyle = styles.subtotal;
+          } else if (rowType === 'total') {
+            cellStyle = styles.total;
+          } else {
+            // 普通数据行，检查是否是奇偶行
+            const dataRowIndex = rowIndex - (isFirstRow ? 1 : 0);
+            const isAlternateRow = dataRowIndex % 2 === 1;
+            cellStyle = isAlternateRow ? styles.alternateRow : styles.dataRow;
+          }
+
+          ws[cellRef].s = cellStyle;
+
+          // 移动到下一个列位置
+          cellIndex += colSpan;
         });
 
         if (isFirstRow && isHeader) {
@@ -381,12 +614,299 @@ export class Exporter {
         }
       });
 
-      console.log('DOM样式应用完成');
+      // 应用合并单元格
+      if (merges.length > 0) {
+        ws['!merges'] = merges;
+        console.log(`✅ 应用了 ${merges.length} 个合并单元格`);
+      }
+
+      // 设置自适应列宽
+      this._setAutoColumnWidths(ws, data, element);
+
+      // 设置元数据行右对齐
+      this._setMetadataAlignment(ws, data);
+
+      console.log('DOM样式和合并应用完成');
     } catch (error) {
       console.error('应用DOM样式失败:', error);
       // 降级到默认样式
-      applyExcelStyles(ws, data);
+      this.applyBasicStylesToExcel(ws, data);
     }
+  }
+
+  /**
+   * 从DOM元素中提取样式定义 - 使用真实的CSS变量和计算样式
+   */
+  static _getExcelStylesFromDOM(element: HTMLElement): any {
+    // 获取CSS计算样式
+    const getComputedColor = (selector: string, property: string = 'backgroundColor'): string => {
+      const el = element.querySelector(selector);
+      if (el) {
+        const computed = window.getComputedStyle(el);
+        const color = computed.getPropertyValue(property);
+        return this._rgbToHex(color);
+      }
+      return 'FFFFFF';
+    };
+
+    // 获取CSS变量值
+    const getCSSVariable = (varName: string, fallback: string = '#FFFFFF'): string => {
+      const computed = window.getComputedStyle(element);
+      let value = computed.getPropertyValue(varName).trim();
+
+      // 如果没有获取到值，尝试从根元素获取
+      if (!value) {
+        const rootComputed = window.getComputedStyle(document.documentElement);
+        value = rootComputed.getPropertyValue(varName).trim();
+      }
+
+      // 如果还是没有值，尝试从body获取
+      if (!value) {
+        const bodyComputed = window.getComputedStyle(document.body);
+        value = bodyComputed.getPropertyValue(varName).trim();
+      }
+
+      console.log(`CSS变量 ${varName}: "${value}" (fallback: ${fallback})`);
+      const finalValue = value || fallback;
+      const hexResult = this._rgbToHex(finalValue);
+      console.log(`  转换结果: "${finalValue}" -> "${hexResult}"`);
+      return hexResult;
+    };
+
+    // 从实际DOM样式中提取颜色
+    const tableHeaderBg = getCSSVariable('--ddr-table-header-bg', '#f2f2f2');
+    const tableOddRow = getCSSVariable('--ddr-table-odd-row', '#fff');
+    const tableEvenRow = getCSSVariable('--ddr-table-even-row', '#f9f9f9');
+    const borderColor = getCSSVariable('--ddr-border-color', '#e8e8e8');
+    const textColor = getCSSVariable('--ddr-text-color', '#333');
+    const primaryColor = getCSSVariable('--ddr-primary-color', '#1890ff');
+
+    console.log('🎨 提取的DOM样式变量:', {
+      tableHeaderBg, tableOddRow, tableEvenRow, borderColor, textColor, primaryColor
+    });
+
+    return {
+      header: {
+        font: { bold: true, sz: 11, color: { rgb: textColor } }, // 使用文本颜色而不是主色
+        fill: { fgColor: { rgb: tableHeaderBg } },
+        alignment: { horizontal: "center", vertical: "center" },
+        border: {
+          top: { style: "thin", color: { rgb: borderColor } },
+          bottom: { style: "thin", color: { rgb: borderColor } },
+          left: { style: "thin", color: { rgb: borderColor } },
+          right: { style: "thin", color: { rgb: borderColor } }
+        }
+      },
+      dataRow: {
+        font: { sz: 10, color: { rgb: textColor } },
+        alignment: { vertical: "center" },
+        fill: { fgColor: { rgb: tableOddRow } },
+        border: {
+          top: { style: "thin", color: { rgb: borderColor } },
+          bottom: { style: "thin", color: { rgb: borderColor } },
+          left: { style: "thin", color: { rgb: borderColor } },
+          right: { style: "thin", color: { rgb: borderColor } }
+        }
+      },
+      alternateRow: {
+        font: { sz: 10, color: { rgb: textColor } },
+        alignment: { vertical: "center" },
+        fill: { fgColor: { rgb: tableEvenRow } },
+        border: {
+          top: { style: "thin", color: { rgb: borderColor } },
+          bottom: { style: "thin", color: { rgb: borderColor } },
+          left: { style: "thin", color: { rgb: borderColor } },
+          right: { style: "thin", color: { rgb: borderColor } }
+        }
+      },
+      subtotal: {
+        font: { bold: true, sz: 10, color: { rgb: textColor } }, // 使用文本颜色
+        alignment: { vertical: "center" },
+        fill: { fgColor: { rgb: "F5F5F5" } }, // 对应CSS中的 #f5f5f5
+        border: {
+          top: { style: "thin", color: { rgb: "D9D9D9" } }, // 对应CSS中的 #d9d9d9
+          bottom: { style: "thin", color: { rgb: borderColor } },
+          left: { style: "thin", color: { rgb: borderColor } },
+          right: { style: "thin", color: { rgb: borderColor } }
+        }
+      },
+      total: {
+        font: { bold: true, sz: 10, color: { rgb: textColor } }, // 使用文本颜色而不是主色调
+        alignment: { vertical: "center" },
+        fill: { fgColor: { rgb: "E6F7FF" } }, // 对应CSS中的 #e6f7ff
+        border: {
+          top: { style: "medium", color: { rgb: primaryColor } },
+          bottom: { style: "medium", color: { rgb: primaryColor } },
+          left: { style: "thin", color: { rgb: borderColor } },
+          right: { style: "thin", color: { rgb: borderColor } }
+        }
+      }
+    };
+  }
+
+  // 移除未实现的方法，这些功能已经在ConfigBasedExporter中实现
+
+  // 移除_applyConfigBasedStyles方法，使用ConfigBasedExporter代替
+
+  /**
+   * 设置自适应列宽
+   */
+  static _setAutoColumnWidths(ws: any, data: any[][], element: HTMLElement): void {
+    try {
+      console.log('📏 开始设置自适应列宽');
+
+      const range = XLSXStyle.utils.decode_range(ws['!ref'] || 'A1');
+      if (!ws['!cols']) ws['!cols'] = [];
+
+      // 计算每列的最大内容宽度
+      for (let col = range.s.c; col <= range.e.c; col++) {
+        let maxWidth = 8; // 最小宽度
+
+        for (let row = range.s.r; row <= range.e.r; row++) {
+          const cellRef = XLSXStyle.utils.encode_cell({ r: row, c: col });
+          if (ws[cellRef] && ws[cellRef].v) {
+            const cellValue = String(ws[cellRef].v);
+            // 计算字符宽度（中文字符按2个字符计算）
+            const charWidth = cellValue.replace(/[^\x00-\xff]/g, "**").length;
+            maxWidth = Math.max(maxWidth, charWidth);
+          }
+        }
+
+        // 设置列宽，限制最大宽度避免过宽
+        const finalWidth = Math.min(maxWidth + 2, 30); // 加2个字符的缓冲，最大30字符
+        ws['!cols'][col] = { wch: finalWidth };
+        console.log(`📏 列${col}宽度设置为: ${finalWidth}字符`);
+      }
+
+      console.log('📏 自适应列宽设置完成');
+    } catch (error) {
+      console.error('设置自适应列宽失败:', error);
+    }
+  }
+
+  /**
+   * 设置元数据行右对齐
+   */
+  static _setMetadataAlignment(ws: any, data: any[][]): void {
+    try {
+      console.log('📐 开始设置元数据行对齐');
+
+      const range = XLSXStyle.utils.decode_range(ws['!ref'] || 'A1');
+
+      // 查找元数据行（通常是第3行，包含"报表日期"等信息）
+      for (let row = range.s.r; row <= Math.min(range.s.r + 5, range.e.r); row++) {
+        const firstCellRef = XLSXStyle.utils.encode_cell({ r: row, c: range.s.c });
+        if (ws[firstCellRef] && ws[firstCellRef].v) {
+          const cellValue = String(ws[firstCellRef].v);
+
+          // 检查是否是元数据行（包含"报表日期"、"数据条数"等）
+          if (cellValue.includes('报表日期') || cellValue.includes('数据条数')) {
+            console.log(`📐 发现元数据行: 第${row + 1}行`);
+
+            // 设置该行的对齐方式为右对齐
+            for (let col = range.s.c; col <= range.e.c; col++) {
+              const cellRef = XLSXStyle.utils.encode_cell({ r: row, c: col });
+              if (ws[cellRef]) {
+                if (!ws[cellRef].s) ws[cellRef].s = {};
+                if (!ws[cellRef].s.alignment) ws[cellRef].s.alignment = {};
+                ws[cellRef].s.alignment.horizontal = 'right';
+                console.log(`📐 设置单元格${cellRef}右对齐`);
+              }
+            }
+            break; // 找到一行就够了
+          }
+        }
+      }
+
+      console.log('📐 元数据行对齐设置完成');
+    } catch (error) {
+      console.error('设置元数据行对齐失败:', error);
+    }
+  }
+
+  /**
+   * 获取行类型
+   */
+  static _getRowType(row: HTMLElement): string {
+    if (row.hasAttribute('data-row-type')) {
+      return row.getAttribute('data-row-type') || 'data';
+    }
+
+    // 检查CSS类名
+    if (row.classList.contains('ddr-subtotal-row')) {
+      return 'subtotal';
+    }
+    if (row.classList.contains('ddr-total-row')) {
+      return 'total';
+    }
+
+    return 'data';
+  }
+
+  /**
+   * 检查单元格是否被合并覆盖
+   */
+  static _isCellMerged(merges: any[], row: number, col: number): boolean {
+    return merges.some(merge => {
+      return row >= merge.s.r && row <= merge.e.r &&
+             col >= merge.s.c && col <= merge.e.c &&
+             !(row === merge.s.r && col === merge.s.c); // 排除合并的起始单元格
+    });
+  }
+
+  /**
+   * 颜色转十六进制（支持多种格式）
+   */
+  static _rgbToHex(color: string): string {
+    if (!color || color === 'transparent') return 'FFFFFF';
+
+    // 如果已经是十六进制格式，直接处理
+    if (color.startsWith('#')) {
+      let hex = color.substring(1);
+
+      // 处理3位十六进制颜色（如 #fff -> #ffffff）
+      if (hex.length === 3) {
+        hex = hex.split('').map(char => char + char).join('');
+      }
+
+      return hex.toUpperCase().padStart(6, '0');
+    }
+
+    // 处理rgb格式
+    const rgbMatch = color.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/);
+    if (rgbMatch) {
+      const r = parseInt(rgbMatch[1]);
+      const g = parseInt(rgbMatch[2]);
+      const b = parseInt(rgbMatch[3]);
+      return ((r << 16) | (g << 8) | b).toString(16).padStart(6, '0').toUpperCase();
+    }
+
+    // 处理rgba格式
+    const rgbaMatch = color.match(/rgba\((\d+),\s*(\d+),\s*(\d+),\s*[\d.]+\)/);
+    if (rgbaMatch) {
+      const r = parseInt(rgbaMatch[1]);
+      const g = parseInt(rgbaMatch[2]);
+      const b = parseInt(rgbaMatch[3]);
+      return ((r << 16) | (g << 8) | b).toString(16).padStart(6, '0').toUpperCase();
+    }
+
+    // 处理命名颜色
+    const namedColors: { [key: string]: string } = {
+      'white': 'FFFFFF',
+      'black': '000000',
+      'red': 'FF0000',
+      'green': '008000',
+      'blue': '0000FF',
+      'gray': '808080',
+      'grey': '808080'
+    };
+
+    if (namedColors[color.toLowerCase()]) {
+      return namedColors[color.toLowerCase()];
+    }
+
+    console.warn(`无法解析颜色: "${color}", 使用默认白色`);
+    return 'FFFFFF';
   }
 
   /**

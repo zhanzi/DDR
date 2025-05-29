@@ -1,6 +1,6 @@
 export declare const DDRReport: import("vue").DefineComponent<import("vue").ExtractPropTypes<{
     config: {
-        type: (ObjectConstructor | StringConstructor)[];
+        type: (StringConstructor | ObjectConstructor)[];
         required: true;
     };
     theme: {
@@ -27,7 +27,7 @@ export declare const DDRReport: import("vue").DefineComponent<import("vue").Extr
     containerRef: import("vue").Ref<HTMLElement | null, HTMLElement | null>;
 }, {}, {}, {}, import("vue").ComponentOptionsMixin, import("vue").ComponentOptionsMixin, ("data-loaded" | "render-complete" | "export-start" | "export-complete" | "metadata-updated" | "error")[], "data-loaded" | "render-complete" | "export-start" | "export-complete" | "metadata-updated" | "error", import("vue").PublicProps, Readonly<import("vue").ExtractPropTypes<{
     config: {
-        type: (ObjectConstructor | StringConstructor)[];
+        type: (StringConstructor | ObjectConstructor)[];
         required: true;
     };
     theme: {

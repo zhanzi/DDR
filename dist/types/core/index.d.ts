@@ -98,6 +98,10 @@ declare class DDR implements DDRInstance {
      */
     private _getValueByPath;
     /**
+     * 从配置中构建基础metadata
+     */
+    private _buildMetadataFromConfig;
+    /**
      * 加载配置
      * @param config 配置路径或对象
      * @returns 加载后的配置

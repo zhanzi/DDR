@@ -122,6 +122,11 @@ class DDR implements DDRInstance {
       this.metadata = apiResponse.metadata || this.metadata;
       this.pagination = apiResponse.pagination || null;
 
+      // 如果使用直接数据且没有metadata，从配置中构建基础metadata
+      if (!this.metadata || Object.keys(this.metadata).length === 0) {
+        this._buildMetadataFromConfig();
+      }
+
       // 处理分组小计（如果启用）
       if (this.config.grouping?.enabled) {
         this.data = this._processGrouping(this.data);
@@ -259,8 +264,23 @@ class DDR implements DDRInstance {
 
       // 执行导出
       if (type === 'excel') {
-        // Excel导出传递DOM元素以保留样式
-        await Exporter.toExcel(this.container, options);
+        // Excel导出：优先使用基于配置的导出，降级到DOM抓取
+        const reportData = {
+          records: this.data,
+          metadata: this.metadata,
+          pagination: this.pagination
+        };
+
+        console.log('📊 DDR导出Excel，数据概览:', {
+          configName: this.config?.meta?.name,
+          recordsCount: this.data?.length || 0,
+          hasMetadata: !!this.metadata,
+          hasPagination: !!this.pagination,
+          hasGrouping: !!(this.config?.grouping?.enabled),
+          metadataContent: this.metadata
+        });
+
+        await Exporter.toExcel(this.container, options, this.config, reportData);
       } else if (type === 'pdf') {
         // PDF导出传递DOM元素和配置
         await Exporter.toPDF(this.container, this.config, options);
@@ -425,6 +445,31 @@ class DDR implements DDRInstance {
     if (!path) return undefined;
     return path.split('.').reduce((acc, part) =>
       acc && acc[part] !== undefined ? acc[part] : undefined, this.metadata);
+  }
+
+  /**
+   * 从配置中构建基础metadata
+   */
+  private _buildMetadataFromConfig(): void {
+    if (!this.config) return;
+
+    const metadata: Record<string, any> = {};
+
+    // 从header.fields中提取metadata
+    if (this.config.header?.fields) {
+      this.config.header.fields.forEach(field => {
+        if (field.key && field.value !== undefined) {
+          metadata[field.key] = field.value;
+        }
+      });
+    }
+
+    // 添加一些基础信息
+    metadata.dataCount = this.data?.length || 0;
+    metadata.reportDate = new Date().toLocaleDateString();
+
+    this.metadata = { ...this.metadata, ...metadata };
+    console.log('📊 从配置构建metadata:', this.metadata);
   }
 
   /**
@@ -1591,6 +1636,12 @@ class DDR implements DDRInstance {
       // 添加行类型属性（用于分组样式）
       if (rowData._rowType) {
         row.setAttribute('data-row-type', rowData._rowType);
+        // 同时添加CSS类，便于样式应用和Excel导出识别
+        if (rowData._rowType === 'subtotal') {
+          row.classList.add('ddr-subtotal-row');
+        } else if (rowData._rowType === 'total') {
+          row.classList.add('ddr-total-row');
+        }
       }
 
       // 应用配置的行高

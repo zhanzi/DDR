@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Excel导出测试</title>
+    <link rel="stylesheet" href="dist/ddr-core.css">
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .controls {
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 6px;
+        }
+        .btn {
+            padding: 8px 16px;
+            margin-right: 10px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .btn-primary { background: #1890ff; color: white; }
+        .btn-success { background: #52c41a; color: white; }
+        .btn:hover { opacity: 0.8; }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        #report { margin-top: 20px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Excel导出测试</h1>
+        
+        <div class="controls">
+            <button id="exportExcel" class="btn btn-success">导出Excel</button>
+            <button id="showData" class="btn btn-primary">显示数据</button>
+        </div>
+        
+        <div id="report"></div>
+        
+        <div id="dataPanel" style="display: none; margin-top: 20px;">
+            <h3>数据结构</h3>
+            <pre id="dataCode" style="background: #f6f8fa; padding: 15px; border-radius: 6px; overflow: auto;"></pre>
+        </div>
+    </div>
+
+    <script src="dist/ddr-core.browser.js"></script>
+    <script>
+        let currentReport = null;
+
+        // 生成测试数据
+        function generateTestData() {
+            const regions = ['华东', '华南', '华北'];
+            const categories = ['电子产品', '家居用品', '食品饮料'];
+            const products = ['产品A', '产品B', '产品C'];
+            const salespeople = ['张三', '李四', '王五'];
+
+            const data = [];
+            let id = 1;
+
+            regions.forEach(region => {
+                for (let i = 0; i < 8; i++) {
+                    data.push({
+                        id: id++,
+                        region: region,
+                        category: categories[i % categories.length],
+                        product: products[i % products.length],
+                        salesperson: salespeople[i % salespeople.length],
+                        quantity: Math.floor(Math.random() * 100) + 10,
+                        price: parseFloat((Math.random() * 800 + 200).toFixed(2)),
+                        amount: parseFloat((Math.random() * 40000 + 5000).toFixed(2)),
+                        cost: parseFloat((Math.random() * 25000 + 2000).toFixed(2))
+                    });
+                }
+            });
+
+            return data;
+        }
+
+        // 创建报表配置
+        function createConfig() {
+            const data = generateTestData();
+            
+            return {
+                dataSource: { data: data },
+                header: {
+                    title: { text: '销售报表 - Excel导出测试' },
+                    subtitle: { text: '测试基于配置的Excel导出功能' },
+                    fields: [
+                        { key: 'reportDate', label: '报表日期:', value: new Date().toLocaleDateString() },
+                        { key: 'dataCount', label: '数据条数:', value: data.length.toString() }
+                    ]
+                },
+                grouping: {
+                    enabled: true,
+                    groupBy: 'region',
+                    subtotals: [
+                        { field: 'amount', type: 'sum' },
+                        { field: 'quantity', type: 'sum' }
+                    ],
+                    subtotalLabel: '小计',
+                    showGrandTotal: true,
+                    grandTotalLabel: '总计'
+                },
+                columns: [
+                    { key: 'id', title: '序号', width: 80, align: 'center' },
+                    { key: 'region', title: '地区', width: 100 },
+                    { key: 'category', title: '产品类别', width: 120 },
+                    { key: 'product', title: '产品名称', width: 120 },
+                    { key: 'salesperson', title: '销售员', width: 100 },
+                    { key: 'quantity', title: '销售数量', width: 100, align: 'right', formatter: 'number' },
+                    { key: 'price', title: '单价', width: 120, align: 'right', formatter: 'currency' },
+                    { key: 'amount', title: '销售额', width: 150, align: 'right', formatter: 'currency' },
+                    { key: 'cost', title: '成本', width: 120, align: 'right', formatter: 'currency' }
+                ],
+                layout: {
+                    rowHeight: 40,
+                    stripe: true,
+                    bordered: true,
+                    hover: true
+                },
+                features: {
+                    exportExcel: true,
+                    exportPdf: true
+                }
+            };
+        }
+
+        // 创建报表
+        function createReport() {
+            const config = createConfig();
+            
+            if (currentReport) {
+                currentReport.destroy();
+            }
+
+            currentReport = DDR.create({
+                container: document.getElementById('report'),
+                config: config,
+                onLoad: () => {
+                    console.log('报表加载完成');
+                    document.getElementById('exportExcel').disabled = false;
+                },
+                onError: (error) => console.error('报表加载出错:', error)
+            });
+
+            return config;
+        }
+
+        // 显示数据结构
+        function showData() {
+            const config = createConfig();
+            const dataPanel = document.getElementById('dataPanel');
+            const dataCode = document.getElementById('dataCode');
+
+            if (dataPanel.style.display === 'none') {
+                dataPanel.style.display = 'block';
+                dataCode.textContent = JSON.stringify({
+                    header: config.header,
+                    grouping: config.grouping,
+                    columns: config.columns.map(col => ({ key: col.key, title: col.title, formatter: col.formatter })),
+                    sampleData: config.dataSource.data.slice(0, 3)
+                }, null, 2);
+                document.getElementById('showData').textContent = '隐藏数据';
+            } else {
+                dataPanel.style.display = 'none';
+                document.getElementById('showData').textContent = '显示数据';
+            }
+        }
+
+        // 绑定事件
+        document.getElementById('exportExcel').addEventListener('click', async () => {
+            if (currentReport) {
+                console.log('🚀 开始Excel导出测试');
+                await currentReport.exportTo('excel', {
+                    fileName: 'Excel导出测试_' + new Date().toISOString().split('T')[0]
+                });
+            }
+        });
+
+        document.getElementById('showData').addEventListener('click', showData);
+
+        // 初始化
+        document.addEventListener('DOMContentLoaded', () => {
+            createReport();
+        });
+    </script>
+</body>
+</html>
