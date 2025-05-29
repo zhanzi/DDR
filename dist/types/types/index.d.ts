@@ -92,6 +92,25 @@ export interface DDRConfig {
         showOnPrint?: boolean;
         fixed?: boolean;
     };
+    grouping?: {
+        enabled: boolean;
+        groupBy: string | string[];
+        subtotals: Array<{
+            field: string;
+            type: "sum" | "avg" | "count" | "max" | "min";
+            label?: string;
+        }>;
+        subtotalLabel?: string;
+        showGrandTotal?: boolean;
+        grandTotalLabel?: string;
+        multiLevel?: boolean;
+        subtotalLabels?: string[];
+        styles?: {
+            subtotalRow?: Record<string, any>;
+            totalRow?: Record<string, any>;
+            groupColumn?: Record<string, any>;
+        };
+    };
     features?: {
         exportExcel?: boolean;
         exportPdf?: boolean;

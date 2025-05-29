@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DDR报表内置分组小计功能演示</title>
+  <link rel="stylesheet" href="../../dist/ddr-core.css">
+  <style>
+    body, html {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB',
+        'Microsoft YaHei', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    }
+
+    .container {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .toolbar {
+      padding: 16px;
+      background-color: #f5f5f5;
+      border-bottom: 1px solid #e0e0e0;
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .report-container {
+      flex: 1;
+      padding: 16px;
+      overflow: auto;
+    }
+
+    .report {
+      height: 100%;
+      border: 1px solid #e0e0e0;
+      overflow: auto;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
+
+    button {
+      padding: 8px 16px;
+      border: none;
+      background-color: #1890ff;
+      color: white;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: background-color 0.3s;
+      font-size: 14px;
+    }
+
+    button:hover {
+      background-color: #40a9ff;
+    }
+
+    button:disabled {
+      background-color: #d9d9d9;
+      color: #999;
+      cursor: not-allowed;
+    }
+
+    button:disabled:hover {
+      background-color: #d9d9d9;
+    }
+
+    .demo-button {
+      background-color: #52c41a;
+    }
+
+    .demo-button:hover {
+      background-color: #73d13d;
+    }
+
+    .config-button {
+      background-color: #722ed1;
+    }
+
+    .config-button:hover {
+      background-color: #9254de;
+    }
+
+    .info {
+      background-color: #e6f7ff;
+      border: 1px solid #91d5ff;
+      border-radius: 4px;
+      padding: 12px;
+      margin-bottom: 16px;
+      font-size: 14px;
+    }
+
+    .info h3 {
+      margin: 0 0 8px 0;
+      color: #1890ff;
+    }
+
+    .info ul {
+      margin: 8px 0 0 0;
+      padding-left: 20px;
+    }
+
+    .info li {
+      margin: 4px 0;
+    }
+
+    .config-panel {
+      background-color: #f9f9f9;
+      border: 1px solid #d9d9d9;
+      border-radius: 4px;
+      padding: 12px;
+      margin-bottom: 16px;
+      font-size: 14px;
+    }
+
+    .config-panel h4 {
+      margin: 0 0 8px 0;
+      color: #722ed1;
+    }
+
+    .config-code {
+      background-color: #f6f8fa;
+      border: 1px solid #e1e4e8;
+      border-radius: 3px;
+      padding: 8px;
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+      overflow-x: auto;
+      white-space: pre;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="toolbar">
+      <button id="demo1" class="demo-button">基础分组小计</button>
+      <button id="demo2" class="demo-button">多字段汇总</button>
+      <button id="demo3" class="demo-button">自定义样式</button>
+      <button id="showConfig" class="config-button">显示配置</button>
+      <button id="exportExcel">导出Excel</button>
+      <button id="exportPdf">导出PDF</button>
+      <button id="print">打印</button>
+    </div>
+
+    <div class="report-container">
+      <div class="info">
+        <h3>🚀 DDR报表内置分组小计功能演示</h3>
+        <p>本示例展示了DDR组件内置的分组小计功能，无需手动预处理数据：</p>
+        <ul>
+          <li><strong>基础分组小计</strong>：通过配置grouping选项实现按地区分组的销售额小计</li>
+          <li><strong>多字段汇总</strong>：同时对多个字段进行不同类型的汇总统计</li>
+          <li><strong>自定义样式</strong>：自定义小计行和总计行的显示样式</li>
+          <li><strong>自动处理</strong>：组件自动处理数据分组、小计计算和样式应用</li>
+        </ul>
+        <p><strong>优势</strong>：配置简单、样式统一、导出兼容、性能优化</p>
+      </div>
+
+      <div id="configPanel" class="config-panel" style="display: none;">
+        <h4>📋 当前配置</h4>
+        <div id="configCode" class="config-code"></div>
+      </div>
+
+      <div id="report" class="report"></div>
+    </div>
+  </div>
+
+  <script src="../../dist/ddr-core.browser.js"></script>
+  <script>
+    // 生成模拟数据
+    function generateMockData(count = 40) {
+      const regions = ['华东', '华南', '华北', '西南', '华中'];
+      const categories = ['电子产品', '家居用品', '食品饮料', '服装鞋帽'];
+      const products = ['产品A', '产品B', '产品C', '产品D', '产品E', '产品F'];
+      const salespeople = ['张三', '李四', '王五', '赵六', '钱七'];
+
+      return Array.from({ length: count }, (_, index) => ({
+        id: index + 1,
+        date: new Date(2025, 4, (index % 30) + 1).toISOString().split('T')[0],
+        region: regions[index % regions.length],
+        category: categories[index % categories.length],
+        product: products[index % products.length],
+        salesperson: salespeople[index % salespeople.length],
+        quantity: Math.floor(Math.random() * 100) + 1,
+        price: parseFloat((Math.random() * 1000 + 100).toFixed(2)),
+        amount: parseFloat((Math.random() * 50000 + 1000).toFixed(2)),
+        cost: parseFloat((Math.random() * 30000 + 500).toFixed(2))
+      }));
+    }
+
+    let currentReport = null;
+    let currentConfig = null;
+
+    // 基础列配置
+    function getBaseColumns() {
+      return [
+        {
+          key: 'id',
+          title: '序号',
+          width: 80,
+          align: 'center'
+        },
+        {
+          key: 'region',
+          title: '地区',
+          width: 100,
+          merge: 'vertical'
+        },
+        {
+          key: 'category',
+          title: '产品类别',
+          width: 120
+        },
+        {
+          key: 'product',
+          title: '产品名称',
+          width: 120
+        },
+        {
+          key: 'salesperson',
+          title: '销售员',
+          width: 100
+        },
+        {
+          key: 'quantity',
+          title: '销售数量',
+          width: 100,
+          align: 'right',
+          formatter: 'number'
+        },
+        {
+          key: 'price',
+          title: '单价',
+          width: 120,
+          align: 'right',
+          formatter: 'currency'
+        },
+        {
+          key: 'amount',
+          title: '销售额',
+          width: 150,
+          align: 'right',
+          formatter: 'currency'
+        },
+        {
+          key: 'cost',
+          title: '成本',
+          width: 120,
+          align: 'right',
+          formatter: 'currency'
+        }
+      ];
+    }
+
+    // 示例1：基础分组小计
+    function createDemo1() {
+      const rawData = generateMockData(120);
+
+      const config = {
+        dataSource: { data: rawData },
+        header: {
+          title: { text: '销售报表 - 基础分组小计' },
+          subtitle: { text: '使用内置分组功能按地区统计销售额和数量' },
+          fields: [
+            { key: 'reportDate', label: '报表日期:', value: new Date().toLocaleDateString() },
+            { key: 'dataCount', label: '数据条数:', value: rawData.length.toString(), position: 'right' }
+          ]
+        },
+        // 内置分组配置
+        grouping: {
+          enabled: true,
+          groupBy: 'region',
+          subtotals: [
+            { field: 'amount', type: 'sum' },
+            { field: 'quantity', type: 'sum' }
+          ],
+          subtotalLabel: '小计',
+          showGrandTotal: true,
+          grandTotalLabel: '总计'
+        },
+        columns: getBaseColumns(),
+        layout: {
+          rowHeight: 40,
+          stripe: true,
+          bordered: true,
+          hover: true
+        },
+        features: {
+          exportExcel: true,
+          exportPdf: true,
+          watermark: '深圳市三联众瑞科技有限公司'
+        }
+      };
+
+      currentConfig = config;
+      return createReport(config, '基础分组小计演示');
+    }
+
+    // 示例2：多字段汇总
+    function createDemo2() {
+      // 生成更多样化的数据，确保每个地区有足够的数据
+      const regions = ['华东', '华南', '华北'];
+      const categories = ['电子产品', '家居用品', '食品饮料'];
+      const products = ['产品A', '产品B', '产品C'];
+      const salespeople = ['张三', '李四', '王五'];
+
+      const rawData = [];
+      let id = 1;
+
+      // 为每个地区生成数据
+      regions.forEach((region, regionIndex) => {
+        // 每个地区生成8-12条数据
+        const count = 8 + Math.floor(Math.random() * 5);
+        for (let i = 0; i < count; i++) {
+          rawData.push({
+            id: id++,
+            date: new Date(2025, 4, (id % 30) + 1).toISOString().split('T')[0],
+            region: region,
+            category: categories[i % categories.length],
+            product: products[i % products.length],
+            salesperson: salespeople[i % salespeople.length],
+            quantity: Math.floor(Math.random() * 100) + 10,
+            price: parseFloat((Math.random() * 800 + 200).toFixed(2)),
+            amount: parseFloat((Math.random() * 40000 + 5000).toFixed(2)),
+            cost: parseFloat((Math.random() * 25000 + 2000).toFixed(2))
+          });
+        }
+      });
+
+      const config = {
+        dataSource: { data: rawData },
+        header: {
+          title: { text: '销售报表 - 多字段汇总统计' },
+          subtitle: { text: '按地区分组，对多个字段进行不同类型的汇总计算' },
+          fields: [
+            { key: 'reportDate', label: '报表日期:', value: new Date().toLocaleDateString() },
+            { key: 'dataCount', label: '数据条数:', value: rawData.length.toString(), position: 'right' }
+          ]
+        },
+        // 多字段汇总配置
+        grouping: {
+          enabled: true,
+          groupBy: 'region',
+          subtotals: [
+            { field: 'amount', type: 'sum' },      // 销售额求和
+            { field: 'cost', type: 'sum' },        // 成本求和
+            { field: 'quantity', type: 'sum' },    // 数量求和
+            { field: 'price', type: 'avg' }        // 单价平均值
+          ],
+          subtotalLabel: '地区小计',
+          showGrandTotal: true,
+          grandTotalLabel: '总计'
+        },
+        columns: getBaseColumns(),
+        layout: {
+          rowHeight: 40,
+          stripe: true,
+          bordered: true,
+          hover: true
+        },
+        features: {
+          exportExcel: true,
+          exportPdf: true,
+          watermark: '深圳市三联众瑞科技有限公司'
+        }
+      };
+
+      currentConfig = config;
+      return createReport(config, '多字段汇总演示');
+    }
+
+    // 示例3：自定义样式
+    function createDemo3() {
+      const rawData = generateMockData(120);
+
+      const config = {
+        dataSource: { data: rawData },
+        header: {
+          title: { text: '销售报表 - 自定义分组样式' },
+          subtitle: { text: '自定义小计行和总计行的显示样式' },
+          fields: [
+            { key: 'reportDate', label: '报表日期:', value: new Date().toLocaleDateString() },
+            { key: 'dataCount', label: '数据条数:', value: rawData.length.toString(), position: 'right' }
+          ]
+        },
+        // 自定义样式的分组配置
+        grouping: {
+          enabled: true,
+          groupBy: 'category',
+          subtotals: [
+            { field: 'amount', type: 'sum' },
+            { field: 'quantity', type: 'sum' },
+            { field: 'cost', type: 'sum' }
+          ],
+          subtotalLabel: '类别小计',
+          showGrandTotal: true,
+          grandTotalLabel: '总计',
+          // 自定义样式
+          styles: {
+            subtotalRow: {
+              fontWeight: 'bold',
+              backgroundColor: '#fff7e6',
+              borderTop: '2px solid #ffa940',
+              color: '#d46b08'
+            },
+            totalRow: {
+              fontWeight: 'bold',
+              backgroundColor: '#f6ffed',
+              borderTop: '2px solid #52c41a',
+              color: '#389e0d'
+            },
+            groupColumn: {
+              fontWeight: '600',
+              color: '#722ed1'
+            }
+          }
+        },
+        columns: getBaseColumns(),
+        layout: {
+          rowHeight: 40,
+          stripe: true,
+          bordered: true,
+          hover: true
+        },
+        features: {
+          exportExcel: true,
+          exportPdf: true,
+          watermark: '深圳市三联众瑞科技有限公司'
+        }
+      };
+
+      currentConfig = config;
+      return createReport(config, '自定义样式演示');
+    }
+
+    // 创建报表
+    function createReport(config, description) {
+      if (currentReport) {
+        currentReport.destroy();
+      }
+
+      currentReport = DDR.create({
+        container: document.getElementById('report'),
+        config: config,
+        onLoad: () => {
+          console.log(`${description}加载完成`);
+          // 报表加载完成后，启用导出按钮
+          enableExportButtons();
+        },
+        onError: (error) => console.error(`${description}加载出错:`, error)
+      });
+
+      // 报表创建时，暂时禁用导出按钮
+      disableExportButtons();
+
+      return currentReport;
+    }
+
+    // 禁用导出按钮
+    function disableExportButtons() {
+      document.getElementById('exportExcel').disabled = true;
+      document.getElementById('exportPdf').disabled = true;
+      document.getElementById('print').disabled = true;
+    }
+
+    // 启用导出按钮
+    function enableExportButtons() {
+      document.getElementById('exportExcel').disabled = false;
+      document.getElementById('exportPdf').disabled = false;
+      document.getElementById('print').disabled = false;
+    }
+
+    // 显示配置
+    function showConfig() {
+      const configPanel = document.getElementById('configPanel');
+      const configCode = document.getElementById('configCode');
+
+      if (configPanel.style.display === 'none') {
+        configPanel.style.display = 'block';
+        if (currentConfig) {
+          configCode.textContent = JSON.stringify(currentConfig.grouping, null, 2);
+        }
+        document.getElementById('showConfig').textContent = '隐藏配置';
+      } else {
+        configPanel.style.display = 'none';
+        document.getElementById('showConfig').textContent = '显示配置';
+      }
+    }
+
+    // 绑定事件
+    document.getElementById('demo1').addEventListener('click', createDemo1);
+    document.getElementById('demo2').addEventListener('click', createDemo2);
+    document.getElementById('demo3').addEventListener('click', createDemo3);
+    document.getElementById('showConfig').addEventListener('click', showConfig);
+
+    document.getElementById('exportExcel').addEventListener('click', async () => {
+      if (currentReport) {
+        // 添加短暂延迟确保DOM完全更新
+        await new Promise(resolve => setTimeout(resolve, 100));
+
+        console.log('开始Excel导出，当前数据行数:', currentReport.data?.length || '未知');
+
+        currentReport.exportTo('excel', {
+          fileName: '销售报表_内置分组_' + new Date().toISOString().split('T')[0]
+        });
+      }
+    });
+
+    document.getElementById('exportPdf').addEventListener('click', async () => {
+      if (currentReport) {
+        // 添加短暂延迟确保DOM完全更新
+        await new Promise(resolve => setTimeout(resolve, 100));
+
+        console.log('开始PDF导出，当前数据行数:', currentReport.data?.length || '未知');
+
+        currentReport.exportTo('pdf', {
+          fileName: '销售报表_内置分组_' + new Date().toISOString().split('T')[0]
+        });
+      }
+    });
+
+    document.getElementById('print').addEventListener('click', () => {
+      if (currentReport) {
+        currentReport.print();
+      }
+    });
+
+    // 默认加载示例1
+    document.addEventListener('DOMContentLoaded', () => {
+      createDemo1();
+    });
+  </script>
+</body>
+</html>

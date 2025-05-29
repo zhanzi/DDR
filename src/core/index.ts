@@ -122,6 +122,12 @@ class DDR implements DDRInstance {
       this.metadata = apiResponse.metadata || this.metadata;
       this.pagination = apiResponse.pagination || null;
 
+      // 处理分组小计（如果启用）
+      if (this.config.grouping?.enabled) {
+        this.data = this._processGrouping(this.data);
+        console.log(`📊 分组处理完成，数据行数：${this.data.length}`);
+      }
+
       // 渲染报表
       this._render();
 
@@ -157,6 +163,12 @@ class DDR implements DDRInstance {
       }
 
       this.pagination = apiResponse.pagination || null;
+
+      // 处理分组小计（如果启用）
+      if (this.config.grouping?.enabled) {
+        this.data = this._processGrouping(this.data);
+        console.log(`📊 重新加载后分组处理完成，数据行数：${this.data.length}`);
+      }
 
       // 重新渲染
       this._render();
@@ -782,7 +794,28 @@ class DDR implements DDRInstance {
     if (headerConfig.subtitle) {
       const subtitleElement = document.createElement('div');
       subtitleElement.className = 'ddr-header-subtitle';
-      subtitleElement.textContent = headerConfig.subtitle;
+
+      // 处理副标题文本
+      let subtitleText = '';
+      if (typeof headerConfig.subtitle === 'string') {
+        subtitleText = headerConfig.subtitle;
+      } else if (typeof headerConfig.subtitle === 'object' && headerConfig.subtitle !== null) {
+        const subtitleObj = headerConfig.subtitle as any;
+        subtitleText = subtitleObj.text || String(headerConfig.subtitle);
+      } else {
+        subtitleText = String(headerConfig.subtitle);
+      }
+
+      subtitleElement.textContent = subtitleText;
+
+      // 应用副标题样式(如果有)
+      if (typeof headerConfig.subtitle === 'object' && headerConfig.subtitle !== null) {
+        const subtitleObj = headerConfig.subtitle as any;
+        if (subtitleObj.style) {
+          Object.assign(subtitleElement.style, subtitleObj.style);
+        }
+      }
+
       centerContainer.appendChild(subtitleElement);
     }
 
@@ -1054,6 +1087,257 @@ class DDR implements DDRInstance {
   }
 
   /**
+   * 处理分组小计功能
+   * @param data 原始数据
+   * @returns 处理后的数据（包含小计和合计行）
+   */
+  private _processGrouping(data: any[]): any[] {
+    const groupingConfig = this.config.grouping;
+    if (!groupingConfig || !groupingConfig.enabled || !data.length) {
+      return data;
+    }
+
+    console.log(`📊 开始处理分组小计，原始数据 ${data.length} 行`);
+
+    // 使用内置的分组处理逻辑
+    return this._processSingleGroupSubtotals(data, {
+      groupBy: Array.isArray(groupingConfig.groupBy) ? groupingConfig.groupBy[0] : groupingConfig.groupBy,
+      subtotals: groupingConfig.subtotals,
+      subtotalLabel: groupingConfig.subtotalLabel || '小计',
+      showGrandTotal: groupingConfig.showGrandTotal !== false,
+      grandTotalLabel: groupingConfig.grandTotalLabel || '总计'
+    });
+  }
+
+  /**
+   * 单级分组处理（内置版本）
+   * @param data 原始数据
+   * @param options 配置选项
+   * @returns 处理后的数据
+   */
+  private _processSingleGroupSubtotals(data: any[], options: {
+    groupBy: string;
+    subtotals: Array<{ field: string; type: string; label?: string; }>;
+    subtotalLabel: string;
+    showGrandTotal: boolean;
+    grandTotalLabel: string;
+  }): any[] {
+    const { groupBy, subtotals, subtotalLabel, showGrandTotal, grandTotalLabel } = options;
+
+    if (!data.length || !groupBy) return data;
+
+    // 按分组字段分组
+    const grouped: Record<string, any[]> = {};
+    data.forEach(item => {
+      const groupKey = item[groupBy];
+      if (!grouped[groupKey]) {
+        grouped[groupKey] = [];
+      }
+      grouped[groupKey].push({
+        ...item,
+        _rowType: 'data',
+        _level: 0,
+        _groupKey: groupKey
+      });
+    });
+
+    const result: any[] = [];
+    const grandTotals: Record<string, { type: string; values: number[]; }> = {};
+
+    // 处理每个分组
+    Object.keys(grouped).forEach(groupKey => {
+      const groupData = grouped[groupKey];
+
+      // 添加分组数据
+      result.push(...groupData);
+
+      // 创建小计行
+      const subtotalRow: any = {
+        [groupBy]: `${groupKey} ${subtotalLabel}`,
+        _rowType: 'subtotal',
+        _level: 1,
+        _groupKey: groupKey,
+        _isSubtotal: true
+      };
+
+      // 获取所有列的字段名，用于清空非汇总字段
+      const allFields = this.config.columns.map(col => col.key);
+
+      // 先将所有字段设为空值（除了分组字段）
+      allFields.forEach(field => {
+        if (field !== groupBy) {
+          subtotalRow[field] = null;
+        }
+      });
+
+      // 计算各字段的小计（只计算配置了的字段）
+      subtotals.forEach(subtotalConfig => {
+        const { field, type = 'sum' } = subtotalConfig;
+        const subtotalValue = this._calculateGroupSummary(groupData, field, type);
+        subtotalRow[field] = subtotalValue;
+
+        // 累计到总计
+        if (showGrandTotal && subtotalValue !== null) {
+          if (!grandTotals[field]) {
+            grandTotals[field] = { type, values: [] };
+          }
+          grandTotals[field].values.push(subtotalValue);
+        }
+      });
+
+      result.push(subtotalRow);
+    });
+
+    // 添加总计行
+    if (showGrandTotal && subtotals.length > 0) {
+      const grandTotalRow: any = {
+        [groupBy]: grandTotalLabel,
+        _rowType: 'total',
+        _level: 0,
+        _isGrandTotal: true
+      };
+
+      // 获取所有列的字段名，用于清空非汇总字段
+      const allFields = this.config.columns.map(col => col.key);
+
+      // 先将所有字段设为空值（除了分组字段）
+      allFields.forEach(field => {
+        if (field !== groupBy) {
+          grandTotalRow[field] = null;
+        }
+      });
+
+      // 只计算配置了的字段
+      subtotals.forEach(subtotalConfig => {
+        const { field, type = 'sum' } = subtotalConfig;
+        if (grandTotals[field]) {
+          const { values } = grandTotals[field];
+          if (type === 'sum') {
+            grandTotalRow[field] = values.reduce((sum, val) => sum + val, 0);
+          } else if (type === 'avg') {
+            // 对于平均值，需要重新计算所有原始数据的平均值
+            grandTotalRow[field] = this._calculateGroupSummary(data, field, type);
+          } else {
+            // 其他类型也重新计算
+            grandTotalRow[field] = this._calculateGroupSummary(data, field, type);
+          }
+        }
+      });
+
+      result.push(grandTotalRow);
+    }
+
+    return result;
+  }
+
+  /**
+   * 计算分组汇总值
+   * @param data 数据数组
+   * @param field 字段名
+   * @param type 汇总类型
+   * @returns 汇总值
+   */
+  private _calculateGroupSummary(data: any[], field: string, type: string): number | null {
+    if (!data.length) return null;
+
+    const values = data.map(item => {
+      const value = item[field];
+      return typeof value === 'number' ? value : parseFloat(value) || 0;
+    }).filter(val => !isNaN(val));
+
+    if (!values.length) return null;
+
+    let result: number;
+    switch (type.toLowerCase()) {
+      case 'sum':
+        result = values.reduce((sum, val) => sum + val, 0);
+        break;
+      case 'avg':
+        result = values.reduce((sum, val) => sum + val, 0) / values.length;
+        break;
+      case 'count':
+        result = values.length;
+        break;
+      case 'max':
+        result = Math.max(...values);
+        break;
+      case 'min':
+        result = Math.min(...values);
+        break;
+      default:
+        result = 0;
+    }
+
+    // 检查结果是否为有效数值
+    return isNaN(result) || !isFinite(result) ? null : result;
+  }
+
+  /**
+   * 应用分组样式
+   * @param cell 单元格元素
+   * @param rowData 行数据
+   * @param column 列配置
+   */
+  private _applyGroupingStyles(cell: HTMLTableCellElement, rowData: any, column: any): void {
+    const groupingConfig = this.config.grouping;
+    if (!groupingConfig || !rowData._rowType) return;
+
+    // 获取默认样式
+    const defaultStyles = this._getDefaultGroupingStyles();
+
+    // 应用行类型样式
+    if (rowData._rowType === 'subtotal') {
+      // 应用小计行样式
+      const subtotalStyle = groupingConfig.styles?.subtotalRow || defaultStyles.subtotal;
+      Object.assign(cell.style, subtotalStyle);
+
+      // 为小计行添加CSS类
+      cell.classList.add('ddr-subtotal-cell');
+
+    } else if (rowData._rowType === 'total') {
+      // 应用总计行样式
+      const totalStyle = groupingConfig.styles?.totalRow || defaultStyles.total;
+      Object.assign(cell.style, totalStyle);
+
+      // 为总计行添加CSS类
+      cell.classList.add('ddr-total-cell');
+
+    } else if (rowData._rowType === 'data') {
+      // 普通数据行，检查是否为分组列
+      const groupByField = Array.isArray(groupingConfig.groupBy)
+        ? groupingConfig.groupBy[0]
+        : groupingConfig.groupBy;
+
+      if (column.key === groupByField && groupingConfig.styles?.groupColumn) {
+        Object.assign(cell.style, groupingConfig.styles.groupColumn);
+      }
+    }
+  }
+
+  /**
+   * 获取默认分组样式
+   * @returns 默认样式配置
+   */
+  private _getDefaultGroupingStyles(): Record<string, Record<string, any>> {
+    return {
+      subtotal: {
+        fontWeight: 'bold',
+        backgroundColor: '#f5f5f5',
+        borderTop: '1px solid #d9d9d9'
+      },
+      total: {
+        fontWeight: 'bold',
+        backgroundColor: '#e6f7ff',
+        color: '#1890ff',
+        borderTop: '2px solid #1890ff'
+      },
+      groupColumn: {
+        fontWeight: '500'
+      }
+    };
+  }
+
+  /**
    * 确定渲染模式
    * @returns 渲染模式 'dom' 或 'canvas'
    */
@@ -1304,6 +1588,11 @@ class DDR implements DDRInstance {
       row.className = 'ddr-body-row';
       row.setAttribute('data-index', String(rowIndex));
 
+      // 添加行类型属性（用于分组样式）
+      if (rowData._rowType) {
+        row.setAttribute('data-row-type', rowData._rowType);
+      }
+
       // 应用配置的行高
       if (this.config.layout?.rowHeight) {
         row.style.height = typeof this.config.layout.rowHeight === 'number'
@@ -1344,8 +1633,12 @@ class DDR implements DDRInstance {
           }
         }
 
-        // 设置单元格内容
-        cell.textContent = value !== undefined && value !== null ? String(value) : '';
+        // 设置单元格内容，处理NaN值
+        if (value === undefined || value === null || (typeof value === 'number' && isNaN(value))) {
+          cell.textContent = '';
+        } else {
+          cell.textContent = String(value);
+        }
 
         // 设置单元格样式
         if (column.align) {
@@ -1355,6 +1648,11 @@ class DDR implements DDRInstance {
         // 处理单元格合并
         if (column.merge === 'vertical' || column.merge === true) {
           this._handleCellMerge(cell, rowData, column, rowIndex, colIndex, data, merges);
+        }
+
+        // 应用分组样式（如果启用分组功能）
+        if (this.config.grouping?.enabled) {
+          this._applyGroupingStyles(cell, rowData, column);
         }
 
         // 应用条件样式

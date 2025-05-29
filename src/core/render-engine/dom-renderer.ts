@@ -408,12 +408,22 @@ export class DOMRenderer {
           case 'date':
             return new Date(value).toLocaleDateString();
           case 'currency':
+            // 检查是否为有效数字
+            const numValue = Number(value);
+            if (isNaN(numValue) || !isFinite(numValue)) {
+              return '';
+            }
             return new Intl.NumberFormat('zh-CN', {
               style: 'currency',
               currency: 'CNY'
-            }).format(Number(value));
+            }).format(numValue);
           case 'number':
-            return new Intl.NumberFormat('zh-CN').format(Number(value));
+            // 检查是否为有效数字
+            const numberValue = Number(value);
+            if (isNaN(numberValue) || !isFinite(numberValue)) {
+              return '';
+            }
+            return new Intl.NumberFormat('zh-CN').format(numberValue);
           default:
             return String(value);
         }
@@ -424,16 +434,26 @@ export class DOMRenderer {
           case 'date':
             return new Date(value).toLocaleDateString();
           case 'currency':
+            // 检查是否为有效数字
+            const currencyValue = Number(value);
+            if (isNaN(currencyValue) || !isFinite(currencyValue)) {
+              return '';
+            }
             return new Intl.NumberFormat('zh-CN', {
               style: 'currency',
               currency: (params?.currency as string) || 'CNY'
-            }).format(Number(value));
+            }).format(currencyValue);
           case 'number':
+            // 检查是否为有效数字
+            const formattedValue = Number(value);
+            if (isNaN(formattedValue) || !isFinite(formattedValue)) {
+              return '';
+            }
             return new Intl.NumberFormat('zh-CN', {
               minimumFractionDigits: params?.precision || 0,
               maximumFractionDigits: params?.precision || 0,
               useGrouping: params?.thousandSeparator !== false
-            }).format(Number(value));
+            }).format(formattedValue);
           default:
             return String(value);
         }

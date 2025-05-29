@@ -162,24 +162,30 @@ var DDR = /** @class */function () {
    * 初始化报表
    */
   DDR.prototype.init = function () {
+    var _a;
     return __awaiter(this, void 0, void 0, function () {
-      var _a, apiResponse, error_1;
-      return __generator(this, function (_b) {
-        switch (_b.label) {
+      var _b, apiResponse, error_1;
+      return __generator(this, function (_c) {
+        switch (_c.label) {
           case 0:
-            _b.trys.push([0, 3,, 4]);
+            _c.trys.push([0, 3,, 4]);
             // 加载配置
-            _a = this;
+            _b = this;
             return [4 /*yield*/, this._loadConfig(this.options.config)];
           case 1:
             // 加载配置
-            _a.config = _b.sent();
+            _b.config = _c.sent();
             return [4 /*yield*/, this._fetchData(this.config.dataSource)];
           case 2:
-            apiResponse = _b.sent();
+            apiResponse = _c.sent();
             this.data = apiResponse.records;
             this.metadata = apiResponse.metadata || this.metadata;
             this.pagination = apiResponse.pagination || null;
+            // 处理分组小计（如果启用）
+            if ((_a = this.config.grouping) === null || _a === void 0 ? void 0 : _a.enabled) {
+              this.data = this._processGrouping(this.data);
+              console.log("\uD83D\uDCCA \u5206\u7EC4\u5904\u7406\u5B8C\u6210\uFF0C\u6570\u636E\u884C\u6570\uFF1A".concat(this.data.length));
+            }
             // 渲染报表
             this._render();
             this.initialized = true;
@@ -191,7 +197,7 @@ var DDR = /** @class */function () {
             }
             return [3 /*break*/, 4];
           case 3:
-            error_1 = _b.sent();
+            error_1 = _c.sent();
             this._emitEvent('error', {
               error: error_1
             });
@@ -207,20 +213,21 @@ var DDR = /** @class */function () {
    * @param params 额外的查询参数
    */
   DDR.prototype.reload = function (params) {
+    var _a;
     return __awaiter(this, void 0, void 0, function () {
       var apiResponse, error_2;
-      return __generator(this, function (_a) {
-        switch (_a.label) {
+      return __generator(this, function (_b) {
+        switch (_b.label) {
           case 0:
             if (!this.initialized) {
               throw new Error('DDR尚未初始化');
             }
-            _a.label = 1;
+            _b.label = 1;
           case 1:
-            _a.trys.push([1, 3,, 4]);
+            _b.trys.push([1, 3,, 4]);
             return [4 /*yield*/, this._fetchData(this.config.dataSource, params)];
           case 2:
-            apiResponse = _a.sent();
+            apiResponse = _b.sent();
             this.data = apiResponse.records;
             // 只有在API返回了元数据时才更新
             if (apiResponse.metadata) {
@@ -230,6 +237,11 @@ var DDR = /** @class */function () {
               });
             }
             this.pagination = apiResponse.pagination || null;
+            // 处理分组小计（如果启用）
+            if ((_a = this.config.grouping) === null || _a === void 0 ? void 0 : _a.enabled) {
+              this.data = this._processGrouping(this.data);
+              console.log("\uD83D\uDCCA \u91CD\u65B0\u52A0\u8F7D\u540E\u5206\u7EC4\u5904\u7406\u5B8C\u6210\uFF0C\u6570\u636E\u884C\u6570\uFF1A".concat(this.data.length));
+            }
             // 重新渲染
             this._render();
             this._emitEvent('data-loaded', {
@@ -237,7 +249,7 @@ var DDR = /** @class */function () {
             });
             return [3 /*break*/, 4];
           case 3:
-            error_2 = _a.sent();
+            error_2 = _b.sent();
             this._emitEvent('error', {
               error: error_2
             });
@@ -843,7 +855,24 @@ var DDR = /** @class */function () {
     if (headerConfig.subtitle) {
       var subtitleElement = document.createElement('div');
       subtitleElement.className = 'ddr-header-subtitle';
-      subtitleElement.textContent = headerConfig.subtitle;
+      // 处理副标题文本
+      var subtitleText = '';
+      if (typeof headerConfig.subtitle === 'string') {
+        subtitleText = headerConfig.subtitle;
+      } else if (typeof headerConfig.subtitle === 'object' && headerConfig.subtitle !== null) {
+        var subtitleObj = headerConfig.subtitle;
+        subtitleText = subtitleObj.text || String(headerConfig.subtitle);
+      } else {
+        subtitleText = String(headerConfig.subtitle);
+      }
+      subtitleElement.textContent = subtitleText;
+      // 应用副标题样式(如果有)
+      if (typeof headerConfig.subtitle === 'object' && headerConfig.subtitle !== null) {
+        var subtitleObj = headerConfig.subtitle;
+        if (subtitleObj.style) {
+          Object.assign(subtitleElement.style, subtitleObj.style);
+        }
+      }
       centerContainer.appendChild(subtitleElement);
     }
     topContainer.appendChild(centerContainer);
@@ -1051,6 +1080,229 @@ var DDR = /** @class */function () {
       default:
         return 0;
     }
+  };
+  /**
+   * 处理分组小计功能
+   * @param data 原始数据
+   * @returns 处理后的数据（包含小计和合计行）
+   */
+  DDR.prototype._processGrouping = function (data) {
+    var groupingConfig = this.config.grouping;
+    if (!groupingConfig || !groupingConfig.enabled || !data.length) {
+      return data;
+    }
+    console.log("\uD83D\uDCCA \u5F00\u59CB\u5904\u7406\u5206\u7EC4\u5C0F\u8BA1\uFF0C\u539F\u59CB\u6570\u636E ".concat(data.length, " \u884C"));
+    // 使用内置的分组处理逻辑
+    return this._processSingleGroupSubtotals(data, {
+      groupBy: Array.isArray(groupingConfig.groupBy) ? groupingConfig.groupBy[0] : groupingConfig.groupBy,
+      subtotals: groupingConfig.subtotals,
+      subtotalLabel: groupingConfig.subtotalLabel || '小计',
+      showGrandTotal: groupingConfig.showGrandTotal !== false,
+      grandTotalLabel: groupingConfig.grandTotalLabel || '总计'
+    });
+  };
+  /**
+   * 单级分组处理（内置版本）
+   * @param data 原始数据
+   * @param options 配置选项
+   * @returns 处理后的数据
+   */
+  DDR.prototype._processSingleGroupSubtotals = function (data, options) {
+    var _a;
+    var _this = this;
+    var groupBy = options.groupBy,
+      subtotals = options.subtotals,
+      subtotalLabel = options.subtotalLabel,
+      showGrandTotal = options.showGrandTotal,
+      grandTotalLabel = options.grandTotalLabel;
+    if (!data.length || !groupBy) return data;
+    // 按分组字段分组
+    var grouped = {};
+    data.forEach(function (item) {
+      var groupKey = item[groupBy];
+      if (!grouped[groupKey]) {
+        grouped[groupKey] = [];
+      }
+      grouped[groupKey].push(__assign(__assign({}, item), {
+        _rowType: 'data',
+        _level: 0,
+        _groupKey: groupKey
+      }));
+    });
+    var result = [];
+    var grandTotals = {};
+    // 处理每个分组
+    Object.keys(grouped).forEach(function (groupKey) {
+      var _a;
+      var groupData = grouped[groupKey];
+      // 添加分组数据
+      result.push.apply(result, groupData);
+      // 创建小计行
+      var subtotalRow = (_a = {}, _a[groupBy] = "".concat(groupKey, " ").concat(subtotalLabel), _a._rowType = 'subtotal', _a._level = 1, _a._groupKey = groupKey, _a._isSubtotal = true, _a);
+      // 获取所有列的字段名，用于清空非汇总字段
+      var allFields = _this.config.columns.map(function (col) {
+        return col.key;
+      });
+      // 先将所有字段设为空值（除了分组字段）
+      allFields.forEach(function (field) {
+        if (field !== groupBy) {
+          subtotalRow[field] = null;
+        }
+      });
+      // 计算各字段的小计（只计算配置了的字段）
+      subtotals.forEach(function (subtotalConfig) {
+        var field = subtotalConfig.field,
+          _a = subtotalConfig.type,
+          type = _a === void 0 ? 'sum' : _a;
+        var subtotalValue = _this._calculateGroupSummary(groupData, field, type);
+        subtotalRow[field] = subtotalValue;
+        // 累计到总计
+        if (showGrandTotal && subtotalValue !== null) {
+          if (!grandTotals[field]) {
+            grandTotals[field] = {
+              type: type,
+              values: []
+            };
+          }
+          grandTotals[field].values.push(subtotalValue);
+        }
+      });
+      result.push(subtotalRow);
+    });
+    // 添加总计行
+    if (showGrandTotal && subtotals.length > 0) {
+      var grandTotalRow_1 = (_a = {}, _a[groupBy] = grandTotalLabel, _a._rowType = 'total', _a._level = 0, _a._isGrandTotal = true, _a);
+      // 获取所有列的字段名，用于清空非汇总字段
+      var allFields = this.config.columns.map(function (col) {
+        return col.key;
+      });
+      // 先将所有字段设为空值（除了分组字段）
+      allFields.forEach(function (field) {
+        if (field !== groupBy) {
+          grandTotalRow_1[field] = null;
+        }
+      });
+      // 只计算配置了的字段
+      subtotals.forEach(function (subtotalConfig) {
+        var field = subtotalConfig.field,
+          _a = subtotalConfig.type,
+          type = _a === void 0 ? 'sum' : _a;
+        if (grandTotals[field]) {
+          var values = grandTotals[field].values;
+          if (type === 'sum') {
+            grandTotalRow_1[field] = values.reduce(function (sum, val) {
+              return sum + val;
+            }, 0);
+          } else if (type === 'avg') {
+            // 对于平均值，需要重新计算所有原始数据的平均值
+            grandTotalRow_1[field] = _this._calculateGroupSummary(data, field, type);
+          } else {
+            // 其他类型也重新计算
+            grandTotalRow_1[field] = _this._calculateGroupSummary(data, field, type);
+          }
+        }
+      });
+      result.push(grandTotalRow_1);
+    }
+    return result;
+  };
+  /**
+   * 计算分组汇总值
+   * @param data 数据数组
+   * @param field 字段名
+   * @param type 汇总类型
+   * @returns 汇总值
+   */
+  DDR.prototype._calculateGroupSummary = function (data, field, type) {
+    if (!data.length) return null;
+    var values = data.map(function (item) {
+      var value = item[field];
+      return typeof value === 'number' ? value : parseFloat(value) || 0;
+    }).filter(function (val) {
+      return !isNaN(val);
+    });
+    if (!values.length) return null;
+    var result;
+    switch (type.toLowerCase()) {
+      case 'sum':
+        result = values.reduce(function (sum, val) {
+          return sum + val;
+        }, 0);
+        break;
+      case 'avg':
+        result = values.reduce(function (sum, val) {
+          return sum + val;
+        }, 0) / values.length;
+        break;
+      case 'count':
+        result = values.length;
+        break;
+      case 'max':
+        result = Math.max.apply(Math, values);
+        break;
+      case 'min':
+        result = Math.min.apply(Math, values);
+        break;
+      default:
+        result = 0;
+    }
+    // 检查结果是否为有效数值
+    return isNaN(result) || !isFinite(result) ? null : result;
+  };
+  /**
+   * 应用分组样式
+   * @param cell 单元格元素
+   * @param rowData 行数据
+   * @param column 列配置
+   */
+  DDR.prototype._applyGroupingStyles = function (cell, rowData, column) {
+    var _a, _b, _c;
+    var groupingConfig = this.config.grouping;
+    if (!groupingConfig || !rowData._rowType) return;
+    // 获取默认样式
+    var defaultStyles = this._getDefaultGroupingStyles();
+    // 应用行类型样式
+    if (rowData._rowType === 'subtotal') {
+      // 应用小计行样式
+      var subtotalStyle = ((_a = groupingConfig.styles) === null || _a === void 0 ? void 0 : _a.subtotalRow) || defaultStyles.subtotal;
+      Object.assign(cell.style, subtotalStyle);
+      // 为小计行添加CSS类
+      cell.classList.add('ddr-subtotal-cell');
+    } else if (rowData._rowType === 'total') {
+      // 应用总计行样式
+      var totalStyle = ((_b = groupingConfig.styles) === null || _b === void 0 ? void 0 : _b.totalRow) || defaultStyles.total;
+      Object.assign(cell.style, totalStyle);
+      // 为总计行添加CSS类
+      cell.classList.add('ddr-total-cell');
+    } else if (rowData._rowType === 'data') {
+      // 普通数据行，检查是否为分组列
+      var groupByField = Array.isArray(groupingConfig.groupBy) ? groupingConfig.groupBy[0] : groupingConfig.groupBy;
+      if (column.key === groupByField && ((_c = groupingConfig.styles) === null || _c === void 0 ? void 0 : _c.groupColumn)) {
+        Object.assign(cell.style, groupingConfig.styles.groupColumn);
+      }
+    }
+  };
+  /**
+   * 获取默认分组样式
+   * @returns 默认样式配置
+   */
+  DDR.prototype._getDefaultGroupingStyles = function () {
+    return {
+      subtotal: {
+        fontWeight: 'bold',
+        backgroundColor: '#f5f5f5',
+        borderTop: '1px solid #d9d9d9'
+      },
+      total: {
+        fontWeight: 'bold',
+        backgroundColor: '#e6f7ff',
+        color: '#1890ff',
+        borderTop: '2px solid #1890ff'
+      },
+      groupColumn: {
+        fontWeight: '500'
+      }
+    };
   };
   /**
    * 确定渲染模式
@@ -1272,6 +1524,10 @@ var DDR = /** @class */function () {
       var row = document.createElement('tr');
       row.className = 'ddr-body-row';
       row.setAttribute('data-index', String(rowIndex));
+      // 添加行类型属性（用于分组样式）
+      if (rowData._rowType) {
+        row.setAttribute('data-row-type', rowData._rowType);
+      }
       // 应用配置的行高
       if ((_a = _this.config.layout) === null || _a === void 0 ? void 0 : _a.rowHeight) {
         row.style.height = typeof _this.config.layout.rowHeight === 'number' ? "".concat(_this.config.layout.rowHeight, "px") : _this.config.layout.rowHeight;
@@ -1279,7 +1535,7 @@ var DDR = /** @class */function () {
       // 创建单元格
       var colIndex = 0;
       flatColumns.forEach(function (column) {
-        var _a, _b;
+        var _a, _b, _c;
         // 跳过隐藏列
         if (column.visible === false) {
           return;
@@ -1305,8 +1561,12 @@ var DDR = /** @class */function () {
             }
           }
         }
-        // 设置单元格内容
-        cell.textContent = value !== undefined && value !== null ? String(value) : '';
+        // 设置单元格内容，处理NaN值
+        if (value === undefined || value === null || typeof value === 'number' && isNaN(value)) {
+          cell.textContent = '';
+        } else {
+          cell.textContent = String(value);
+        }
         // 设置单元格样式
         if (column.align) {
           cell.style.textAlign = column.align;
@@ -1315,8 +1575,12 @@ var DDR = /** @class */function () {
         if (column.merge === 'vertical' || column.merge === true) {
           _this._handleCellMerge(cell, rowData, column, rowIndex, colIndex, data, merges);
         }
+        // 应用分组样式（如果启用分组功能）
+        if ((_b = _this.config.grouping) === null || _b === void 0 ? void 0 : _b.enabled) {
+          _this._applyGroupingStyles(cell, rowData, column);
+        }
         // 应用条件样式
-        if ((_b = column.style) === null || _b === void 0 ? void 0 : _b.conditional) {
+        if ((_c = column.style) === null || _c === void 0 ? void 0 : _c.conditional) {
           column.style.conditional.forEach(function (condition) {
             // 简单条件表达式解析
             // 实际项目中可能需要更复杂的表达式解析

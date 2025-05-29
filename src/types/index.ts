@@ -103,6 +103,28 @@ export interface DDRConfig {
     showOnPrint?: boolean;    // 打印时显示
     fixed?: boolean;          // 是否固定在底部
   };
+
+  // 分组小计配置
+  grouping?: {
+    enabled: boolean;             // 是否启用分组功能
+    groupBy: string | string[];   // 分组字段（单个字段或多级分组）
+    subtotals: Array<{            // 小计配置
+      field: string;              // 汇总字段
+      type: "sum" | "avg" | "count" | "max" | "min"; // 汇总类型
+      label?: string;             // 自定义标签
+    }>;
+    subtotalLabel?: string;       // 小计行标签（默认"小计"）
+    showGrandTotal?: boolean;     // 是否显示总计行（默认true）
+    grandTotalLabel?: string;     // 总计行标签（默认"总计"）
+    multiLevel?: boolean;         // 是否多级分组（当groupBy为数组时）
+    subtotalLabels?: string[];    // 多级分组时各级小计标签
+    styles?: {                    // 分组样式配置
+      subtotalRow?: Record<string, any>; // 小计行样式
+      totalRow?: Record<string, any>;    // 总计行样式
+      groupColumn?: Record<string, any>; // 分组列样式
+    };
+  };
+
     // 功能特性
   features?: {
     exportExcel?: boolean;    // Excel导出

@@ -1,0 +1,677 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DDR报表小计合计示例</title>
+  <link rel="stylesheet" href="../../dist/ddr-core.css">
+  <style>
+    body, html {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB',
+        'Microsoft YaHei', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    }
+
+    .container {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .toolbar {
+      padding: 16px;
+      background-color: #f5f5f5;
+      border-bottom: 1px solid #e0e0e0;
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .report-container {
+      flex: 1;
+      padding: 16px;
+      overflow: auto;
+    }
+
+    .report {
+      height: 100%;
+      border: 1px solid #e0e0e0;
+      overflow: auto;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
+
+    button {
+      padding: 8px 16px;
+      border: none;
+      background-color: #1890ff;
+      color: white;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: background-color 0.3s;
+    }
+
+    button:hover {
+      background-color: #40a9ff;
+    }
+
+    .demo-button {
+      background-color: #52c41a;
+    }
+
+    .demo-button:hover {
+      background-color: #73d13d;
+    }
+
+    .info {
+      background-color: #e6f7ff;
+      border: 1px solid #91d5ff;
+      border-radius: 4px;
+      padding: 12px;
+      margin-bottom: 16px;
+      font-size: 14px;
+    }
+
+    .info h3 {
+      margin: 0 0 8px 0;
+      color: #1890ff;
+    }
+
+    .info ul {
+      margin: 8px 0 0 0;
+      padding-left: 20px;
+    }
+
+    .info li {
+      margin: 4px 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="toolbar">
+      <button id="demo1" class="demo-button">示例1：按地区分组小计</button>
+      <button id="demo2" class="demo-button">示例2：多级分组小计</button>
+      <button id="demo3" class="demo-button">示例3：复杂汇总报表</button>
+      <button id="exportExcel">导出Excel</button>
+      <button id="exportPdf">导出PDF</button>
+      <button id="print">打印</button>
+    </div>
+
+    <div class="report-container">
+      <div class="info">
+        <h3>📊 DDR报表小计合计功能演示</h3>
+        <p>本示例展示了如何使用数据预处理工具实现报表的小计和合计功能：</p>
+        <ul>
+          <li><strong>示例1</strong>：按地区分组，显示每个地区的销售额和数量小计</li>
+          <li><strong>示例2</strong>：多级分组（地区 > 产品类别），显示多层级小计</li>
+          <li><strong>示例3</strong>：复杂汇总，包含多种统计类型（求和、平均值、计数等）</li>
+        </ul>
+        <p><strong>特色功能</strong>：小计行和总计行具有不同的样式，支持PDF/Excel导出时保持格式</p>
+      </div>
+      <div id="report" class="report"></div>
+    </div>
+  </div>
+
+  <script src="../../dist/ddr-core.browser.js"></script>
+  <script type="module">
+    // 导入小计处理工具（在实际项目中使用import）
+    // import { processSubtotals, getSubtotalStyles } from '../../src/utils/subtotal-processor.js';
+
+    // 由于浏览器环境限制，这里直接嵌入工具函数
+    function calculateSummary(data, field, type = 'sum') {
+      if (!data.length) return 0;
+      const values = data.map(item => {
+        const value = item[field];
+        return typeof value === 'number' ? value : parseFloat(value) || 0;
+      }).filter(val => !isNaN(val));
+      if (!values.length) return 0;
+      switch (type.toLowerCase()) {
+        case 'sum': return values.reduce((sum, val) => sum + val, 0);
+        case 'avg': return values.reduce((sum, val) => sum + val, 0) / values.length;
+        case 'count': return values.length;
+        case 'max': return Math.max(...values);
+        case 'min': return Math.min(...values);
+        default: return 0;
+      }
+    }
+
+    function processSingleGroupSubtotals(data, options) {
+      const {
+        groupBy,
+        subtotals = [],
+        subtotalLabel = '小计',
+        showGrandTotal = true,
+        grandTotalLabel = '总计'
+      } = options;
+
+      if (!data.length || !groupBy) return data;
+
+      const grouped = {};
+      data.forEach(item => {
+        const groupKey = item[groupBy];
+        if (!grouped[groupKey]) grouped[groupKey] = [];
+        grouped[groupKey].push({
+          ...item,
+          _rowType: 'data',
+          _level: 0,
+          _groupKey: groupKey
+        });
+      });
+
+      const result = [];
+      const grandTotals = {};
+
+      Object.keys(grouped).forEach(groupKey => {
+        const groupData = grouped[groupKey];
+        result.push(...groupData);
+
+        const subtotalRow = {
+          [groupBy]: `${groupKey} ${subtotalLabel}`,
+          _rowType: 'subtotal',
+          _level: 1,
+          _groupKey: groupKey,
+          _isSubtotal: true
+        };
+
+        subtotals.forEach(subtotalConfig => {
+          const { field, type = 'sum' } = subtotalConfig;
+          const subtotalValue = calculateSummary(groupData, field, type);
+          subtotalRow[field] = subtotalValue;
+          if (showGrandTotal) {
+            if (!grandTotals[field]) grandTotals[field] = { type, values: [] };
+            grandTotals[field].values.push(subtotalValue);
+          }
+        });
+
+        result.push(subtotalRow);
+      });
+
+      if (showGrandTotal && subtotals.length > 0) {
+        const grandTotalRow = {
+          [groupBy]: grandTotalLabel,
+          _rowType: 'total',
+          _level: 0,
+          _isGrandTotal: true
+        };
+
+        subtotals.forEach(subtotalConfig => {
+          const { field, type = 'sum' } = subtotalConfig;
+          if (grandTotals[field]) {
+            const { values } = grandTotals[field];
+            grandTotalRow[field] = type === 'sum'
+              ? values.reduce((sum, val) => sum + val, 0)
+              : calculateSummary(data, field, type);
+          }
+        });
+
+        result.push(grandTotalRow);
+      }
+
+      return result;
+    }
+
+    function processSubtotals(data, options = {}) {
+      if (!Array.isArray(data) || data.length === 0) return data;
+      const { groupBy, subtotals = [], ...otherOptions } = options;
+      const groupField = Array.isArray(groupBy) ? groupBy[0] : groupBy;
+      return processSingleGroupSubtotals(data, { groupBy: groupField, subtotals, ...otherOptions });
+    }
+
+    function getSubtotalStyles() {
+      return [
+        {
+          when: 'row._rowType === "subtotal"',
+          style: {
+            fontWeight: 'bold',
+            backgroundColor: '#f5f5f5',
+            borderTop: '1px solid #d9d9d9'
+          }
+        },
+        {
+          when: 'row._rowType === "total"',
+          style: {
+            fontWeight: 'bold',
+            backgroundColor: '#e6f7ff',
+            color: '#1890ff',
+            borderTop: '2px solid #1890ff'
+          }
+        }
+      ];
+    }
+
+    // 生成模拟数据
+    function generateMockData(count = 50) {
+      const regions = ['华东', '华南', '华北', '西南'];
+      const categories = ['电子产品', '家居用品', '食品饮料', '服装鞋帽'];
+      const products = ['产品A', '产品B', '产品C', '产品D', '产品E'];
+
+      return Array.from({ length: count }, (_, index) => ({
+        id: index + 1,
+        date: new Date(2025, 4, (index % 30) + 1).toISOString().split('T')[0],
+        region: regions[index % regions.length],
+        category: categories[index % categories.length],
+        product: products[index % products.length],
+        quantity: Math.floor(Math.random() * 100) + 1,
+        price: parseFloat((Math.random() * 1000 + 100).toFixed(2)),
+        amount: parseFloat((Math.random() * 50000 + 1000).toFixed(2))
+      }));
+    }
+
+    let currentReport = null;
+
+    // 示例1：按地区分组小计
+    function createDemo1() {
+      const rawData = generateMockData(30);
+
+      // 处理数据，按地区分组并添加小计
+      const processedData = processSubtotals(rawData, {
+        groupBy: 'region',
+        subtotals: [
+          { field: 'amount', type: 'sum' },
+          { field: 'quantity', type: 'sum' }
+        ],
+        subtotalLabel: '小计',
+        showGrandTotal: true,
+        grandTotalLabel: '总计'
+      });
+
+      return createReport(processedData, {
+        title: '销售报表 - 按地区分组小计',
+        subtitle: '展示各地区销售额和数量的小计汇总'
+      });
+    }
+
+    // 示例2：多级分组小计（地区 > 产品类别）
+    function createDemo2() {
+      const rawData = generateMockData(40);
+
+      // 先按地区分组
+      const regionGrouped = processSubtotals(rawData, {
+        groupBy: 'region',
+        subtotals: [
+          { field: 'amount', type: 'sum' },
+          { field: 'quantity', type: 'sum' }
+        ],
+        subtotalLabel: '地区小计',
+        showGrandTotal: false
+      });
+
+      // 再按产品类别在每个地区内分组
+      const result = [];
+      let currentRegion = null;
+      let regionData = [];
+
+      regionGrouped.forEach(row => {
+        if (row._rowType === 'subtotal') {
+          // 处理当前地区的数据
+          if (regionData.length > 0) {
+            const categoryGrouped = processSubtotals(regionData, {
+              groupBy: 'category',
+              subtotals: [
+                { field: 'amount', type: 'sum' },
+                { field: 'quantity', type: 'sum' }
+              ],
+              subtotalLabel: '类别小计',
+              showGrandTotal: false
+            });
+            result.push(...categoryGrouped);
+          }
+          result.push(row); // 添加地区小计行
+          regionData = [];
+        } else if (row._rowType === 'data') {
+          if (currentRegion !== row.region) {
+            currentRegion = row.region;
+          }
+          regionData.push(row);
+        }
+      });
+
+      // 处理最后一个地区的数据
+      if (regionData.length > 0) {
+        const categoryGrouped = processSubtotals(regionData, {
+          groupBy: 'category',
+          subtotals: [
+            { field: 'amount', type: 'sum' },
+            { field: 'quantity', type: 'sum' }
+          ],
+          subtotalLabel: '类别小计',
+          showGrandTotal: false
+        });
+        result.push(...categoryGrouped);
+      }
+
+      // 添加总计行
+      const grandTotalRow = {
+        region: '总计',
+        _rowType: 'total',
+        _level: 0,
+        _isGrandTotal: true,
+        amount: calculateSummary(rawData, 'amount', 'sum'),
+        quantity: calculateSummary(rawData, 'quantity', 'sum')
+      };
+      result.push(grandTotalRow);
+
+      return createReport(result, {
+        title: '销售报表 - 多级分组小计',
+        subtitle: '按地区和产品类别进行多层级汇总'
+      });
+    }
+
+    // 示例3：复杂汇总报表（包含多种统计类型）
+    function createDemo3() {
+      const rawData = generateMockData(35);
+
+      // 处理数据，按地区分组并添加多种统计类型的小计
+      const processedData = processSubtotals(rawData, {
+        groupBy: 'region',
+        subtotals: [
+          { field: 'amount', type: 'sum' },
+          { field: 'quantity', type: 'sum' },
+          { field: 'price', type: 'avg' }
+        ],
+        subtotalLabel: '小计',
+        showGrandTotal: true,
+        grandTotalLabel: '总计'
+      });
+
+      // 为复杂汇总报表添加额外的统计列
+      const enhancedData = processedData.map(row => {
+        if (row._rowType === 'subtotal' || row._rowType === 'total') {
+          return {
+            ...row,
+            avgAmount: row.quantity > 0 ? (row.amount / row.quantity).toFixed(2) : 0,
+            maxAmount: row._rowType === 'total' ? Math.max(...rawData.map(r => r.amount)).toFixed(2) : '',
+            minAmount: row._rowType === 'total' ? Math.min(...rawData.map(r => r.amount)).toFixed(2) : ''
+          };
+        }
+        return {
+          ...row,
+          avgAmount: row.quantity > 0 ? (row.amount / row.quantity).toFixed(2) : 0,
+          maxAmount: '',
+          minAmount: ''
+        };
+      });
+
+      return createComplexReport(enhancedData, {
+        title: '销售报表 - 复杂汇总统计',
+        subtitle: '包含求和、平均值、最大值、最小值等多种统计类型'
+      });
+    }
+
+    // 复杂报表配置（包含更多统计列）
+    function createComplexReport(data, options = {}) {
+      const { title = '销售报表', subtitle = '' } = options;
+
+      const config = {
+        dataSource: { data },
+        header: {
+          title: { text: title },
+          subtitle: { text: subtitle },
+          fields: [
+            { key: 'reportDate', label: '报表日期:', value: new Date().toLocaleDateString() },
+            { key: 'dataCount', label: '数据条数:', value: data.length.toString(), position: 'right' }
+          ]
+        },
+        columns: [
+          {
+            key: 'id',
+            title: '序号',
+            width: 60,
+            align: 'center'
+          },
+          {
+            key: 'region',
+            title: '地区',
+            width: 100,
+            merge: 'vertical',
+            style: {
+              conditional: getSubtotalStyles()
+            }
+          },
+          {
+            key: 'category',
+            title: '类别',
+            width: 100,
+            style: {
+              conditional: getSubtotalStyles()
+            }
+          },
+          {
+            key: 'quantity',
+            title: '数量',
+            width: 80,
+            align: 'right',
+            formatter: 'number',
+            style: {
+              conditional: getSubtotalStyles()
+            }
+          },
+          {
+            key: 'amount',
+            title: '销售额',
+            width: 120,
+            align: 'right',
+            formatter: 'currency',
+            style: {
+              conditional: getSubtotalStyles()
+            }
+          },
+          {
+            key: 'price',
+            title: '平均单价',
+            width: 100,
+            align: 'right',
+            formatter: 'currency',
+            style: {
+              conditional: getSubtotalStyles()
+            }
+          },
+          {
+            key: 'avgAmount',
+            title: '单件均额',
+            width: 100,
+            align: 'right',
+            formatter: 'currency',
+            style: {
+              conditional: getSubtotalStyles()
+            }
+          },
+          {
+            key: 'maxAmount',
+            title: '最大金额',
+            width: 100,
+            align: 'right',
+            formatter: 'currency',
+            style: {
+              conditional: [
+                ...getSubtotalStyles(),
+                {
+                  when: 'row._rowType === "total" && row.maxAmount',
+                  style: {
+                    color: '#f5222d',
+                    fontWeight: 'bold'
+                  }
+                }
+              ]
+            }
+          },
+          {
+            key: 'minAmount',
+            title: '最小金额',
+            width: 100,
+            align: 'right',
+            formatter: 'currency',
+            style: {
+              conditional: [
+                ...getSubtotalStyles(),
+                {
+                  when: 'row._rowType === "total" && row.minAmount',
+                  style: {
+                    color: '#52c41a',
+                    fontWeight: 'bold'
+                  }
+                }
+              ]
+            }
+          }
+        ],
+        layout: {
+          rowHeight: 40,
+          stripe: true,
+          bordered: true,
+          hover: true
+        },
+        features: {
+          exportExcel: true,
+          exportPdf: true,
+          watermark: '深圳市三联众瑞科技有限公司'
+        }
+      };
+
+      if (currentReport) {
+        currentReport.destroy();
+      }
+
+      currentReport = DDR.create({
+        container: document.getElementById('report'),
+        config: config,
+        onLoad: () => console.log('复杂报表加载完成'),
+        onError: (error) => console.error('复杂报表加载出错:', error)
+      });
+
+      return currentReport;
+    }
+
+    // 基础报表配置
+    function createReport(data, options = {}) {
+      const { title = '销售报表', subtitle = '' } = options;
+
+      const config = {
+        dataSource: { data },
+        header: {
+          title: { text: title },
+          subtitle: { text: subtitle },
+          fields: [
+            { key: 'reportDate', label: '报表日期:', value: new Date().toLocaleDateString() },
+            { key: 'dataCount', label: '数据条数:', value: data.length.toString(), position: 'right' }
+          ]
+        },
+        columns: [
+          {
+            key: 'id',
+            title: '序号',
+            width: 80,
+            align: 'center'
+          },
+          {
+            key: 'region',
+            title: '地区',
+            width: 100,
+            merge: 'vertical',
+            style: {
+              conditional: getSubtotalStyles()
+            }
+          },
+          {
+            key: 'category',
+            title: '产品类别',
+            width: 120,
+            style: {
+              conditional: getSubtotalStyles()
+            }
+          },
+          {
+            key: 'product',
+            title: '产品名称',
+            width: 120,
+            style: {
+              conditional: getSubtotalStyles()
+            }
+          },
+          {
+            key: 'quantity',
+            title: '销售数量',
+            width: 100,
+            align: 'right',
+            formatter: 'number',
+            style: {
+              conditional: getSubtotalStyles()
+            }
+          },
+          {
+            key: 'amount',
+            title: '销售额',
+            width: 150,
+            align: 'right',
+            formatter: 'currency',
+            style: {
+              conditional: getSubtotalStyles()
+            }
+          }
+        ],
+        layout: {
+          rowHeight: 40,
+          stripe: true,
+          bordered: true,
+          hover: true
+        },
+        features: {
+          exportExcel: true,
+          exportPdf: true,
+          watermark: '深圳市三联众瑞科技有限公司'
+        }
+      };
+
+      if (currentReport) {
+        currentReport.destroy();
+      }
+
+      currentReport = DDR.create({
+        container: document.getElementById('report'),
+        config: config,
+        onLoad: () => console.log('报表加载完成'),
+        onError: (error) => console.error('报表加载出错:', error)
+      });
+
+      return currentReport;
+    }
+
+    // 绑定事件
+    document.getElementById('demo1').addEventListener('click', createDemo1);
+    document.getElementById('demo2').addEventListener('click', createDemo2);
+    document.getElementById('demo3').addEventListener('click', createDemo3);
+
+    document.getElementById('exportExcel').addEventListener('click', () => {
+      if (currentReport) {
+        currentReport.exportTo('excel', {
+          fileName: '销售报表_小计合计_' + new Date().toISOString().split('T')[0]
+        });
+      }
+    });
+
+    document.getElementById('exportPdf').addEventListener('click', () => {
+      if (currentReport) {
+        currentReport.exportTo('pdf', {
+          fileName: '销售报表_小计合计_' + new Date().toISOString().split('T')[0]
+        });
+      }
+    });
+
+    document.getElementById('print').addEventListener('click', () => {
+      if (currentReport) {
+        currentReport.print();
+      }
+    });
+
+    // 默认加载示例1
+    document.addEventListener('DOMContentLoaded', () => {
+      createDemo1();
+    });
+  </script>
+</body>
+</html>

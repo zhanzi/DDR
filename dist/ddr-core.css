@@ -831,6 +831,73 @@
   margin-bottom: 8px;
 }
 
+/* 分组小计样式 */
+.ddr-subtotal-cell {
+  font-weight: bold;
+  background-color: #f5f5f5;
+  border-top: 1px solid #d9d9d9;
+}
+
+.ddr-total-cell {
+  font-weight: bold;
+  background-color: #e6f7ff;
+  color: #1890ff;
+  border-top: 2px solid #1890ff;
+}
+
+/* 分组行样式 */
+.ddr-body-row[data-row-type="subtotal"] {
+  background-color: #f5f5f5;
+}
+
+.ddr-body-row[data-row-type="total"] {
+  background-color: #e6f7ff;
+}
+
+/* 分组列样式 */
+.ddr-group-column {
+  font-weight: 500;
+}
+
+/* 分组小计行悬停效果 */
+.ddr-body-row[data-row-type="subtotal"]:hover {
+  background-color: #e8e8e8;
+}
+
+.ddr-body-row[data-row-type="total"]:hover {
+  background-color: #d4edff;
+}
+
+/* 水印样式 */
+.ddr-watermark {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 10;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  grid-template-rows: repeat(5, 1fr);
+  gap: 20px;
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+.ddr-watermark-content {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  color: rgba(0, 0, 0, 0.25);
+  font-weight: bold;
+  transform: rotate(-45deg);
+  white-space: nowrap;
+  user-select: none;
+  opacity: 0.2;
+}
+
 /* 打印样式 */
 @media print {
   .ddr-container {
@@ -852,5 +919,19 @@
 
   .ddr-header, .ddr-footer {
     page-break-inside: avoid;
+  }
+
+  /* 打印时保持分组样式 */
+  .ddr-subtotal-cell {
+    background-color: #f5f5f5 !important;
+    -webkit-print-color-adjust: exact;
+    color-adjust: exact;
+  }
+
+  .ddr-total-cell {
+    background-color: #e6f7ff !important;
+    color: #1890ff !important;
+    -webkit-print-color-adjust: exact;
+    color-adjust: exact;
   }
 }

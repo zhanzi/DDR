@@ -143,6 +143,39 @@ declare class DDR implements DDRInstance {
      */
     private _calculateSummary;
     /**
+     * 处理分组小计功能
+     * @param data 原始数据
+     * @returns 处理后的数据（包含小计和合计行）
+     */
+    private _processGrouping;
+    /**
+     * 单级分组处理（内置版本）
+     * @param data 原始数据
+     * @param options 配置选项
+     * @returns 处理后的数据
+     */
+    private _processSingleGroupSubtotals;
+    /**
+     * 计算分组汇总值
+     * @param data 数据数组
+     * @param field 字段名
+     * @param type 汇总类型
+     * @returns 汇总值
+     */
+    private _calculateGroupSummary;
+    /**
+     * 应用分组样式
+     * @param cell 单元格元素
+     * @param rowData 行数据
+     * @param column 列配置
+     */
+    private _applyGroupingStyles;
+    /**
+     * 获取默认分组样式
+     * @returns 默认样式配置
+     */
+    private _getDefaultGroupingStyles;
+    /**
      * 确定渲染模式
      * @returns 渲染模式 'dom' 或 'canvas'
      */
