@@ -63,13 +63,10 @@ const TerminalDetail = () => {
   const getStatusChip = (status) => {
     if (!status) return <Chip label="未知" color="default" />;
 
-    switch (status.activeStatus) {
-      case 1: // Active
-        return <Chip label="在线" color="success" />;
-      case 2: // Inactive
-        return <Chip label="离线" color="error" />;
-      default:
-        return <Chip label="未知" color="default" />;
+    if (status.activeStatus==1 && status.lastActiveTime> new Date(Date.now() - 5 * 60 * 1000)) {
+      return <Chip label="在线" color="success" size="small" />;
+    } else {
+        return <Chip label="离线" color="error" size="small" />;
     }
   };
 

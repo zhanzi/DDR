@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Box,
   Paper,
@@ -60,7 +60,7 @@ const TerminalList = () => {
     terminalType: '',
     activeStatus: ''
   });
-  
+
   // 选中的商户
   const [selectedMerchant, setSelectedMerchant] = useState(null);
 
@@ -77,7 +77,7 @@ const TerminalList = () => {
   const [fileVersions, setFileVersions] = useState([]);
 
   // 加载终端列表
-  const loadTerminals = async () => {
+  const loadTerminals = useCallback(async () => {
     setLoading(true);
     try {
       // 构建查询参数
@@ -88,27 +88,29 @@ const TerminalList = () => {
           Object.entries(filters).filter(([_, value]) => value !== '')
         )
       };
-      
+
       // 如果选择了商户，使用商户ID
       if (selectedMerchant) {
         params.merchantId = selectedMerchant.merchantID;
       }
 
-      const response = await terminalAPI.getTerminals(params);
-      setTerminals(response.items);
-      setTotalCount(response.totalCount);
+      // 并行加载终端列表和统计数据
+      const [terminalsResponse, statsResponse] = await Promise.all([
+        terminalAPI.getTerminals(params),
+        terminalAPI.getTerminalStats({
+          merchantId: selectedMerchant ? selectedMerchant.merchantID : undefined
+        })
+      ]);
 
-      // 加载统计数据
-      const statsResponse = await terminalAPI.getTerminalStats({
-        merchantId: selectedMerchant ? selectedMerchant.merchantID : undefined
-      });
+      setTerminals(terminalsResponse.items);
+      setTotalCount(terminalsResponse.totalCount);
       setStats(statsResponse);
     } catch (error) {
       console.error('Error loading terminals:', error);
     } finally {
       setLoading(false);
     }
-  };
+  }, [page, rowsPerPage, filters, selectedMerchant]);
 
   // 加载消息类型
   const loadMessageTypes = async () => {
@@ -130,21 +132,21 @@ const TerminalList = () => {
     }
   };
 
+  // 分离数据加载逻辑，避免重复请求
   useEffect(() => {
     loadTerminals();
+  }, [loadTerminals]);
+
+  // 只在组件首次加载时获取消息类型和文件版本
+  useEffect(() => {
     loadMessageTypes();
     loadFileVersions();
-  }, [page, rowsPerPage]);
+  }, []);
 
   // 处理筛选条件变更
   const handleFilterChange = (event) => {
     const { name, value } = event.target;
     setFilters(prev => ({ ...prev, [name]: value }));
-  };
-
-  // 处理商户选择变更
-  const handleMerchantChange = (event, newValue) => {
-    setSelectedMerchant(newValue);
   };
 
   // 应用筛选
@@ -169,7 +171,7 @@ const TerminalList = () => {
   };
 
   // 处理分页变更
-  const handleChangePage = (event, newPage) => {
+  const handleChangePage = (_, newPage) => {
     setPage(newPage);
   };
 
@@ -247,13 +249,10 @@ const TerminalList = () => {
   const getStatusChip = (status) => {
     if (!status) return <Chip label="未知" color="default" size="small" />;
 
-    switch (status.activeStatus) {
-      case 1: // Active
-        return <Chip label="在线" color="success" size="small" />;
-      case 2: // Inactive
+    if (status.activeStatus==1 && status.lastActiveTime> new Date(Date.now() - 5 * 60 * 1000)) {
+      return <Chip label="在线" color="success" size="small" />;
+    } else {
         return <Chip label="离线" color="error" size="small" />;
-      default:
-        return <Chip label="未知" color="default" size="small" />;
     }
   };
 
@@ -309,8 +308,8 @@ const TerminalList = () => {
           <Grid item xs={12} sm={6} md={2}>
             <MerchantAutocomplete
               label="商户"
-              value={filters.merchantId}
-              onChange={(value) => setFilters(prev => ({ ...prev, merchantId: value }))}
+              value={selectedMerchant}
+              onChange={(_, newValue) => setSelectedMerchant(newValue)}
               fullWidth
               size="small"
             />
@@ -450,7 +449,11 @@ const TerminalList = () => {
                 terminals.map((terminal) => (
                   <TableRow key={terminal.id}>
                     <TableCell>{terminal.id}</TableCell>
-                    <TableCell>{terminal.merchantID}</TableCell>
+                    <TableCell>
+                      <Tooltip title={terminal.merchantID || ''}>
+                        <span>{terminal.name}</span>
+                      </Tooltip>
+                    </TableCell>
                     <TableCell>{terminal.machineID}</TableCell>
                     <TableCell>{terminal.deviceNO}</TableCell>
                     <TableCell>{terminal.lineNO}</TableCell>

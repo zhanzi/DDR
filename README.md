@@ -132,3 +132,8 @@ git svn dcommit  # 推送
 
 通过以上步骤，你可以在保留Git灵活性的同时，无缝对接公司要求的SVN工作流。
 
+
+
+
+cd ClientApp
+cp -r dist/* ../wwwroot/

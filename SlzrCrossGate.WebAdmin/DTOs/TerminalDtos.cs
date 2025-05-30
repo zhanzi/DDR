@@ -7,6 +7,7 @@ namespace SlzrCrossGate.WebAdmin.DTOs
         // 主要属性
         public string ID { get; set; } = string.Empty;
         public string MerchantID { get; set; } = string.Empty;
+        public string MerchantName { get; set; } = string.Empty;
         public string MachineID { get; set; } = string.Empty;
         public string DeviceNO { get; set; } = string.Empty;
         public string LineNO { get; set; } = string.Empty;

@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg width="192" height="192" viewBox="0 0 192 192" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#7E22CE;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#4338CA;stop-opacity:1" />
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="3" result="blur" />
+      <feFlood flood-color="rgba(0,0,0,0.2)" result="color"/>
+      <feComposite in="color" in2="blur" operator="in" result="shadow"/>
+      <feComposite in="SourceGraphic" in2="shadow" operator="over"/>
+    </filter>
+  </defs>
+  
+  <!-- 背景圆形 -->
+  <circle cx="96" cy="96" r="88" fill="url(#grad1)" />
+  
+  <!-- 终端图标 -->
+  <g fill="white" filter="url(#shadow)">
+    <!-- 显示器外框 -->
+    <rect x="40" y="50" width="112" height="80" rx="6" ry="6" fill="none" stroke="white" stroke-width="6"/>
+    
+    <!-- 显示器底座 -->
+    <path d="M86,130 L106,130 L110,142 L82,142 Z" fill="white" />
+    
+    <!-- 终端符号 -->
+    <path d="M60,70 L80,90 L60,110 M90,110 L120,110" stroke="white" stroke-width="6" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+</svg>

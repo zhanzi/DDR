@@ -4,7 +4,7 @@ import { merchantAPI } from '../services/api';
 
 /**
  * 商户自动完成下拉框组件
- * 
+ *
  * @param {Object} props
  * @param {Object|null} props.value - 当前选中的商户对象
  * @param {Function} props.onChange - 选中值变更时的回调函数 (event, newValue) => void
@@ -87,7 +87,10 @@ const MerchantAutocomplete = ({
       onChange={handleAutocompleteChange}
       loading={loading}
       disabled={disabled}
-      isOptionEqualToValue={(option, value) => option.merchantID === value.merchantID}
+      isOptionEqualToValue={(option, value) => {
+        if (!option || !value) return false;
+        return option.merchantID === value.merchantID;
+      }}
       renderInput={(params) => (
         <TextField
           {...params}

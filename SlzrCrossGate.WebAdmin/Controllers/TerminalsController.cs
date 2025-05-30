@@ -71,6 +71,8 @@ namespace SlzrCrossGate.WebAdmin.Controllers
                 .Where(t => !t.IsDeleted)
                 .AsQueryable();
 
+
+
             // 应用筛选条件
             if (!string.IsNullOrEmpty(merchantId))
             {
@@ -285,8 +287,8 @@ namespace SlzrCrossGate.WebAdmin.Controllers
 
             // 获取统计数据
             var totalCount = await query.CountAsync();
-            var activeCount = await query.CountAsync(t => t.Status != null && t.Status.ActiveStatus == DeviceActiveStatus.Active);
-            var inactiveCount = await query.CountAsync(t => t.Status != null && t.Status.ActiveStatus == DeviceActiveStatus.Inactive);
+            var activeCount = await query.CountAsync(t => t.Status != null && t.Status.ActiveStatus == DeviceActiveStatus.Active && t.Status.LastActiveTime > DateTime.Now.AddMinutes(-5));
+            var inactiveCount = await query.CountAsync(t => t.Status != null && (t.Status.ActiveStatus == DeviceActiveStatus.Inactive || t.Status.LastActiveTime < DateTime.Now.AddMinutes(-5)));
 
             return new TerminalStatsDto
             {

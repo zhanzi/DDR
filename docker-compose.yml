@@ -5,9 +5,10 @@ services:
   mysql:
     image: mysql:8.0
     container_name: slzr-mysql
-    command: --default-authentication-plugin=mysql_native_password
+    command: --defaults-file=/etc/mysql/my.cnf
     volumes:
       - mysql_data:/var/lib/mysql
+      - ./mysql/my.cnf:/etc/mysql/my.cnf
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-slzr!12345}
       MYSQL_DATABASE: tcpserver
@@ -59,7 +60,7 @@ services:
       - "5001:5001"  # TCP 服务
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
-      - ConnectionStrings__DefaultConnection=Server=mysql;Port=3306;Database=tcpserver;User=root;Password=${MYSQL_ROOT_PASSWORD:-slzr!12345};SslMode=Required;
+      - ConnectionStrings__DefaultConnection=Server=mysql;Port=3306;Database=tcpserver;User=root;Password=${MYSQL_ROOT_PASSWORD:-slzr!12345};SslMode=Required;AllowLoadLocalInfile=true;
       - RabbitMQ__HostName=rabbitmq
       - RabbitMQ__UserName=${RABBITMQ_USER:-guest}
       - RabbitMQ__Password=${RABBITMQ_PASS:-guest}
@@ -89,11 +90,11 @@ services:
       - "7296:7296"
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
-      - ConnectionStrings__DefaultConnection=Server=mysql;Port=3306;Database=tcpserver;User=root;Password=${MYSQL_ROOT_PASSWORD:-slzr!12345};SslMode=Required;
+      - ConnectionStrings__DefaultConnection=Server=mysql;Port=3306;Database=tcpserver;User=root;Password=${MYSQL_ROOT_PASSWORD:-slzr!12345};SslMode=Required;AllowLoadLocalInfile=true;
       - RabbitMQ__HostName=rabbitmq
       - RabbitMQ__UserName=${RABBITMQ_USER:-guest}
       - RabbitMQ__Password=${RABBITMQ_PASS:-guest}
-      - Jwt__Key=${JWT_KEY:-YourSecretKeyHere12345678901234567890}    
+      - Jwt__Key=${JWT_KEY:-YourSecretKeyHere12345678901234567890}
     volumes:
       - webadmin_storage:/app/storage
       - webadmin_keys:/app/Keys

@@ -110,33 +110,37 @@ namespace SlzrCrossGate.Tcp
 
                             if (message.MessageType != "0800")
                             {
-                                //不是签到消息，尝试添加终端
-                                var terminal = new Core.Models.Terminal
+                                var terminal = _terminalManager.GetTerminal(message.TerimalID);
+                                if (terminal is null)
                                 {
-                                    ID = message.TerimalID,
-                                    LineNO = message.LineNO,
-                                    MachineID = message.MachineID,
-                                    DeviceNO = message.DeviceNO,
-                                    MerchantID = message.MerchantID,
-                                    CreateTime = DateTime.Now,
-                                    IsDeleted = false,
-                                    TerminalType = message.TerminalType,
-                                    Status = new TerminalStatus
+                                    //不是签到消息，尝试添加终端
+                                    terminal = new Core.Models.Terminal
                                     {
                                         ID = message.TerimalID,
-                                        EndPoint = remoteEndPoint?.ToString() ?? "",
-                                        ActiveStatus = DeviceActiveStatus.Active,
-                                        ConnectionProtocol = "TCP",
-                                        LastActiveTime = DateTime.Now,
-                                        FileVersionMetadata = [],
-                                        PropertyMetadata = [],
-                                        LoginInTime = DateTime.Now,
-                                        LoginOffTime = DateTime.Now,
-                                        Token = ""
-                                    },
-                                    StatusUpdateTime = DateTime.Now
-                                };
-                                await _connectionManager.AddTerminal(terminal);
+                                        LineNO = message.LineNO,
+                                        MachineID = message.MachineID,
+                                        DeviceNO = message.DeviceNO,
+                                        MerchantID = message.MerchantID,
+                                        CreateTime = DateTime.Now,
+                                        IsDeleted = false,
+                                        TerminalType = message.TerminalType,
+                                        Status = new TerminalStatus
+                                        {
+                                            ID = message.TerimalID,
+                                            EndPoint = remoteEndPoint?.ToString() ?? "",
+                                            ActiveStatus = DeviceActiveStatus.Active,
+                                            ConnectionProtocol = "TCP",
+                                            LastActiveTime = DateTime.Now,
+                                            FileVersionMetadata = [],
+                                            PropertyMetadata = [],
+                                            LoginInTime = DateTime.Now,
+                                            LoginOffTime = DateTime.Now,
+                                            Token = ""
+                                        },
+                                        StatusUpdateTime = DateTime.Now
+                                    };
+                                    await _terminalManager.AddOrUpdateTerminal(terminal);
+                                }
                             }
                         }
                         _connectionManager.SetTerminalActive(message.TerimalID);

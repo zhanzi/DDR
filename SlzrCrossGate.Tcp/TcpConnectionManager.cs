@@ -67,16 +67,6 @@ namespace SlzrCrossGate.Tcp
             return added;
         }
 
-        /// <summary>
-        /// 签到/第一次连接时，尝试添加终端
-        /// </summary>
-        /// <param name="terminal"></param>
-        /// <returns></returns>
-        public async Task AddTerminal(Terminal terminal)
-        {
-            await _terminalManager.AddOrUpdateTerminal(terminal);
-        }
-
         public void SetTerminalActive(string terminalId) { 
             _terminalManager.SetTerminalActive(terminalId);
         }

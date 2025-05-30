@@ -5,6 +5,7 @@ namespace SlzrCrossGate.Core.Models
     /// </summary>
     public enum PublishTypeOption
     {
+        None = 0,
         Merchant = 1,
         Line = 2,
         Terminal = 3

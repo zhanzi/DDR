@@ -99,8 +99,7 @@ using (var scope = app.Services.CreateScope())
     //await SeedData.InitializeUser(services);
 
     var terminalManager = services.GetRequiredService<TerminalManager>();
-    terminalManager.InitTerminalsFromDatabase();
-    terminalManager.RefreshTerminalMessageCount();
+    terminalManager.Init();
 
     _ = services.GetRequiredService<TerminalEventService>();
     _ = services.GetRequiredService<MsgboxEventService>();

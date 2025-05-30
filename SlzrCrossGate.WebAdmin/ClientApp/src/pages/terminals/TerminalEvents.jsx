@@ -132,21 +132,64 @@ const TerminalEvents = () => {
     setPage(0);
   };
 
+
+/*
+
+Created = 0,
+        //ǩ���¼�
+        SignIn = 1,
+        //ǩ���¼�
+        SignOut = 2,
+        //�ļ����ؿ�ʼ
+        FileDownloadStart = 3,
+        //�ļ����ؽ���
+        FileDownloadEnd = 4,
+        //�ļ��汾�Ѹ���
+        FileVersionUpdated = 5,
+        //�����ѱ��
+        PropertyChanged = 6,
+        //������Կ�Ѱ�
+        UnionPayKeyBound = 7,
+        //�̻����ѱ��
+        MerchantIDChanged = 8,
+        //��·���ѱ��
+        LineNOChanged = 9,
+        //�豸���ѱ��
+        DeviceNOChanged = 10,
+        //Message Sent
+        MessageSent = 11,
+        //File Published
+        FilePublished = 12,
+
+        */
+
   // 获取事件类型的显示样式
   const getEventTypeChip = (eventType) => {
     switch (eventType) {
-      case 0: // Created
-        return <Chip label="创建" color="success" size="small" />;
-      case 1: // Connected
-        return <Chip label="连接" color="primary" size="small" />;
-      case 2: // Disconnected
-        return <Chip label="断开" color="error" size="small" />;
-      case 3: // FileVersionUpdated
-        return <Chip label="版本更新" color="info" size="small" />;
-      case 4: // FilePublished
-        return <Chip label="文件发布" color="warning" size="small" />;
-      case 5: // MessageSent
+      case 1: // SignIn
+        return <Chip label="签到" color="success" size="small" />;
+      case 2: // SignOut
+        return <Chip label="签退" color="error" size="small" />;
+      case 3: // FileDownloadStart
+        return <Chip label="文件下载开始" color="info" size="small" />;
+      case 4: // FileDownloadEnd
+        return <Chip label="文件下载结束" color="info" size="small" />;
+      case 5: // FileVersionUpdated
+        return <Chip label="文件版本更新" color="info" size="small" />;
+      case 6: // PropertyChanged
+        return <Chip label="属性变更" color="info" size="small" />;
+      case 7: // UnionPayKeyBound
+        return <Chip label="银联密钥绑定" color="info" size="small" />;
+      case 8: // MerchantIDChanged
+        return <Chip label="商户变更" color="info" size="small" />;
+      case 9: // LineNOChanged
+        return <Chip label="线路变更" color="info" size="small" />;
+      case 10: // DeviceNOChanged
+        return <Chip label="设备变更" color="info" size="small" />;
+      case 11: // MessageSent
         return <Chip label="消息发送" color="secondary" size="small" />;
+      case 12: // FilePublished
+        return <Chip label="文件发布" color="warning" size="small" />;
       default:
         return <Chip label="其他" color="default" size="small" />;
     }
@@ -195,7 +238,7 @@ const TerminalEvents = () => {
           <Button
             variant="outlined"
             startIcon={<ArrowBackIcon />}
-            onClick={() => navigate(`/terminals/${id}`)}
+            onClick={() => navigate(`/app/terminals/${id}`)}
             sx={{ mr: 1 }}
           >
             返回终端详情
@@ -248,12 +291,18 @@ const TerminalEvents = () => {
                 label="事件类型"
               >
                 <MenuItem value="">全部</MenuItem>
-                <MenuItem value="0">创建</MenuItem>
-                <MenuItem value="1">连接</MenuItem>
-                <MenuItem value="2">断开</MenuItem>
-                <MenuItem value="3">版本更新</MenuItem>
-                <MenuItem value="4">文件发布</MenuItem>
-                <MenuItem value="5">消息发送</MenuItem>
+                <MenuItem value="1">签到</MenuItem>
+                <MenuItem value="2">签退</MenuItem>
+                <MenuItem value="3">文件下载开始</MenuItem>
+                <MenuItem value="4">文件下载结束</MenuItem>
+                <MenuItem value="5">文件版本更新</MenuItem>
+                <MenuItem value="6">属性变更</MenuItem>
+                <MenuItem value="7">银联密钥绑定</MenuItem>
+                <MenuItem value="8">商户变更</MenuItem>
+                <MenuItem value="9">线路变更</MenuItem>
+                <MenuItem value="10">设备变更</MenuItem>
+                <MenuItem value="11">消息发送</MenuItem>
+                <MenuItem value="12">文件发布</MenuItem>
               </Select>
             </FormControl>
           </Grid>

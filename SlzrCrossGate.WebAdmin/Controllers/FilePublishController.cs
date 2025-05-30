@@ -3,6 +3,8 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SlzrCrossGate.Core.Database;
 using SlzrCrossGate.Core.Models;
+using SlzrCrossGate.Core.Service.BusinessServices;
+using SlzrCrossGate.Core.Services;
 using SlzrCrossGate.WebAdmin.DTOs;
 using SlzrCrossGate.WebAdmin.Services;
 using System.Security.Claims;
@@ -12,10 +14,11 @@ namespace SlzrCrossGate.WebAdmin.Controllers
     [Route("api/[controller]")]
     [ApiController]
     [Authorize]
-    public class FilePublishController(TcpDbContext dbContext, UserService userService) : ControllerBase
+    public class FilePublishController(TcpDbContext dbContext, UserService userService,FilePublishEventService filePublishEventService) : ControllerBase
     {
         private readonly TcpDbContext _dbContext = dbContext;
         private readonly UserService _userService = userService;
+        private readonly FilePublishEventService _filePublishEventService = filePublishEventService;
 
         // GET: api/FilePublish
         [HttpGet]
@@ -244,9 +247,6 @@ namespace SlzrCrossGate.WebAdmin.Controllers
 
             _dbContext.FilePublishs.Add(filePublish);
 
-
-            await _dbContext.SaveChangesAsync();
-
             // 创建文件发布历史记录
             var filePublishHistory = new FilePublishHistory
             {
@@ -267,6 +267,23 @@ namespace SlzrCrossGate.WebAdmin.Controllers
 
             _dbContext.FilePublishHistories.Add(filePublishHistory);
             await _dbContext.SaveChangesAsync();
+
+            await _filePublishEventService.Publish(new FilePublishEventMessage
+            {
+                ActionType = FilePublishEventActionType.Publish,
+                FilePublishID = filePublish.ID,
+                MerchantID = filePublish.MerchantID,
+                FileTypeID = filePublish.FileTypeID,
+                FilePara = filePublish.FilePara,
+                FileFullType = filePublish.FileFullType,
+                Ver = filePublish.Ver,
+                FileCrc = filePublish.Crc,
+                FileSize = filePublish.FileSize,
+                Operator = filePublish.Operator,
+                PublishTarget = filePublish.PublishTarget,
+                PublishType = filePublish.PublishType,
+                ActionTime = filePublish.PublishTime
+            });
 
             return CreatedAtAction(nameof(GetFilePublish), new { id = filePublish.ID }, new FilePublishDto
             {
@@ -336,6 +353,23 @@ namespace SlzrCrossGate.WebAdmin.Controllers
 
             _dbContext.FilePublishHistories.Add(filePublishHistory);
             await _dbContext.SaveChangesAsync();
+
+            await _filePublishEventService.Publish(new FilePublishEventMessage
+            {
+                ActionType = FilePublishEventActionType.Cancel,
+                FilePublishID = filePublish.ID,
+                MerchantID = filePublish.MerchantID,
+                FileTypeID = filePublish.FileTypeID,
+                FilePara = filePublish.FilePara,
+                FileFullType = filePublish.FileFullType,
+                Ver = filePublish.Ver,
+                FileCrc = filePublish.Crc,
+                FileSize = filePublish.FileSize,
+                Operator = username,
+                PublishTarget = filePublish.PublishTarget,
+                PublishType = filePublish.PublishType,
+                ActionTime = filePublish.PublishTime
+            });
 
             return NoContent();
         }

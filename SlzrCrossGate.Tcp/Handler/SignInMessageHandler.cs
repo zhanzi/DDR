@@ -32,6 +32,8 @@ namespace SlzrCrossGate.Tcp.Handler
                 ID = message.TerimalID,
                 MerchantID = message.MerchantID,
                 MachineID = message.MachineID,
+                ConnectionProtocol = "TCP",
+                EndPoint = context.RemoteEndPoint?.ToString() ?? "",
                 DeviceNO = message.DeviceNO,
                 LineNO = message.LineNO,
                 TerminalType = message.TerminalType,
@@ -43,7 +45,7 @@ namespace SlzrCrossGate.Tcp.Handler
             var response = new Iso8583Message(_schema, Iso8583MessageType.SignInResponse);
 
             //检查终端是否存在，不存在则添加
-            if (_terminalSignService.CheckTerminalExists(message.TerimalID))
+            if (false == _terminalSignService.CheckTerminalExists(message.TerimalID))
             {
                 await _terminalSignService.AddTerminal(signDto);
                 response.SetField(46, "");
@@ -58,6 +60,7 @@ namespace SlzrCrossGate.Tcp.Handler
             }
             var token = Encrypts.ComputeMD5($"slzr-token-{message.TerimalID}-{DateTime.Now.ToString("yyyyMMdd")}");
             response.SetField(40, token);
+            response.SetField(45, message.GetString(45));
             var mackey = Encrypts.ComputeMD5($"slzr-mackey-{message.TerimalID}");
             response.SetField(53, mackey);
             response.Ok();

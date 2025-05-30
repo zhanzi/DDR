@@ -40,7 +40,7 @@ namespace SlzrCrossGate.Core.Repositories
             return await _context.Set<T>().Where(predicate).ToListAsync();
         }
 
-        //²éÑ¯µÚÒ»¸ö·ûºÏÌõ¼şµÄÊµÌå
+        //ï¿½ï¿½Ñ¯ï¿½ï¿½Ò»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Êµï¿½ï¿½
         public async Task<T?> FirstOrDefaultAsync(Expression<Func<T, bool>> predicate, bool asNoTracking = false)
         {
             if (asNoTracking)
@@ -50,7 +50,7 @@ namespace SlzrCrossGate.Core.Repositories
             return await _context.Set<T>().FirstOrDefaultAsync(predicate);
         }
 
-        //²éÑ¯µÚÒ»¸ö·ûºÏÌõ¼şµÄÊµÌå´øÅÅĞò
+        //ï¿½ï¿½Ñ¯ï¿½ï¿½Ò»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Êµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
         public async Task<T?> FirstOrDefaultAsync(Expression<Func<T, bool>> predicate, Expression<Func<T, object>> order, bool isAsc, bool asNoTracking = false)
         {
             var query = _context.Set<T>().Where(predicate);
@@ -62,7 +62,7 @@ namespace SlzrCrossGate.Core.Repositories
             return await query.FirstOrDefaultAsync();
         }
 
-        //·ÖÒ³²éÑ¯
+        //ï¿½ï¿½Ò³ï¿½ï¿½Ñ¯
         public async Task<IEnumerable<T>> FindPagedAsync(Expression<Func<T, bool>> predicate, int pageIndex, int pageSize, bool asNoTracking = false)
         {
             if (asNoTracking)
@@ -72,7 +72,7 @@ namespace SlzrCrossGate.Core.Repositories
             return await _context.Set<T>().Where(predicate).Skip((pageIndex - 1) * pageSize).Take(pageSize).ToListAsync();
         }
 
-        //·ÖÒ³²éÑ¯´øÅÅĞò
+        //ï¿½ï¿½Ò³ï¿½ï¿½Ñ¯ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
         public async Task<IEnumerable<T>> FindPagedAsync(Expression<Func<T, bool>> predicate, Expression<Func<T, object>> order, bool isAsc, int pageIndex, int pageSize, bool asNoTracking = false)
         {
             var query = _context.Set<T>().Where(predicate);
@@ -134,7 +134,7 @@ namespace SlzrCrossGate.Core.Repositories
         }
 
 
-        //ÅúÁ¿²åÈë
+        //ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
         public async Task BulkInsertAsync(IEnumerable<T> entities)
         {
             await _context.BulkInsertAsync(entities);
@@ -147,16 +147,127 @@ namespace SlzrCrossGate.Core.Repositories
 
         public async Task BulkUpdateAsync(IEnumerable<T> entities, List<string> updateColumns)
         {
-            await _context.BulkUpdateAsync(entities, options => {
-                options.PropertiesToInclude = updateColumns; // Ö»¸üĞÂ updateColumns ×Ö¶Î
-            });
-            await _context.BulkUpdateAsync(entities);
+            if (entities == null || !entities.Any())
+                return;
 
+            if (updateColumns == null || !updateColumns.Any())
+                return;
+
+            try
+            {
+                await _context.BulkUpdateAsync(entities, options => {
+                    options.PropertiesToInclude = updateColumns; // åªæ›´æ–° updateColumns å­—æ®µ
+                    options.SetOutputIdentity = false; // ä¸éœ€è¦è¿”å›æ ‡è¯†
+                    options.BatchSize = 1000; // è®¾ç½®æ‰¹æ¬¡å¤§å°
+                });
+            }
+            catch (Exception ex)
+            when (ex.Message.Contains("Loading local data is disabled") ||
+                                     ex.Message.Contains("AllowLoadLocalInfile") ||
+                                     ex.Message.Contains("doesn't have a default value"))
+            {
+                // å¦‚æœ MySqlBulkLoader ä¸å¯ç”¨æˆ–å­—æ®µç¼ºå°‘é»˜è®¤å€¼ï¼Œå›é€€åˆ°å¸¸è§„çš„æ‰¹é‡æ›´æ–°
+                await BulkUpdateFallback(entities);
+            }
+        }
+
+        private async Task BulkUpdateFallback(IEnumerable<T> entities)
+        {
+            // å›é€€åˆ°é€ä¸ªæ›´æ–°çš„æ–¹å¼
+            foreach (var entity in entities)
+            {
+                _context.Set<T>().Update(entity);
+            }
+            await _context.SaveChangesAsync();
+        }
+
+        /// <summary>
+        /// ä¸“é—¨ç”¨äºæ›´æ–° TerminalStatus çš„ FileVersions å­—æ®µ
+        /// </summary>
+        public async Task BulkUpdateFileVersionsAsync(IEnumerable<TerminalStatus> terminalStatuses)
+        {
+            if (!terminalStatuses.Any()) return;
+
+            var statusList = terminalStatuses.ToList();
+
+            // ä¼˜å…ˆå°è¯•ä½¿ç”¨ EF Core åŸç”Ÿçš„é«˜æ€§èƒ½æ‰¹é‡æ›´æ–°
+            try
+            {
+                await UpdateFileVersionsWithExecuteUpdate(statusList);
+            }
+            catch (Exception)
+            {
+                // å¦‚æœå¤±è´¥ï¼Œå›é€€åˆ°é€ä¸ªæ›´æ–°
+                await UpdateFileVersionsOneByOne(statusList);
+            }
+        }
+
+        /// <summary>
+        /// ä½¿ç”¨ EF Core åŸç”Ÿçš„ ExecuteUpdateAsync è¿›è¡Œé«˜æ€§èƒ½æ‰¹é‡æ›´æ–°
+        /// </summary>
+        private async Task UpdateFileVersionsWithExecuteUpdate(List<TerminalStatus> statusList)
+        {
+            // ä½¿ç”¨äº‹åŠ¡æ¥æé«˜æ€§èƒ½
+            using var transaction = await _context.Database.BeginTransactionAsync();
+            try
+            {
+                // å°†çŠ¶æ€åˆ—è¡¨æŒ‰ ID åˆ†ç»„ï¼Œä¸ºæ¯ä¸ª ID æ‰§è¡Œæ‰¹é‡æ›´æ–°
+                var statusDict = statusList.ToDictionary(s => s.ID, s => s.FileVersions);
+
+                foreach (var kvp in statusDict)
+                {
+                    var terminalId = kvp.Key;
+                    var fileVersions = kvp.Value;
+
+                    await _context.Set<TerminalStatus>()
+                        .Where(ts => ts.ID == terminalId)
+                        .ExecuteUpdateAsync(setters => setters
+                            .SetProperty(ts => ts.FileVersions, fileVersions));
+                }
+
+                await transaction.CommitAsync();
+            }
+            catch
+            {
+                await transaction.RollbackAsync();
+                throw;
+            }
+        }
+
+        private async Task UpdateFileVersionsOneByOne(List<TerminalStatus> statusList)
+        {
+            using var transaction = await _context.Database.BeginTransactionAsync();
+            try
+            {
+                foreach (var status in statusList)
+                {
+                    await _context.Database.ExecuteSqlRawAsync(
+                        "UPDATE TerminalStatuses SET FileVersions = @p0 WHERE ID = @p1",
+                        status.FileVersions, status.ID);
+                }
+                await transaction.CommitAsync();
+            }
+            catch
+            {
+                await transaction.RollbackAsync();
+                throw;
+            }
         }
 
         public async Task<int> BatchUpdateAsync(Expression<Func<T, bool>> filter, Expression<Func<SetPropertyCalls<T>, SetPropertyCalls<T>>> setters)
         {
             return await _context.BatchUpdateAsync<T>(filter, setters);
+        }
+
+        /// <summary>
+        /// ä½¿ç”¨ EF Core åŸç”Ÿ ExecuteUpdateAsync çš„é«˜æ€§èƒ½æ‰¹é‡æ›´æ–°
+        /// é€‚ç”¨äºç®€å•çš„å­—æ®µæ›´æ–°åœºæ™¯
+        /// </summary>
+        public async Task<int> ExecuteUpdateAsync(Expression<Func<T, bool>> filter, Expression<Func<SetPropertyCalls<T>, SetPropertyCalls<T>>> setters)
+        {
+            return await _context.Set<T>()
+                .Where(filter)
+                .ExecuteUpdateAsync(setters);
         }
 
         public async Task<int> BatchUpdateInTransactionAsync(Expression<Func<T, bool>> filter, Expression<Func<SetPropertyCalls<T>, SetPropertyCalls<T>>> setters)
@@ -193,7 +304,7 @@ namespace SlzrCrossGate.Core.Repositories
 
     public static class EfCoreBatchUtils
     {
-        // ÅúÁ¿¸üĞÂ£¨´ø·µ»ØÖµ£©
+        // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Â£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Öµï¿½ï¿½
         public static async Task<int> BatchUpdateAsync<TEntity>(
             this DbContext dbContext,
             Expression<Func<TEntity, bool>> filter,
@@ -236,7 +347,7 @@ namespace SlzrCrossGate.Core.Repositories
                     }
                 }
 
-        // ÅúÁ¿É¾³ı£¨´øÊÂÎñ£©
+        // ï¿½ï¿½ï¿½ï¿½É¾ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
         public static async Task<int> BatchDeleteInTransactionAsync<TEntity>(
             this DbContext dbContext,
             Expression<Func<TEntity, bool>> filter,

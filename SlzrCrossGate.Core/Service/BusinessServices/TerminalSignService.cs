@@ -64,7 +64,14 @@ namespace SlzrCrossGate.Core.Service.BusinessServices
         }
 
         public static Dictionary<string, VersionOptions> ConvertClientVersionToFileVersion(Dictionary<string, string> clientVersions) {
-            return clientVersions.Select(x => new KeyValuePair<string, VersionOptions>(x.Key, new VersionOptions { Current = x.Value, Expected = "", ExpectedFileCrc = "", IsExpired = true })).ToDictionary(x => x.Key, x => x.Value);
+            return clientVersions.Select(x => new KeyValuePair<string, VersionOptions>(x.Key, new VersionOptions
+            {
+                Current = x.Value,
+                Expected = "",
+                ExpectedFileCrc = "",
+                IsExpired = true,
+                PublishType = PublishTypeOption.None
+            })).ToDictionary(x => x.Key, x => x.Value);
         }
 
         /// <summary>
@@ -78,8 +85,21 @@ namespace SlzrCrossGate.Core.Service.BusinessServices
             if (terminal != null)
             {
                 //TODO：检查属性是否变更，检查版本是否有变更，检查版本是否需要更新
-                _terminalManager.ProcessPropertyChange(terminal, signDto);
-                await _terminalManager.ProcessFileVersionChange(terminal, signDto);
+                bool ischanged = _terminalManager.ProcessPropertyChange(terminal, signDto);
+                ischanged = ischanged || await _terminalManager.ProcessFileVersionChange(terminal, signDto);
+                if (ischanged)
+                {
+                    terminal.StatusUpdateTime = DateTime.Now;
+                }
+                if (terminal.Status != null)
+                {
+                    terminal.Status.ActiveStatus = DeviceActiveStatus.Active;
+                    terminal.Status.LastActiveTime = DateTime.Now;
+                    terminal.Status.EndPoint = signDto.EndPoint;
+                    terminal.Status.ConnectionProtocol = signDto.ConnectionProtocol;
+                    terminal.Status.LoginInTime = DateTime.Now;
+                }
+                await _terminalManager.SaveTerminal(terminal);
             }
         }
 
