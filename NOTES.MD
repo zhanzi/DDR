@@ -863,6 +863,17 @@ features: {
    - **性能提升**：避免复杂的DOM遍历和样式解析
    - **维护性好**：代码结构清晰，易于扩展和维护
 
+## Vue使用指南 (2025-05-29)
+1. **Vue版本支持**：✅ 当前只支持Vue 3.0+，使用Composition API和setup语法
+2. **组件引入**：✅ 从`data-driven-report/vue`或本地路径引入DDRReport组件
+3. **基本配置**：✅ 通过config属性传入报表配置，支持数据源、列定义、表头表尾等
+4. **事件监听**：✅ 支持data-loaded、render-complete、export-start等事件
+5. **方法调用**：✅ 通过ref引用调用exportTo、print、reload等方法
+6. **主题切换**：✅ 支持通过theme属性动态切换主题
+7. **响应式更新**：✅ 配置和元数据变更时自动重新渲染
+8. **Vue 2支持**：✅ 可直接使用ddr-core.browser.js，通过window.DDR全局对象访问
+9. **Browser版本**：✅ 提供IIFE格式的浏览器版本，无需模块系统，直接script标签引入
+
 ## 待优化项目
 - [ ] 进一步优化PDF导出性能，考虑Web Worker处理大数据
 - [ ] 添加PDF导出进度提示
