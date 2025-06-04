@@ -42,22 +42,22 @@
 
 <script>
 // Vue 2 方式引入
-import { DDRReport } from '@/libs/ddr/vue2.js'; // 使用Vue 2适配器
-import '@/libs/ddr/ddr-core.css';
+import { DDRReport } from '../../dist/ddr-vue.js'; // 使用Vue 2适配器
+import '../../dist/ddr-core.css';
 
 export default {
   name: 'DDRExamplePage',
   components: {
     DDRReport
   },
-  
+
   data() {
     return {
       currentTheme: 'default',
       dataCount: 0,
       renderStatus: '未开始',
       lastUpdate: '',
-      
+
       // 元数据
       metadata: {
         report: {
@@ -243,7 +243,7 @@ export default {
     generateMockData() {
       const regions = ['华东', '华南', '华北', '西南', '东北'];
       const products = ['产品A', '产品B', '产品C', '产品D', '产品E'];
-      
+
       const data = Array.from({ length: 100 }, (_, index) => {
         const amount = parseFloat((Math.random() * 100000 + 1000).toFixed(2));
         return {
@@ -265,12 +265,12 @@ export default {
       const data = this.reportConfig.dataSource.data;
       const totalAmount = data.reduce((sum, item) => sum + item.amount, 0);
       const count = data.length;
-      
+
       // Vue 2 方式更新嵌套对象
       this.$set(this.metadata.summary, 'totalAmount', totalAmount);
       this.$set(this.metadata.summary, 'avgAmount', totalAmount / count);
       this.$set(this.metadata.summary, 'count', count);
-      
+
       this.dataCount = count;
     },
 
@@ -314,7 +314,7 @@ export default {
       this.generateMockData();
       this.calculateSummary();
       this.lastUpdate = new Date().toLocaleString();
-      
+
       if (this.$refs.reportRef) {
         this.$refs.reportRef.reload();
       }

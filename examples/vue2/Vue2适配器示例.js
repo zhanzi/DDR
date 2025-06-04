@@ -1,11 +1,11 @@
 // Vue 2 适配器示例
 // 文件名: src/adapters/vue2.js
 
-import DDR from '../core';
+import DDR from '../../dist/ddr-core.esm.js';
 
 export const DDRReport = {
   name: 'DDRReport',
-  
+
   props: {
     config: {
       type: [String, Object],

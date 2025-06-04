@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Excel导出测试</title>
-    <link rel="stylesheet" href="dist/ddr-core.css">
+    <link rel="stylesheet" href="../../dist/ddr-core.css">
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -43,21 +43,21 @@
 <body>
     <div class="container">
         <h1>Excel导出测试</h1>
-        
+
         <div class="controls">
             <button id="exportExcel" class="btn btn-success">导出Excel</button>
             <button id="showData" class="btn btn-primary">显示数据</button>
         </div>
-        
+
         <div id="report"></div>
-        
+
         <div id="dataPanel" style="display: none; margin-top: 20px;">
             <h3>数据结构</h3>
             <pre id="dataCode" style="background: #f6f8fa; padding: 15px; border-radius: 6px; overflow: auto;"></pre>
         </div>
     </div>
 
-    <script src="dist/ddr-core.browser.js"></script>
+    <script src="../../dist/ddr-core.browser.js"></script>
     <script>
         let currentReport = null;
 
@@ -93,7 +93,7 @@
         // 创建报表配置
         function createConfig() {
             const data = generateTestData();
-            
+
             return {
                 dataSource: { data: data },
                 header: {
@@ -142,7 +142,7 @@
         // 创建报表
         function createReport() {
             const config = createConfig();
-            
+
             if (currentReport) {
                 currentReport.destroy();
             }

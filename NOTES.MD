@@ -1,5 +1,28 @@
 # 开发备忘录
 
+## 项目整理 (2025-05-29)
+1. **项目结构整理**：✅ 完成项目文件整理和目录规范化
+   - **examples目录**：统一将所有示例文件移动到examples目录下，按功能分类
+     * `vue2/` - Vue2相关示例（Vue2使用示例.vue, Vue2完整示例.html, Vue2适配器示例.js）
+     * `excel-test/` - Excel导出测试（test-excel-export.html）
+     * `vue/` - Vue示例（实际使用示例.vue）
+   - **docs目录**：将所有文档说明移动到docs目录，便于查阅和维护
+     * Vue使用指南.md, Vue2直接使用browser版本指南.md
+     * PDF导出配置优先级说明.md, 报表头报表尾样式配置说明.md
+     * 数据行合并功能配置指南.md, 本地包使用示例.md, 项目需求.md
+   - **清理临时文件**：删除构建过程中产生的临时文件和重复文件
+     * 删除 `dist/temp/` 目录
+     * 删除 `dist/types/core/exporter/index_temp.d.ts` 临时类型文件
+   - **目录结构优化**：建立清晰的项目目录结构，提高代码可维护性
+     * 创建 `examples/README.md` 和 `docs/README.md` 说明文档
+     * 更新主 `README.md` 添加项目结构说明
+   - **路径引用修复**：调整移动文件中的资源引用路径
+     * 修复 `Vue2完整示例.html` 中的CSS和JS引用路径（`./dist/` → `../../dist/`）
+     * 修复 `test-excel-export.html` 中的资源引用路径
+     * 修复 `Vue2使用示例.vue` 中的模块引用路径（`@/libs/ddr/` → `../../dist/`）
+     * 修复 `Vue2适配器示例.js` 中的核心模块引用路径
+     * 修复 `实际使用示例.vue` 中的Vue组件引用路径
+
 ## 最新进展 (2025-05-29)
 1. **Excel文件损坏问题修复**：✅ 修复Excel导出文件损坏问题
    - **导出方式优化**：关闭压缩选项，使用更稳定的writeFile方式

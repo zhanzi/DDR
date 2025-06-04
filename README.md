@@ -2,6 +2,39 @@
 
 基于纯数据驱动的企业级报表组件，支持Excel/PDF导出、打印、动态表头表尾等功能。
 
+## 📁 项目结构
+
+```
+DDR/
+├── src/                    # 源代码
+│   ├── core/              # 核心功能
+│   ├── adapters/          # 框架适配器
+│   ├── styles/            # 样式文件
+│   ├── types/             # TypeScript类型定义
+│   └── utils/             # 工具函数
+├── dist/                  # 构建产物
+├── examples/              # 示例文件
+│   ├── basic/            # 基础示例
+│   ├── vue/              # Vue示例
+│   ├── vue2/             # Vue2示例
+│   ├── react/            # React示例
+│   ├── excel-test/       # Excel导出测试
+│   ├── grouping-builtin/ # 内置分组功能示例
+│   └── subtotal/         # 小计合计示例
+├── docs/                 # 文档说明
+│   ├── Vue使用指南.md
+│   ├── Vue2直接使用browser版本指南.md
+│   ├── PDF导出配置优先级说明.md
+│   ├── 报表头报表尾样式配置说明.md
+│   ├── 数据行合并功能配置指南.md
+│   ├── 本地包使用示例.md
+│   ├── 项目需求.md
+│   ├── grouping-builtin-guide.md
+│   └── subtotal-guide.md
+├── NOTES.MD              # 开发备忘录
+└── README.md             # 项目说明
+```
+
 ## 特点
 
 - **纯数据驱动**：通过JSON配置定义报表的方方面面，无需编写HTML
