@@ -188,8 +188,8 @@ export const terminalAPI = {
   deleteTerminalType: (id) => api.delete(`/TerminalTypes/${id}`),
   sendMessage: (terminalIds, messageTypeId, content) =>
     api.post('/Terminals/SendMessage', { terminalIds, messageTypeId, content }),
-  publishFile: (terminalIds, fileVersionId) =>
-    api.post('/Terminals/PublishFile', { terminalIds, fileVersionId }),
+  publishFile: (terminalIds, fileVerId) =>
+    api.post('/Terminals/PublishFile', { terminalIds, fileVerId }),
   getTerminalStats: (params) => api.get(`/Terminals/Stats`,{ params }),
 };
 

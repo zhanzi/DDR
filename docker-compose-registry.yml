@@ -85,7 +85,7 @@ services:
     #   rabbitmq:
     #     condition: service_healthy
     ports:
-      - "7296:7296"
+      - "7296:80"
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
       - ConnectionStrings__DefaultConnection=Server=192.168.2.34;Port=3306;Database=tcpserver;User=root;Password=${MYSQL_ROOT_PASSWORD:-slzr!12345};SslMode=Required;

@@ -28,7 +28,7 @@ RUN dotnet publish "SlzrCrossGate.WebAdmin.csproj" -c Release -o /app/publish
 # 阶段 3: 最终镜像
 FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS final
 WORKDIR /app
-EXPOSE 7296
+EXPOSE 80
 COPY --from=publish /app/publish .
 # 创建wwwroot目录（如果不存在）
 RUN mkdir -p ./wwwroot
@@ -38,6 +38,10 @@ COPY --from=frontend-build /app/dist/ ./wwwroot/
 RUN mkdir -p /app/storage/files && chmod -R 755 /app/storage
 # 创建数据保护密钥目录并设置权限
 RUN mkdir -p /app/Keys && chmod -R 755 /app/Keys
+
+# 设置环境变量
+ENV ASPNETCORE_URLS=http://+:80
+ENV ASPNETCORE_ENVIRONMENT=Production
 
 # 定义持久卷
 VOLUME ["/app/Keys"]

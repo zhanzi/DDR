@@ -117,7 +117,9 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-app.UseHttpsRedirection();
+// 在使用反向代理时，HTTPS重定向由代理层处理
+// 如果直接暴露容器，请启用此行
+// app.UseHttpsRedirection();
 
 app.UseAuthorization();
 

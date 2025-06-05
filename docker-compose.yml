@@ -56,10 +56,12 @@ services:
       rabbitmq:
         condition: service_healthy
     ports:
-      - "5000:5000"  # HTTP API
-      - "5001:5001"  # TCP 服务
+      - "5000:8000"  # HTTP API
+      - "5001:8001"  # TCP 服务
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
+      - HTTP_PORT=8000
+      - TCP_PORT=8001
       - ConnectionStrings__DefaultConnection=Server=mysql;Port=3306;Database=tcpserver;User=root;Password=${MYSQL_ROOT_PASSWORD:-slzr!12345};SslMode=Required;AllowLoadLocalInfile=true;
       - RabbitMQ__HostName=rabbitmq
       - RabbitMQ__UserName=${RABBITMQ_USER:-guest}
@@ -70,7 +72,7 @@ services:
       - slzr-network
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -87,9 +89,10 @@ services:
       rabbitmq:
         condition: service_healthy
     ports:
-      - "7296:7296"
+      - "8080:80"   # HTTP端口映射
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
+      - ASPNETCORE_URLS=http://+:80
       - ConnectionStrings__DefaultConnection=Server=mysql;Port=3306;Database=tcpserver;User=root;Password=${MYSQL_ROOT_PASSWORD:-slzr!12345};SslMode=Required;AllowLoadLocalInfile=true;
       - RabbitMQ__HostName=rabbitmq
       - RabbitMQ__UserName=${RABBITMQ_USER:-guest}
@@ -102,7 +105,7 @@ services:
       - slzr-network
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:7296/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:80/health"]
       interval: 30s
       timeout: 10s
       retries: 3

@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using NPOI.SS.Formula.Functions;
 using SlzrCrossGate.Core.Database;
 using SlzrCrossGate.Core.Models;
 using SlzrCrossGate.Core.Service;
@@ -487,47 +488,57 @@ namespace SlzrCrossGate.WebAdmin.Controllers
                 return Forbid();
             }
 
-
-            // 创建文件发布记录
-            var filePublish = new FilePublish
+            // 检查文件版本是否已发布
+            var existingFilePublish = await _dbContext.FilePublishs
+                .AnyAsync(p => p.FileVerID == fileVer.ID && p.PublishType == PublishTypeOption.Terminal && model.TerminalIds.Contains(p.PublishTarget) && p.MerchantID == fileVer.MerchantID);
+            if (existingFilePublish)
             {
-                MerchantID = fileVer.MerchantID,
-                FileTypeID = fileVer.FileTypeID,
-                FilePara = fileVer.FilePara,
-                FileFullType = fileVer.FileFullType,
-                Ver = fileVer.Ver,
-                FileSize = fileVer.FileSize,
-                Crc = fileVer.Crc,
-                FileVerID = fileVer.ID,
-                UploadFileID = fileVer.UploadFileID,
-                PublishType = PublishTypeOption.Terminal,
-                PublishTarget = string.Join(",", model.TerminalIds),
-                PublishTime = DateTime.Now,
-                Operator = username
-            };
+                return Conflict("该发布已存在");
+            }
 
-            await _dbContext.FilePublishs.AddAsync(filePublish);
-            await _dbContext.SaveChangesAsync();
-
-            // 创建文件发布历史记录
-            var filePublishHistory = new FilePublishHistory
+            
+            foreach (var terminal in model.TerminalIds)
             {
-                MerchantID = terminals.First().MerchantID,
-                FileTypeID = fileVer.FileTypeID,
-                FilePara = fileVer.FilePara,
-                FileFullType = fileVer.FileFullType,
-                Ver = fileVer.Ver,
-                FileSize = fileVer.FileSize,
-                Crc = fileVer.Crc,
-                FileVerID = fileVer.ID,
-                UploadFileID = fileVer.UploadFileID,
-                PublishType = PublishTypeOption.Terminal,
-                PublishTarget = string.Join(",", model.TerminalIds),
-                PublishTime = filePublish.PublishTime,
-                Operator = username
-            };
+                // 创建文件发布记录
+                var filePublish = new FilePublish
+                {
+                    MerchantID = fileVer.MerchantID,
+                    FileTypeID = fileVer.FileTypeID,
+                    FilePara = fileVer.FilePara,
+                    FileFullType = fileVer.FileFullType,
+                    Ver = fileVer.Ver,
+                    FileSize = fileVer.FileSize,
+                    Crc = fileVer.Crc,
+                    FileVerID = fileVer.ID,
+                    UploadFileID = fileVer.UploadFileID,
+                    PublishType = PublishTypeOption.Terminal,
+                    PublishTarget = terminal,
+                    PublishTime = DateTime.Now,
+                    Operator = username
+                };
 
-            await _dbContext.FilePublishHistories.AddAsync(filePublishHistory);
+                await _dbContext.FilePublishs.AddAsync(filePublish);
+
+                // 创建文件发布历史记录
+                var filePublishHistory = new FilePublishHistory
+                {
+                    MerchantID = terminals.First().MerchantID,
+                    FileTypeID = fileVer.FileTypeID,
+                    FilePara = fileVer.FilePara,
+                    FileFullType = fileVer.FileFullType,
+                    Ver = fileVer.Ver,
+                    FileSize = fileVer.FileSize,
+                    Crc = fileVer.Crc,
+                    FileVerID = fileVer.ID,
+                    UploadFileID = fileVer.UploadFileID,
+                    PublishType = PublishTypeOption.Terminal,
+                    PublishTarget = terminal,
+                    PublishTime = filePublish.PublishTime,
+                    Operator = username
+                };
+                await _dbContext.FilePublishHistories.AddAsync(filePublishHistory);
+
+            }
             await _dbContext.SaveChangesAsync();
 
             // 记录事件
@@ -545,7 +556,7 @@ namespace SlzrCrossGate.WebAdmin.Controllers
 
             }
 
-            return Ok(new { PublishId = filePublish.ID, TerminalCount = terminals.Count });
+            return Ok(new {TerminalCount = terminals.Count });
         }
 
         // GET: api/Terminals/Export

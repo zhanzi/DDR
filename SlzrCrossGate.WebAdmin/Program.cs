@@ -9,6 +9,7 @@ using SlzrCrossGate.Core;
 using SlzrCrossGate.WebAdmin.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.DataProtection;
+using Microsoft.AspNetCore.HttpOverrides;
 using System.IO;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -245,15 +246,35 @@ app.UseStaticFiles();
 app.UseRouting();
 
 //开发环境允许跨域
-app.UseCors(builder =>
+if (app.Environment.IsDevelopment())
 {
-    builder.WithOrigins("http://localhost:3000")
-            .AllowAnyHeader()
-            .AllowAnyMethod()
-            .AllowCredentials();
-});
+    app.UseCors(builder =>
+    {
+        builder.AllowAnyOrigin()
+               .AllowAnyHeader()
+               .AllowAnyMethod();
+    });
+}
+else
+{
+    app.UseCors(builder =>
+    {
+        builder.WithOrigins("http://localhost:3000","http://localhost:5270")
+               .AllowAnyHeader()
+               .AllowAnyMethod()
+               .AllowCredentials();
+    });
+}
 
-app.UseHttpsRedirection();
+// 在使用反向代理时，HTTPS重定向由代理层处理
+// 如果直接暴露容器，请启用此行
+// app.UseHttpsRedirection();
+
+// 配置转发头部，支持反向代理
+app.UseForwardedHeaders(new ForwardedHeadersOptions
+{
+    ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
+});
 
 app.UseAuthentication();
 app.UseAuthorization();

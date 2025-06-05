@@ -123,9 +123,13 @@ const TerminalList = () => {
   };
 
   // 加载文件版本
-  const loadFileVersions = async () => {
+  const loadFileVersions = async (merchantId = null) => {
     try {
-      const response = await fileAPI.getFileVersions();
+      const params = {};
+      if (merchantId) {
+        params.merchantId = merchantId;
+      }
+      const response = await fileAPI.getFileVersions(params);
       setFileVersions(response.items || []);
     } catch (error) {
       console.error('Error loading file versions:', error);
@@ -137,10 +141,9 @@ const TerminalList = () => {
     loadTerminals();
   }, [loadTerminals]);
 
-  // 只在组件首次加载时获取消息类型和文件版本
+  // 只在组件首次加载时获取消息类型
   useEffect(() => {
     loadMessageTypes();
-    loadFileVersions();
   }, []);
 
   // 处理筛选条件变更
@@ -210,6 +213,8 @@ const TerminalList = () => {
   const openFileDialog = (terminal) => {
     setSelectedTerminals([terminal]);
     setFileDialog(true);
+    // 根据终端的商户ID加载对应的文件版本
+    loadFileVersions(terminal.merchantID);
   };
 
   // 发布文件

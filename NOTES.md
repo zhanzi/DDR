@@ -944,7 +944,7 @@ app.MapControllers();
 
 ### 2024-12-19
 - **修复了大量C# 8.0可空引用类型警告**：
-  - **SlzrCrossGate.Core项目**：为所有必需的字符串属性添加了`required`修饰符或默认值，修复了FormFile构造函数中的null参数问题，解决了异步方法缺少await的警告，优化了MsgBoxRepository的主构造函数参数捕获问题，添加了缺失的Iso8583MessageType.MsgConfirmResponse常量
+  - **SlzrCrossGate.Core项目**：为所有必需的字符串属性添加了`required`修饰符或默认值，修复了FormFile构造函数中的null参问题，解决了异步方法缺少await的警告，优化了MsgBoxRepository的主构造函数参数捕获问题，添加了缺失的Iso8583MessageType.MsgConfirmResponse常量
   - **SlzrCrossGate.WebAdmin项目**：修复了SystemSettingsService、UsersController、WechatAuthService、SystemSettingsController、TerminalsController、FileVersionsController、AuthController中的null引用问题
   - **总计修复了32个编译警告**，项目现在可以无警告构建
 - **简化了数据保护配置**：
@@ -957,6 +957,43 @@ app.MapControllers();
   - 使用Promise.all并行加载终端列表和统计数据
   - 使用useCallback优化函数重新创建，减少不必要的重渲染
   - 只在组件首次加载时获取消息类型和文件版本数据
+- **修复了终端管理页面文件发布功能**：
+  - 问题：发布文件时加载的是所有文件版本，而不是当前终端所在商户下的文件版本
+  - 解决方案：
+    1. 修改`loadFileVersions`方法，添加`merchantId`参数支持
+    2. 修改`openFileDialog`方法，在打开对话框时根据终端的商户ID加载对应的文件版本
+    3. 移除组件初始化时的文件版本加载，改为按需加载
+  - 影响：确保用户只能看到和选择当前终端所在商户下的文件版本，提高了数据安全性和用户体验
+- **修复了Docker部署配置问题**：
+  - 问题：Dockerfile和docker-compose.yml中使用了错误的端口7296（开发环境端口）
+  - 原因：7296端口来自launchSettings.json中的开发环境HTTPS配置，不应在生产容器中使用
+  - 解决方案：
+    1. 修改Dockerfile，将`EXPOSE 7296`改为`EXPOSE 80`和`EXPOSE 443`
+    2. 添加正确的环境变量`ASPNETCORE_URLS=http://+:80;https://+:443`
+    3. 修改docker-compose.yml，将端口映射改为`8080:80`和`8443:443`
+    4. 更新appsettings.Production.json中的Kestrel配置，使用标准的80和443端口
+    5. 修复健康检查URL，使用正确的容器内部端口
+  - 影响：确保Docker容器使用标准的HTTP/HTTPS端口，符合生产环境最佳实践
+- **优化了反向代理架构**：
+  - 移除了容器内部的HTTPS重定向，改为在Nginx层处理HTTPS
+  - 添加了`UseForwardedHeaders`中间件，正确处理反向代理的头部信息
+  - 容器内部只监听HTTP端口80，HTTPS由Nginx反向代理处理
+  - 修正了Nginx配置文件中的端口和语法错误
+  - 这种架构更符合微服务部署的最佳实践，SSL终止在代理层
+- **修复了ApiService项目的端口配置不一致问题**：
+  - 问题：多个配置文件中的端口设置不一致，导致容器运行时端口冲突
+  - 发现的冲突：
+    1. Program.cs默认端口：8000/8001
+    2. appsettings.Production.json：5000/5001
+    3. docker-compose.yml映射：5000:5000, 5001:5001
+    4. Dockerfile EXPOSE：8000/8001
+  - 解决方案：
+    1. 移除appsettings.Production.json中的Kestrel端点配置，使用Program.cs中的动态配置
+    2. 修正docker-compose.yml端口映射为`5000:8000`和`5001:8001`
+    3. 添加环境变量`HTTP_PORT=8000`和`TCP_PORT=8001`明确指定容器内部端口
+    4. 修正健康检查URL使用正确的容器内部端口8000
+    5. 移除ApiService中的HTTPS重定向，与WebAdmin保持一致
+  - 影响：确保ApiService容器使用一致的端口配置，避免运行时端口冲突
 - 修复了RabbitMQService的连接管理问题，改进了连接恢复机制
 - 优化了消息发布的错误处理逻辑
 - 添加了连接状态监控和自动重连功能
