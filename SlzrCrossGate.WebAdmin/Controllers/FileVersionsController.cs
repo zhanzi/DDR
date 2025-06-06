@@ -295,7 +295,7 @@ namespace SlzrCrossGate.WebAdmin.Controllers
 
             // 检查是否有关联的文件发布
             var hasFilePublish = await _dbContext.FilePublishs
-                .AnyAsync(p => p.FileFullType == fileVersion.FileFullType && p.Ver == fileVersion.Ver);
+                .AnyAsync(p => p.FileVerID == id);
 
             if (hasFilePublish)
             {

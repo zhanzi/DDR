@@ -173,3 +173,35 @@ curl -u slzr:slzr.1234 http://devtest.pointlife365.net:5180/v2/slzr-web-admin/ta
 - 在生产环境部署时，请确保使用更强的密码
 - 考虑添加健康检查，以确保应用正常运行
 - 定期备份MySQL数据和应用数据
+
+
+## 8. 公有库推送到私有库
+
+```bash
+# 拉取官方镜像
+docker pull nginx:latest
+
+# 打标签指向私有库
+docker tag nginx:latest devtest.pointlife365.net:5180/library/nginx:latest
+
+# 推送镜像
+docker push devtest.pointlife365.net:5180/library/nginx:latest
+```
+
+## 9. 私有仓库管理界面
+```bash
+#本机操作
+docker run -d -p 8090:80 --name registry-ui \
+   -e NGINX_PROXY_PASS_URL=https://devtest.pointlife365.net:5180 \
+   -e REGISTRY_USER=slzr \
+   -e REGISTRY_PASS=slzr.12345 \
+   -e CATALOG_ELEMENTS_LIMIT=100 \
+   -e DELETE_IMAGES=true \
+   joxit/docker-registry-ui:main
+
+
+
+   joxit/docker-registry-ui:1.5-static
+   joxit/docker-registry-ui:static
+
+   ```

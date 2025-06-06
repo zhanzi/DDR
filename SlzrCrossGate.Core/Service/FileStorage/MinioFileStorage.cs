@@ -10,6 +10,7 @@ namespace SlzrCrossGate.Core.Service.FileStorage
     {
         private readonly IMinioClient _minioClient;
         private readonly string _bucketName;
+        private bool _bucketInitialized = false;
 
         public MinioFileStorage(IMinioClient minioClient, string bucketName)
         {
@@ -17,12 +18,35 @@ namespace SlzrCrossGate.Core.Service.FileStorage
             _bucketName = bucketName;
         }
 
-        //MINIO´æ´¢µÄÎÄ¼şÂ·¾¶Ç°Ãæ¼ÓÉÏ minio:// 
+        private async Task EnsureBucketExistsAsync()
+        {
+            if (_bucketInitialized) return;
+
+            try
+            {
+                var bucketExists = await _minioClient.BucketExistsAsync(new BucketExistsArgs().WithBucket(_bucketName));
+                if (!bucketExists)
+                {
+                    await _minioClient.MakeBucketAsync(new MakeBucketArgs().WithBucket(_bucketName));
+                }
+                _bucketInitialized = true;
+            }
+            catch (Exception)
+            {
+                // å¦‚æœåˆ›å»ºå¤±è´¥ï¼Œä¸‹æ¬¡è¿˜ä¼šé‡è¯•
+                _bucketInitialized = false;
+                throw;
+            }
+        }
+
+        //MINIOå­˜å‚¨çš„æ–‡ä»¶è·¯å¾„å‰ç¼€æ˜¯ minio://
         public async Task<string> UploadFileAsync(IFormFile file, string uploadedBy)
         {
-            // Ê¹ÓÃµ±Ç°ÔÂ·İ´´½¨×ÓÄ¿Â¼
+            await EnsureBucketExistsAsync();
+
+            // ä½¿ç”¨å½“å‰å¹´ä»½åˆ›å»ºå­ç›®å½•
             var datePath = DateTime.UtcNow.ToString("yyyyMM");
-            var filePath = Path.Combine(datePath, file.FileName).Replace("\\", "/"); // È·±£Â·¾¶·Ö¸ô·ûÊÇ "/"
+            var filePath = Path.Combine(datePath, file.FileName+"_"+DateTime.Now.Ticks.ToString()).Replace("\\", "/"); // ç¡®ä¿è·¯å¾„åˆ†éš”ç¬¦æ˜¯ "/"
 
             using (var stream = file.OpenReadStream())
             {

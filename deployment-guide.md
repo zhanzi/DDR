@@ -1104,14 +1104,15 @@ cat registry-password.txt | docker login devtest.pointlife365.net:5180 -u slzr -
 docker logout devtest.pointlife365.net:5180
 
 
-
-
-```
-
-
 # 构建时同时打两个标签
 docker build -t myregistry.com/app:1.2.0 -t myregistry.com/app:latest .
+
+# 标记
+docker tag myregistry.com/app:1.2.0 myregistry.com/app:latest
 
 # 推送
 docker push myregistry.com/app:1.2.0
 docker push myregistry.com/app:latest
+
+
+```
