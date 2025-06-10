@@ -36,8 +36,8 @@ services:
       - RABBITMQ_NODENAME=rabbit@slzr-rabbitmq  # 确保节点名称一致
       - RABBITMQ_USE_LONGNAME=true  # 使用长名称确保集群稳定性
     ports:
-      - "5673:5672"   # AMQP端口
-      - "15673:15672" # 管理界面端口
+      - "5672:5672"   # AMQP端口
+      - "15672:15672" # 管理界面端口
     networks:
       - slzr-network
     restart: unless-stopped
@@ -73,12 +73,12 @@ services:
   api-service:
     image: devtest.pointlife365.net:5180/slzr/tcpserver-api:latest
     container_name: tcpserver-api
-    deploy:
-      #replicas: 2  # 启动 1 个副本
-      resources:
-        limits:
-          cpus: "4.0"  # 4 核 CPU
-          memory: 8G    # 8GB 内存
+    #deploy:
+    #  #replicas: 2  # 启动 1 个副本
+    #  resources:
+    #    limits:
+    #      cpus: "4.0"  # 4 核 CPU
+    #      memory: 8G    # 8GB 内存
     extra_hosts:  # 添加宿主机IP的DNS映射
       - "host.docker.internal:host-gateway"
     #depends_on:
@@ -93,7 +93,7 @@ services:
       - ASPNETCORE_ENVIRONMENT=Production
       - HTTP_PORT=8000
       - TCP_PORT=8001
-      - ConnectionStrings__DefaultConnection=Server=host.docker.internal;Port=3306;Database=tcpserver;User=root;Password=${MYSQL_ROOT_PASSWORD:-slzr!12345};SslMode=Required;
+      - ConnectionStrings__DefaultConnection=Server=${MYSQL_HOST:-host.docker.internal};Port=3306;Database=zhtong_busdb;User=${MYSQL_ROOT_USER:-3306};Password=${MYSQL_ROOT_PASSWORD:-slzr!12345};SslMode=Required;
       - DatabaseProvider=MySql
       - RabbitMQ__HostName=slzr-rabbitmq
       - RabbitMQ__Port=5672
@@ -133,8 +133,10 @@ services:
     #  - "18822:80"
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
-      - ConnectionStrings__DefaultConnection=Server=host.docker.internal;Port=3306;Database=tcpserver;User=root;Password=${MYSQL_ROOT_PASSWORD:-slzr!12345};SslMode=Required;
+      - ConnectionStrings__DefaultConnection=Server=${MYSQL_HOST:-host.docker.internal};Port=3306;Database=zhtong_busdb;User=${MYSQL_ROOT_USER:-3306};Password=${MYSQL_ROOT_PASSWORD:-slzr!12345};SslMode=Required;
+      - DatabaseProvider=MySql
       - RabbitMQ__HostName=slzr-rabbitmq
+      - RabbitMQ__Port=5672
       - RabbitMQ__UserName=${RABBITMQ_USER:-guest}
       - RabbitMQ__Password=${RABBITMQ_PASS:-guest}
       - Jwt__Key=${JWT_KEY:-YourSecretKeyHere12345678901234567890}
@@ -164,8 +166,8 @@ services:
       - api-service
       - web-admin
     ports:
-      - "18822:80"          # HTTP代理
-      - "8822:8823"        # TCP代理端口（如果需要的话）
+      - "11822:80"          # HTTP代理
+      - "18822:8823"        # TCP代理端口（如果需要的话）
       # - "443:443"
     volumes:
       - ./nginx/conf.d:/etc/nginx/conf.d

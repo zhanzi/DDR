@@ -24,7 +24,7 @@ services:
 
   # RabbitMQ 消息队列
   rabbitmq:
-    image: devtest.pointlife365.net:5180/library/rabbitmq:3.13.7-management
+    image: devtest.pointlife365.net:5180/library/rabbitmq:management
     container_name: slzr-rabbitmq
     hostname: slzr-rabbitmq  # 重要：设置hostname确保数据一致性
     volumes:

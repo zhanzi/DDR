@@ -24,6 +24,11 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+// 扩展健康检查服务，添加数据库检查
+builder.Services.AddHealthChecks()
+    .AddMySql(builder.Configuration.GetConnectionString("DefaultConnection")!, name: "database");
+    // 注意：RabbitMQ健康检查暂时移除，因为AspNetCore.HealthChecks.RabbitMQ与RabbitMQ.Client 7.1.2版本不兼容
+
 // 配置数据保护,使密钥持久化存储
 var keysDirectory = Path.Combine(builder.Environment.ContentRootPath, "Keys");
 if (!Directory.Exists(keysDirectory))
@@ -280,6 +285,7 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+
 app.MapFallbackToFile("index.html");//SPA回退路由
 
 app.Run();

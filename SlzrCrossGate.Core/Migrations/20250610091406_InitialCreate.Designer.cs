@@ -12,8 +12,8 @@ using SlzrCrossGate.Core.Database;
 namespace SlzrCrossGate.Core.Migrations
 {
     [DbContext(typeof(TcpDbContext))]
-    [Migration("20250422073308_ReCreate")]
-    partial class ReCreate
+    [Migration("20250610091406_InitialCreate")]
+    partial class InitialCreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -41,7 +41,8 @@ namespace SlzrCrossGate.Core.Migrations
 
                     b.Property<string>("RoleId")
                         .IsRequired()
-                        .HasColumnType("varchar(255)");
+                        .HasMaxLength(128)
+                        .HasColumnType("varchar(128)");
 
                     b.HasKey("Id");
 
@@ -66,7 +67,8 @@ namespace SlzrCrossGate.Core.Migrations
 
                     b.Property<string>("UserId")
                         .IsRequired()
-                        .HasColumnType("varchar(255)");
+                        .HasMaxLength(128)
+                        .HasColumnType("varchar(128)");
 
                     b.HasKey("Id");
 
@@ -78,17 +80,20 @@ namespace SlzrCrossGate.Core.Migrations
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserLogin<string>", b =>
                 {
                     b.Property<string>("LoginProvider")
-                        .HasColumnType("varchar(255)");
+                        .HasMaxLength(128)
+                        .HasColumnType("varchar(128)");
 
                     b.Property<string>("ProviderKey")
-                        .HasColumnType("varchar(255)");
+                        .HasMaxLength(128)
+                        .HasColumnType("varchar(128)");
 
                     b.Property<string>("ProviderDisplayName")
                         .HasColumnType("longtext");
 
                     b.Property<string>("UserId")
                         .IsRequired()
-                        .HasColumnType("varchar(255)");
+                        .HasMaxLength(128)
+                        .HasColumnType("varchar(128)");
 
                     b.HasKey("LoginProvider", "ProviderKey");
 
@@ -100,10 +105,12 @@ namespace SlzrCrossGate.Core.Migrations
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserRole<string>", b =>
                 {
                     b.Property<string>("UserId")
-                        .HasColumnType("varchar(255)");
+                        .HasMaxLength(128)
+                        .HasColumnType("varchar(128)");
 
                     b.Property<string>("RoleId")
-                        .HasColumnType("varchar(255)");
+                        .HasMaxLength(128)
+                        .HasColumnType("varchar(128)");
 
                     b.HasKey("UserId", "RoleId");
 
@@ -115,13 +122,16 @@ namespace SlzrCrossGate.Core.Migrations
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserToken<string>", b =>
                 {
                     b.Property<string>("UserId")
-                        .HasColumnType("varchar(255)");
+                        .HasMaxLength(128)
+                        .HasColumnType("varchar(128)");
 
                     b.Property<string>("LoginProvider")
-                        .HasColumnType("varchar(255)");
+                        .HasMaxLength(128)
+                        .HasColumnType("varchar(128)");
 
                     b.Property<string>("Name")
-                        .HasColumnType("varchar(255)");
+                        .HasMaxLength(128)
+                        .HasColumnType("varchar(128)");
 
                     b.Property<string>("Value")
                         .HasColumnType("longtext");
@@ -134,7 +144,8 @@ namespace SlzrCrossGate.Core.Migrations
             modelBuilder.Entity("SlzrCrossGate.Core.Models.ApplicationRole", b =>
                 {
                     b.Property<string>("Id")
-                        .HasColumnType("varchar(255)");
+                        .HasMaxLength(128)
+                        .HasColumnType("varchar(128)");
 
                     b.Property<string>("ConcurrencyStamp")
                         .IsConcurrencyToken()
@@ -144,12 +155,12 @@ namespace SlzrCrossGate.Core.Migrations
                         .HasColumnType("tinyint(1)");
 
                     b.Property<string>("Name")
-                        .HasMaxLength(256)
-                        .HasColumnType("varchar(256)");
+                        .HasMaxLength(128)
+                        .HasColumnType("varchar(128)");
 
                     b.Property<string>("NormalizedName")
-                        .HasMaxLength(256)
-                        .HasColumnType("varchar(256)");
+                        .HasMaxLength(128)
+                        .HasColumnType("varchar(128)");
 
                     b.HasKey("Id");
 
@@ -163,7 +174,8 @@ namespace SlzrCrossGate.Core.Migrations
             modelBuilder.Entity("SlzrCrossGate.Core.Models.ApplicationUser", b =>
                 {
                     b.Property<string>("Id")
-                        .HasColumnType("varchar(255)");
+                        .HasMaxLength(128)
+                        .HasColumnType("varchar(128)");
 
                     b.Property<int>("AccessFailedCount")
                         .HasColumnType("int");
@@ -172,12 +184,27 @@ namespace SlzrCrossGate.Core.Migrations
                         .IsConcurrencyToken()
                         .HasColumnType("longtext");
 
+                    b.Property<DateTime>("CreateTime")
+                        .HasColumnType("datetime(6)");
+
                     b.Property<string>("Email")
-                        .HasMaxLength(256)
-                        .HasColumnType("varchar(256)");
+                        .HasMaxLength(128)
+                        .HasColumnType("varchar(128)");
 
                     b.Property<bool>("EmailConfirmed")
                         .HasColumnType("tinyint(1)");
+
+                    b.Property<int?>("FailedTwoFactorAttempts")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<bool>("IsTwoFactorRequired")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<DateTime?>("LastFailedTwoFactorAttempt")
+                        .HasColumnType("datetime(6)");
 
                     b.Property<bool>("LockoutEnabled")
                         .HasColumnType("tinyint(1)");
@@ -189,12 +216,12 @@ namespace SlzrCrossGate.Core.Migrations
                         .HasColumnType("longtext");
 
                     b.Property<string>("NormalizedEmail")
-                        .HasMaxLength(256)
-                        .HasColumnType("varchar(256)");
+                        .HasMaxLength(128)
+                        .HasColumnType("varchar(128)");
 
                     b.Property<string>("NormalizedUserName")
-                        .HasMaxLength(256)
-                        .HasColumnType("varchar(256)");
+                        .HasMaxLength(128)
+                        .HasColumnType("varchar(128)");
 
                     b.Property<string>("PasswordHash")
                         .HasColumnType("longtext");
@@ -214,9 +241,27 @@ namespace SlzrCrossGate.Core.Migrations
                     b.Property<bool>("TwoFactorEnabled")
                         .HasColumnType("tinyint(1)");
 
+                    b.Property<DateTime?>("TwoFactorEnabledDate")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("TwoFactorSecretKey")
+                        .HasColumnType("longtext");
+
                     b.Property<string>("UserName")
-                        .HasMaxLength(256)
-                        .HasColumnType("varchar(256)");
+                        .HasMaxLength(128)
+                        .HasColumnType("varchar(128)");
+
+                    b.Property<DateTime?>("WechatBindTime")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("WechatNickname")
+                        .HasColumnType("longtext");
+
+                    b.Property<string>("WechatOpenId")
+                        .HasColumnType("longtext");
+
+                    b.Property<string>("WechatUnionId")
+                        .HasColumnType("longtext");
 
                     b.HasKey("Id");
 
@@ -262,10 +307,11 @@ namespace SlzrCrossGate.Core.Migrations
                     b.Property<DateTime>("ReceiveTime")
                         .HasColumnType("datetime(6)");
 
-                    b.HasKey("Id");
+                    b.HasKey("Id")
+                        .HasAnnotation("SqlServer:Clustered", true);
 
                     b.HasIndex("ReceiveTime")
-                        .HasAnnotation("SqlServer:Include", new[] { "MerchantID", "MachineID" });
+                        .HasAnnotation("SqlServer:Include", new[] { "MerchantID", "MachineID", "MachineNO" });
 
                     b.ToTable("ConsumeDatas");
                 });
@@ -282,9 +328,6 @@ namespace SlzrCrossGate.Core.Migrations
                         .IsRequired()
                         .HasMaxLength(8)
                         .HasColumnType("varchar(8)");
-
-                    b.Property<DateTime>("CreateTime")
-                        .HasColumnType("datetime(6)");
 
                     b.Property<string>("FileFullType")
                         .IsRequired()
@@ -321,6 +364,9 @@ namespace SlzrCrossGate.Core.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("varchar(100)");
 
+                    b.Property<DateTime>("PublishTime")
+                        .HasColumnType("datetime(6)");
+
                     b.Property<int>("PublishType")
                         .HasColumnType("int");
 
@@ -328,17 +374,25 @@ namespace SlzrCrossGate.Core.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("varchar(200)");
 
-                    b.Property<DateTime>("UpdateTime")
-                        .HasColumnType("datetime(6)");
+                    b.Property<string>("UploadFileID")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("varchar(32)");
 
                     b.Property<string>("Ver")
                         .IsRequired()
                         .HasMaxLength(4)
-                        .HasColumnType("varchar(4)");
+                        .HasColumnType("char(4)");
 
-                    b.HasKey("ID");
+                    b.HasKey("ID")
+                        .HasAnnotation("SqlServer:Clustered", true);
 
-                    b.HasIndex("MerchantID", "FileFullType", "PublishType", "PublishTarget")
+                    b.HasIndex("MerchantID", "FileFullType", "Ver")
+                        .IsUnique();
+
+                    b.HasIndex("MerchantID", "FileTypeID", "PublishTime");
+
+                    b.HasIndex("MerchantID", "FileTypeID", "FilePara", "Ver")
                         .IsUnique();
 
                     b.ToTable("FilePublishs");
@@ -352,6 +406,11 @@ namespace SlzrCrossGate.Core.Migrations
 
                     MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("ID"));
 
+                    b.Property<string>("Crc")
+                        .IsRequired()
+                        .HasMaxLength(8)
+                        .HasColumnType("varchar(8)");
+
                     b.Property<string>("FileFullType")
                         .IsRequired()
                         .HasMaxLength(11)
@@ -362,14 +421,26 @@ namespace SlzrCrossGate.Core.Migrations
                         .HasMaxLength(8)
                         .HasColumnType("varchar(8)");
 
+                    b.Property<int>("FileSize")
+                        .HasColumnType("int");
+
                     b.Property<string>("FileTypeID")
                         .IsRequired()
                         .HasMaxLength(3)
                         .HasColumnType("varchar(3)");
 
+                    b.Property<int>("FileVerID")
+                        .HasColumnType("int");
+
                     b.Property<string>("MerchantID")
                         .IsRequired()
-                        .HasColumnType("char(4)");
+                        .HasMaxLength(8)
+                        .HasColumnType("varchar(8)");
+
+                    b.Property<string>("OperationType")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("varchar(10)");
 
                     b.Property<string>("Operator")
                         .HasMaxLength(20)
@@ -390,14 +461,30 @@ namespace SlzrCrossGate.Core.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("varchar(200)");
 
+                    b.Property<string>("UploadFileID")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("varchar(32)");
+
                     b.Property<string>("Ver")
                         .IsRequired()
                         .HasMaxLength(4)
                         .HasColumnType("char(4)");
 
-                    b.HasKey("ID");
+                    b.HasKey("ID")
+                        .HasAnnotation("SqlServer:Clustered", true);
 
-                    b.ToTable("FilePublishHistories");
+                    b.HasIndex("PublishTime")
+                        .IsDescending()
+                        .HasAnnotation("SqlServer:Include", new[] { "MerchantID", "FileTypeID", "Ver", "FilePara", "FileFullType", "PublishTarget", "OperationType" });
+
+                    b.HasIndex("MerchantID", "FileTypeID", "FilePara", "Ver")
+                        .IsUnique();
+
+                    b.ToTable("FilePublishHistories", t =>
+                        {
+                            t.HasCheckConstraint("CK_FilePublishHistory_OperationType", "OperationType IN ('Publish', 'Revoke')");
+                        });
                 });
 
             modelBuilder.Entity("SlzrCrossGate.Core.Models.FileType", b =>
@@ -484,7 +571,14 @@ namespace SlzrCrossGate.Core.Migrations
                         .HasMaxLength(4)
                         .HasColumnType("varchar(4)");
 
-                    b.HasKey("ID");
+                    b.HasKey("ID")
+                        .HasAnnotation("SqlServer:Clustered", true);
+
+                    b.HasIndex("MerchantID", "FileFullType", "Ver")
+                        .IsUnique();
+
+                    b.HasIndex("MerchantID", "FileTypeID", "FilePara", "Ver")
+                        .IsUnique();
 
                     b.ToTable("FileVers");
                 });
@@ -513,6 +607,164 @@ namespace SlzrCrossGate.Core.Migrations
                         .HasAnnotation("SqlServer:Clustered", true);
 
                     b.ToTable("IncrementContents");
+                });
+
+            modelBuilder.Entity("SlzrCrossGate.Core.Models.LinePriceInfo", b =>
+                {
+                    b.Property<int>("ID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("ID"));
+
+                    b.Property<DateTime>("CreateTime")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("Creator")
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)");
+
+                    b.Property<string>("CurrentVersion")
+                        .IsRequired()
+                        .HasMaxLength(4)
+                        .HasColumnType("varchar(4)");
+
+                    b.Property<int>("Fare")
+                        .HasColumnType("int");
+
+                    b.Property<string>("GroupNumber")
+                        .IsRequired()
+                        .HasMaxLength(2)
+                        .HasColumnType("varchar(2)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<string>("LineName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<string>("LineNumber")
+                        .IsRequired()
+                        .HasMaxLength(4)
+                        .HasColumnType("varchar(4)");
+
+                    b.Property<string>("MerchantID")
+                        .IsRequired()
+                        .HasMaxLength(8)
+                        .HasColumnType("varchar(8)");
+
+                    b.Property<string>("Remark")
+                        .HasMaxLength(500)
+                        .HasColumnType("varchar(500)");
+
+                    b.Property<DateTime>("UpdateTime")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("Updater")
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)");
+
+                    b.HasKey("ID")
+                        .HasAnnotation("SqlServer:Clustered", true);
+
+                    b.HasIndex("MerchantID", "LineNumber", "GroupNumber")
+                        .IsUnique();
+
+                    b.ToTable("LinePriceInfos");
+                });
+
+            modelBuilder.Entity("SlzrCrossGate.Core.Models.LinePriceInfoVersion", b =>
+                {
+                    b.Property<int>("ID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("ID"));
+
+                    b.Property<string>("CardDiscountInfoJson")
+                        .HasColumnType("json");
+
+                    b.Property<DateTime>("CreateTime")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("Creator")
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)");
+
+                    b.Property<string>("ExtraParamsJson")
+                        .HasColumnType("json");
+
+                    b.Property<int>("Fare")
+                        .HasColumnType("int");
+
+                    b.Property<string>("FileContentJson")
+                        .HasColumnType("json");
+
+                    b.Property<int?>("FileVerID")
+                        .HasColumnType("int");
+
+                    b.Property<string>("GroupNumber")
+                        .IsRequired()
+                        .HasMaxLength(2)
+                        .HasColumnType("varchar(2)");
+
+                    b.Property<bool>("IsPublished")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<string>("LineName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<string>("LineNumber")
+                        .IsRequired()
+                        .HasMaxLength(4)
+                        .HasColumnType("varchar(4)");
+
+                    b.Property<int>("LinePriceInfoID")
+                        .HasColumnType("int");
+
+                    b.Property<string>("MerchantID")
+                        .IsRequired()
+                        .HasMaxLength(8)
+                        .HasColumnType("varchar(8)");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("SubmitTime")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("Submitter")
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)");
+
+                    b.Property<DateTime>("UpdateTime")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("Updater")
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)");
+
+                    b.Property<string>("Version")
+                        .IsRequired()
+                        .HasMaxLength(4)
+                        .HasColumnType("varchar(4)");
+
+                    b.HasKey("ID")
+                        .HasAnnotation("SqlServer:Clustered", true);
+
+                    b.HasIndex("LinePriceInfoID");
+
+                    b.HasIndex("MerchantID", "LinePriceInfoID");
+
+                    b.HasIndex("MerchantID", "Status");
+
+                    b.HasIndex("MerchantID", "LineNumber", "GroupNumber");
+
+                    b.ToTable("LinePriceInfoVersions");
                 });
 
             modelBuilder.Entity("SlzrCrossGate.Core.Models.Merchant", b =>
@@ -551,9 +803,84 @@ namespace SlzrCrossGate.Core.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("varchar(200)");
 
-                    b.HasKey("MerchantID");
+                    b.HasKey("MerchantID")
+                        .HasAnnotation("SqlServer:Clustered", true);
 
                     b.ToTable("Merchants");
+                });
+
+            modelBuilder.Entity("SlzrCrossGate.Core.Models.MerchantDictionary", b =>
+                {
+                    b.Property<int>("ID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("ID"));
+
+                    b.Property<DateTime>("CreateTime")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("Creator")
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("varchar(500)");
+
+                    b.Property<string>("DictionaryCode")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)");
+
+                    b.Property<string>("DictionaryLabel")
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)");
+
+                    b.Property<string>("DictionaryType")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)");
+
+                    b.Property<string>("DictionaryValue")
+                        .HasMaxLength(500)
+                        .HasColumnType("varchar(500)");
+
+                    b.Property<string>("ExtraValue1")
+                        .HasMaxLength(500)
+                        .HasColumnType("varchar(500)");
+
+                    b.Property<string>("ExtraValue2")
+                        .HasMaxLength(500)
+                        .HasColumnType("varchar(500)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<string>("MerchantID")
+                        .IsRequired()
+                        .HasMaxLength(8)
+                        .HasColumnType("varchar(8)");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdateTime")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("Updater")
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)");
+
+                    b.HasKey("ID")
+                        .HasAnnotation("SqlServer:Clustered", true);
+
+                    b.HasIndex("MerchantID", "DictionaryType");
+
+                    b.HasIndex("MerchantID", "DictionaryType", "DictionaryCode")
+                        .IsUnique();
+
+                    b.ToTable("MerchantDictionaries");
                 });
 
             modelBuilder.Entity("SlzrCrossGate.Core.Models.MsgBox", b =>
@@ -597,7 +924,8 @@ namespace SlzrCrossGate.Core.Migrations
                         .HasMaxLength(20)
                         .HasColumnType("varchar(20)");
 
-                    b.HasKey("ID");
+                    b.HasKey("ID")
+                        .HasAnnotation("SqlServer:Clustered", true);
 
                     b.HasIndex("MerchantID", "Status", "TerminalID", "SendTime");
 
@@ -639,7 +967,8 @@ namespace SlzrCrossGate.Core.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("varchar(200)");
 
-                    b.HasKey("ID");
+                    b.HasKey("ID")
+                        .HasAnnotation("SqlServer:Clustered", true);
 
                     b.ToTable("MsgContents");
                 });
@@ -674,6 +1003,35 @@ namespace SlzrCrossGate.Core.Migrations
                         .HasAnnotation("SqlServer:Clustered", true);
 
                     b.ToTable("MsgTypes");
+                });
+
+            modelBuilder.Entity("SlzrCrossGate.Core.Models.SystemSettings", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<bool>("EnableTwoFactorAuth")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<bool>("EnableWechatLogin")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<bool>("ForceTwoFactorAuth")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<DateTime>("LastModified")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("LastModifiedBy")
+                        .HasColumnType("longtext");
+
+                    b.HasKey("Id")
+                        .HasAnnotation("SqlServer:Clustered", true);
+
+                    b.ToTable("SystemSettings");
                 });
 
             modelBuilder.Entity("SlzrCrossGate.Core.Models.Terminal", b =>
@@ -715,7 +1073,12 @@ namespace SlzrCrossGate.Core.Migrations
                         .IsRequired()
                         .HasColumnType("longtext");
 
-                    b.HasKey("ID");
+                    b.HasKey("ID")
+                        .HasAnnotation("SqlServer:Clustered", true);
+
+                    b.HasIndex("MerchantID", "DeviceNO");
+
+                    b.HasIndex("MerchantID", "MachineID");
 
                     b.ToTable("Terminals");
                 });
@@ -757,15 +1120,17 @@ namespace SlzrCrossGate.Core.Migrations
 
                     b.Property<string>("TerminalID")
                         .IsRequired()
-                        .HasMaxLength(8)
-                        .HasColumnType("varchar(8)");
+                        .HasMaxLength(20)
+                        .HasColumnType("varchar(20)");
 
-                    b.HasKey("ID");
+                    b.HasKey("ID")
+                        .HasAnnotation("SqlServer:Clustered", true);
+
+                    b.HasIndex("EventTime")
+                        .IsDescending();
 
                     b.HasIndex("MerchantID", "TerminalID", "EventTime")
                         .IsDescending(false, false, true);
-
-                    b.HasIndex("MerchantID", "TerminalID", "EventType");
 
                     b.HasIndex("MerchantID", "TerminalID", "EventType", "EventTime")
                         .IsDescending(false, false, false, true);
@@ -813,7 +1178,8 @@ namespace SlzrCrossGate.Core.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("varchar(200)");
 
-                    b.HasKey("ID");
+                    b.HasKey("ID")
+                        .HasAnnotation("SqlServer:Clustered", true);
 
                     b.ToTable("TerminalStatuses");
                 });
@@ -871,11 +1237,15 @@ namespace SlzrCrossGate.Core.Migrations
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("datetime(6)");
 
-                    b.HasKey("ID");
+                    b.HasKey("ID")
+                        .HasAnnotation("SqlServer:Clustered", true);
 
                     b.HasIndex("MerchantID", "IsInUse");
 
                     b.HasIndex("MerchantID", "MachineID");
+
+                    b.HasIndex("UP_MerchantID", "UP_TerminalID")
+                        .IsUnique();
 
                     b.ToTable("UnionPayTerminalKeys");
                 });
@@ -926,7 +1296,8 @@ namespace SlzrCrossGate.Core.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("varchar(100)");
 
-                    b.HasKey("ID");
+                    b.HasKey("ID")
+                        .HasAnnotation("SqlServer:Clustered", true);
 
                     b.ToTable("UploadFiles");
                 });
@@ -980,6 +1351,47 @@ namespace SlzrCrossGate.Core.Migrations
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("SlzrCrossGate.Core.Models.LinePriceInfo", b =>
+                {
+                    b.HasOne("SlzrCrossGate.Core.Models.Merchant", "Merchant")
+                        .WithMany()
+                        .HasForeignKey("MerchantID")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Merchant");
+                });
+
+            modelBuilder.Entity("SlzrCrossGate.Core.Models.LinePriceInfoVersion", b =>
+                {
+                    b.HasOne("SlzrCrossGate.Core.Models.LinePriceInfo", "LinePriceInfo")
+                        .WithMany()
+                        .HasForeignKey("LinePriceInfoID")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("SlzrCrossGate.Core.Models.Merchant", "Merchant")
+                        .WithMany()
+                        .HasForeignKey("MerchantID")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("LinePriceInfo");
+
+                    b.Navigation("Merchant");
+                });
+
+            modelBuilder.Entity("SlzrCrossGate.Core.Models.MerchantDictionary", b =>
+                {
+                    b.HasOne("SlzrCrossGate.Core.Models.Merchant", "Merchant")
+                        .WithMany()
+                        .HasForeignKey("MerchantID")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Merchant");
                 });
 
             modelBuilder.Entity("SlzrCrossGate.Core.Models.TerminalStatus", b =>

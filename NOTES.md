@@ -943,6 +943,61 @@ app.MapControllers();
 ## 最近更新记录
 
 ### 2024-12-19
+- **实现了ASP.NET Core健康检查功能**：
+  - 为ApiService和WebAdmin项目添加了健康检查支持
+  - 健康检查端点：
+    - `/health`：完整健康检查，包括数据库连接检查
+    - `/alive`：基础存活检查，仅检查应用程序响应性
+  - 集成的健康检查项目：
+    - MySQL数据库连接检查（使用AspNetCore.HealthChecks.MySql 8.0.1）
+    - 基础应用程序存活检查（ServiceDefaults内置）
+  - RabbitMQ健康检查暂时移除，因为AspNetCore.HealthChecks.RabbitMQ 8.0.2与项目使用的RabbitMQ.Client 7.1.2版本不兼容
+  - 修改了ServiceDefaults配置，使健康检查端点在所有环境（包括生产环境）中都可用，以支持Docker容器健康检查
+  - Docker Compose配置中的健康检查现在可以正常工作：
+    - ApiService: `http://localhost:8000/health`
+    - WebAdmin: `http://localhost/health`
+
+- **解决了MySQL utf8mb4字符集下Identity表索引长度超限问题**：
+  - 问题：MySQL在utf8mb4字符集下，varchar(255)字段占用255×4=1020字节，超过767字节索引键长度限制
+  - 原因：ASP.NET Core Identity默认使用varchar(255)作为ID字段长度，在utf8mb4字符集下会导致"Specified key was too long; max key length is 767 bytes"错误
+  - 解决方案：
+    1. 在TcpDbContext的OnModelCreating方法中配置Identity表的字符串长度限制为128字符
+    2. 删除所有现有迁移文件，重新生成包含正确字符串长度的初始迁移
+    3. 手动标记现有数据库的迁移状态，确保兼容性
+    4. 新的迁移确保所有Identity表字段长度不超过128字符（128×4=512字节 < 767字节）
+  - 影响：
+    - 现有数据库：通过手动标记迁移状态，可以正常更新和运行
+    - 新数据库：可以从零开始正常部署，不会遇到索引长度限制错误
+    - 所有Identity相关功能：用户登录、角色管理、权限控制等功能正常工作
+  - 配置的字段长度：
+    - AspNetUsers/AspNetRoles的Id字段：varchar(128)
+    - UserName/Email/NormalizedUserName/NormalizedEmail：varchar(128)
+    - 外键字段（UserId/RoleId）：varchar(128)
+    - LoginProvider/ProviderKey/Name等：varchar(128)
+
+### 2024-12-19
+- **创建了完整的服务器运维文档**：
+  - 文件：`registry-deployment-guide.md`
+  - 内容：详细的服务器部署、运行、维护指南，包括：
+    1. 服务器环境要求和前置条件
+    2. 部署准备和环境配置
+    3. 服务部署和配置步骤
+    4. 日常维护和服务管理命令
+    5. 镜像更新和版本管理
+    6. 监控和健康检查
+    7. 故障排除和性能优化
+    8. 安全配置和访问控制
+    9. 备份和恢复策略
+    10. 常用运维命令速查表
+    11. 环境变量、端口映射、数据卷说明
+    12. 私有镜像仓库管理
+    13. 故障排除检查清单
+  - 特点：
+    - 涵盖了从部署到日常维护的完整运维流程
+    - 提供了详细的命令示例和配置文件
+    - 包含了监控脚本和自动化备份方案
+    - 提供了完整的故障排除指南
+    - 适用于生产环境的服务器运维
 - **修复了大量C# 8.0可空引用类型警告**：
   - **SlzrCrossGate.Core项目**：为所有必需的字符串属性添加了`required`修饰符或默认值，修复了FormFile构造函数中的null参问题，解决了异步方法缺少await的警告，优化了MsgBoxRepository的主构造函数参数捕获问题，添加了缺失的Iso8583MessageType.MsgConfirmResponse常量
   - **SlzrCrossGate.WebAdmin项目**：修复了SystemSettingsService、UsersController、WechatAuthService、SystemSettingsController、TerminalsController、FileVersionsController、AuthController中的null引用问题

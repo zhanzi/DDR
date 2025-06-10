@@ -28,7 +28,7 @@ namespace SlzrCrossGate.Core.Database
         public DbSet<TerminalStatus> TerminalStatuses { get; set; }
         public DbSet<UploadFile> UploadFiles { get; set; }
         public DbSet<ConsumeData> ConsumeDatas { get; set; }
-        public DbSet<UnionPayTerminalKey> UnionPayTerminalKeys { get; set; }        
+        public DbSet<UnionPayTerminalKey> UnionPayTerminalKeys { get; set; }
         public DbSet<IncrementContent> IncrementContents { get; set; }        public DbSet<MerchantDictionary> MerchantDictionaries { get; set; }
         public DbSet<LinePriceInfo> LinePriceInfos { get; set; }
         public DbSet<LinePriceInfoVersion> LinePriceInfoVersions { get; set; }
@@ -42,15 +42,72 @@ namespace SlzrCrossGate.Core.Database
         {
             base.OnModelCreating(modelBuilder);
 
+            // 配置Identity表的字符串长度限制，解决MySQL utf8mb4字符集下索引长度超限问题
+            // MySQL索引键长度限制为767字节，utf8mb4字符集下每个字符占4字节
+            // 因此字符串长度不能超过191个字符 (767/4=191.75)
+
+            // 配置ApplicationUser表
+            modelBuilder.Entity<ApplicationUser>(entity =>
+            {
+                entity.Property(e => e.Id).HasMaxLength(128);
+                entity.Property(e => e.UserName).HasMaxLength(128);
+                entity.Property(e => e.NormalizedUserName).HasMaxLength(128);
+                entity.Property(e => e.Email).HasMaxLength(128);
+                entity.Property(e => e.NormalizedEmail).HasMaxLength(128);
+            });
+
+            // 配置ApplicationRole表
+            modelBuilder.Entity<ApplicationRole>(entity =>
+            {
+                entity.Property(e => e.Id).HasMaxLength(128);
+                entity.Property(e => e.Name).HasMaxLength(128);
+                entity.Property(e => e.NormalizedName).HasMaxLength(128);
+            });
+
+            // 配置IdentityUserRole表
+            modelBuilder.Entity<IdentityUserRole<string>>(entity =>
+            {
+                entity.Property(e => e.UserId).HasMaxLength(128);
+                entity.Property(e => e.RoleId).HasMaxLength(128);
+            });
+
+            // 配置IdentityUserClaim表
+            modelBuilder.Entity<IdentityUserClaim<string>>(entity =>
+            {
+                entity.Property(e => e.UserId).HasMaxLength(128);
+            });
+
+            // 配置IdentityUserLogin表
+            modelBuilder.Entity<IdentityUserLogin<string>>(entity =>
+            {
+                entity.Property(e => e.LoginProvider).HasMaxLength(128);
+                entity.Property(e => e.ProviderKey).HasMaxLength(128);
+                entity.Property(e => e.UserId).HasMaxLength(128);
+            });
+
+            // 配置IdentityRoleClaim表
+            modelBuilder.Entity<IdentityRoleClaim<string>>(entity =>
+            {
+                entity.Property(e => e.RoleId).HasMaxLength(128);
+            });
+
+            // 配置IdentityUserToken表
+            modelBuilder.Entity<IdentityUserToken<string>>(entity =>
+            {
+                entity.Property(e => e.UserId).HasMaxLength(128);
+                entity.Property(e => e.LoginProvider).HasMaxLength(128);
+                entity.Property(e => e.Name).HasMaxLength(128);
+            });
+
 
             modelBuilder.Entity<ConsumeData>(builder=>
             {
                 builder.HasKey(e => new { e.Id }).IsClustered();
                 builder.HasIndex(c => c.ReceiveTime)
                     .IncludeProperties(c => new { c.MerchantID,c.MachineID,c.MachineNO });
-                
+
             });
-            
+
             modelBuilder.Entity<FilePublish>(builder=>
             {
                 builder.HasKey(e => new { e.ID }).IsClustered();
@@ -76,23 +133,23 @@ namespace SlzrCrossGate.Core.Database
                 builder.HasIndex(e => new { e.MerchantID, e.FileFullType, e.Ver }).IsUnique();
                 builder.HasIndex(e => new { e.MerchantID, e.FileTypeID, e.FilePara, e.Ver }).IsUnique();
             });
-            
+
 
             modelBuilder.Entity<FileType>(builder=>{
                 builder.HasKey(e => new { e.ID, e.MerchantID }).IsClustered();
             });
-            
+
 
             modelBuilder.Entity<IncrementContent>(builder=>
             {
                 builder.HasKey(e => new { e.MerchantID, e.IncrementType, e.SerialNum })
                     .IsClustered();
-            });  
+            });
 
             modelBuilder.Entity<MsgType>(builder=>{
                 builder.HasKey(e => new { e.ID, e.MerchantID }).IsClustered();
             });
-            
+
             modelBuilder.Entity<Merchant>(builder=>{
                 builder.HasKey(e=>e.MerchantID).IsClustered();
             });
@@ -100,7 +157,7 @@ namespace SlzrCrossGate.Core.Database
             modelBuilder.Entity<MsgContent>(builder=>{
                 builder.HasKey(e=>e.ID).IsClustered();
             });
-            
+
             modelBuilder.Entity<MsgBox>(builder=>
             {
                 builder.HasKey(e => new { e.ID }).IsClustered();
@@ -125,7 +182,7 @@ namespace SlzrCrossGate.Core.Database
                 builder.HasIndex(e => new { e.EventTime  })
                     .IsDescending([true]);
             });
-            
+
             modelBuilder.Entity<TerminalStatus>(builder =>
             {
                 builder.HasKey(e => new { e.ID }).IsClustered();
@@ -202,7 +259,7 @@ namespace SlzrCrossGate.Core.Database
                       .WithMany()
                       .HasForeignKey(e => e.LinePriceInfoID)
                       .OnDelete(DeleteBehavior.Cascade);
-                
+
                 // MySQL 配置 json字段配置
                 if (Database.IsMySql())
                 {

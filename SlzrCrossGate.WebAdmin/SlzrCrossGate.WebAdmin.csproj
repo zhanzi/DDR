@@ -22,6 +22,8 @@
     <PackageReference Include="NPOI" Version="2.7.3" />
     <PackageReference Include="Otp.NET" Version="1.4.0" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="8.0.0" />
+    <PackageReference Include="AspNetCore.HealthChecks.MySql" Version="8.0.1" />
+    <PackageReference Include="AspNetCore.HealthChecks.RabbitMQ" Version="8.0.2" />
   </ItemGroup>
 
   <ItemGroup>
@@ -30,15 +32,15 @@
     <ProjectReference Include="..\SlzrCrossGate.ServiceDefaults\SlzrCrossGate.ServiceDefaults.csproj" />
   </ItemGroup>
 
-<!-- 自动构建前端项目并将输出复制到wwwroot目录 
+<!-- 自动构建前端项目并将输出复制到wwwroot目录
   <ItemGroup>
     <Folder Include="wwwroot\" />
   </ItemGroup>
-  
+
   <Target Name="PublishRunWebpack" AfterTargets="ComputeFilesToPublish">
     <Exec WorkingDirectory="$(SpaRoot)" Command="npm install" />
     <Exec WorkingDirectory="$(SpaRoot)" Command="npm run build" />
-    
+
     <ItemGroup>
       <DistFiles Include="$(SpaRoot)dist\**" />
       <ResolvedFileToPublish Include="@(DistFiles->'%(FullPath)')" Exclude="@(ResolvedFileToPublish)">
