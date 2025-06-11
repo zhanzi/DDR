@@ -93,7 +93,7 @@ services:
       - ASPNETCORE_ENVIRONMENT=Production
       - HTTP_PORT=8000
       - TCP_PORT=8001
-      - ConnectionStrings__DefaultConnection=Server=${MYSQL_HOST:-host.docker.internal};Port=3306;Database=zhtong_busdb;User=${MYSQL_ROOT_USER:-3306};Password=${MYSQL_ROOT_PASSWORD:-slzr!12345};SslMode=Required;
+      - ConnectionStrings__DefaultConnection=Server=${MYSQL_HOST:-host.docker.internal};Port=3306;Database=zhtong_busdb;User=${MYSQL_ROOT_USER:-root};Password=${MYSQL_ROOT_PASSWORD:-slzr!12345};SslMode=Required;
       - DatabaseProvider=MySql
       - RabbitMQ__HostName=slzr-rabbitmq
       - RabbitMQ__Port=5672
@@ -111,7 +111,7 @@ services:
       - slzr-network
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]  # 与HTTP_PORT环境变量保持一致
+      test: ["CMD", "/healthcheck.sh"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -133,7 +133,7 @@ services:
     #  - "18822:80"
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
-      - ConnectionStrings__DefaultConnection=Server=${MYSQL_HOST:-host.docker.internal};Port=3306;Database=zhtong_busdb;User=${MYSQL_ROOT_USER:-3306};Password=${MYSQL_ROOT_PASSWORD:-slzr!12345};SslMode=Required;
+      - ConnectionStrings__DefaultConnection=Server=${MYSQL_HOST:-host.docker.internal};Port=3306;Database=zhtong_busdb;User=${MYSQL_ROOT_USER:-root};Password=${MYSQL_ROOT_PASSWORD:-slzr!12345};SslMode=Required;
       - DatabaseProvider=MySql
       - RabbitMQ__HostName=slzr-rabbitmq
       - RabbitMQ__Port=5672
@@ -153,7 +153,7 @@ services:
       - slzr-network
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost/health"]
+      test: ["CMD", "/healthcheck.sh"]
       interval: 30s
       timeout: 10s
       retries: 3

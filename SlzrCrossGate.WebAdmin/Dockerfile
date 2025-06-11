@@ -29,6 +29,13 @@ RUN dotnet publish "SlzrCrossGate.WebAdmin.csproj" -c Release -o /app/publish
 FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS final
 WORKDIR /app
 EXPOSE 80
+
+# 将预下载的curl二进制文件复制到镜像中
+COPY curl-amd64 /usr/local/bin/curl
+RUN chmod +x /usr/local/bin/curl && \
+    /usr/local/bin/curl --version
+
+
 COPY --from=publish /app/publish .
 # 创建wwwroot目录（如果不存在）
 RUN mkdir -p ./wwwroot

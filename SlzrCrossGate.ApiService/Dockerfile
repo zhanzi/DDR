@@ -3,6 +3,11 @@ WORKDIR /app
 EXPOSE 8000
 EXPOSE 8001
 
+# 将预下载的curl二进制文件复制到镜像中
+COPY curl-amd64 /usr/local/bin/curl
+RUN chmod +x /usr/local/bin/curl && \
+    /usr/local/bin/curl --version
+
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 WORKDIR /src
 COPY ["SlzrCrossGate.ApiService/SlzrCrossGate.ApiService.csproj", "SlzrCrossGate.ApiService/"]
@@ -17,7 +22,7 @@ RUN dotnet build "SlzrCrossGate.ApiService.csproj" -c Release -o /app/build
 
 FROM build AS publish
 # 解决schema.xml冲突问题 - 使用特定的发布参数指定哪些文件应该包括在发布中
-RUN dotnet publish "SlzrCrossGate.ApiService.csproj" -c Release -o /app/publish  
+RUN dotnet publish "SlzrCrossGate.ApiService.csproj" -c Release -o /app/publish
 #/p:UseAppHost=false
 # 手动删除冲突的文件（如果仍然存在）
 #RUN find /app/publish -name "schema.xml" -not -path "*/SlzrCrossGate.ApiService/*" -delete
