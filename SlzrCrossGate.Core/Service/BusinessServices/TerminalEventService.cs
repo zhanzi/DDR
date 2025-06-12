@@ -74,7 +74,7 @@ namespace SlzrCrossGate.Core.Service.BusinessServices
                         Severity = message.Severity,
                         Remark = message.Remark,
                         Operator = message.Operator,
-                        EventTime = DateTime.UtcNow
+                        EventTime = DateTime.Now
                     };
 
                     await RecordTerminalEventAsync(terminalEvent);

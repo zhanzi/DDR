@@ -39,7 +39,7 @@ import {
   Message as MessageIcon
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
-import { format } from 'date-fns';
+import { formatDateTime, formatDateForAPI } from '../../utils/dateUtils';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
@@ -66,7 +66,7 @@ const MessageList = () => {
     startDate: null,
     endDate: null
   });
-  
+
   // 选中的商户对象（用于MerchantAutocomplete）
   const [selectedMerchant, setSelectedMerchant] = useState(null);
 
@@ -86,8 +86,10 @@ const MessageList = () => {
           Object.entries(filters)
             .filter(([key, value]) => value !== '' && value !== null)
             .map(([key, value]) => {
-              if (key === 'startDate' || key === 'endDate') {
-                return [key, value ? format(value, 'yyyy-MM-dd') : undefined];
+              if (key === 'startDate') {
+                return [key, value ? formatDateForAPI(value, true) : undefined];
+              } else if (key === 'endDate') {
+                return [key, value ? formatDateForAPI(value, false) : undefined];
               }
               return [key, value];
             })
@@ -257,8 +259,8 @@ const MessageList = () => {
               onChange={(event, newValue) => {
                 setSelectedMerchant(newValue);
                 const merchantId = newValue ? newValue.merchantID : '';
-                setFilters(prev => ({ 
-                  ...prev, 
+                setFilters(prev => ({
+                  ...prev,
                   merchantId: merchantId,
                   msgTypeId: '' // 重置消息类型选择
                 }));
@@ -375,10 +377,10 @@ const MessageList = () => {
       </Paper>
 
       {/* 操作按钮 - 单独放置在标题下方 */}
-      <Box sx={{ 
-        display: 'flex', 
-        justifyContent: 'flex-end', 
-        gap: 2, 
+      <Box sx={{
+        display: 'flex',
+        justifyContent: 'flex-end',
+        gap: 2,
         mb: 3
       }}>
         <Button
@@ -457,7 +459,7 @@ const MessageList = () => {
                         size="small"
                       />
                     </TableCell>
-                    <TableCell>{format(new Date(message.createTime), 'yyyy-MM-dd HH:mm:ss')}</TableCell>
+                    <TableCell>{formatDateTime(message.createTime)}</TableCell>
                     <TableCell>{message.operator || '-'}</TableCell>
                     <TableCell>
                       <Tooltip title="查看详情">
@@ -527,7 +529,7 @@ const MessageList = () => {
               </Grid>
               <Grid item xs={12} sm={6}>
                 <Typography variant="subtitle2" color="textSecondary">发送时间</Typography>
-                <Typography variant="body1">{format(new Date(selectedMessage.createTime), 'yyyy-MM-dd HH:mm:ss')}</Typography>
+                <Typography variant="body1">{formatDateTime(selectedMessage.createTime)}</Typography>
               </Grid>
               <Grid item xs={12} sm={6}>
                 <Typography variant="subtitle2" color="textSecondary">操作人</Typography>
@@ -542,7 +544,7 @@ const MessageList = () => {
               {selectedMessage.isRead && selectedMessage.readTime && (
                 <Grid item xs={12} sm={6}>
                   <Typography variant="subtitle2" color="textSecondary">读取时间</Typography>
-                  <Typography variant="body1">{format(new Date(selectedMessage.readTime), 'yyyy-MM-dd HH:mm:ss')}</Typography>
+                  <Typography variant="body1">{formatDateTime(selectedMessage.readTime)}</Typography>
                 </Grid>
               )}
             </Grid>

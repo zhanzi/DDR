@@ -39,7 +39,7 @@ import {
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { terminalAPI, messageAPI, fileAPI } from '../../services/api'; // 使用API服务代替直接的axios
-import { format } from 'date-fns';
+import { formatDateTime, isWithinMinutes } from '../../utils/dateUtils'; // 使用统一的时间处理工具
 import MerchantAutocomplete from '../../components/MerchantAutocomplete'; // 导入商户下拉框组件
 
 const TerminalList = () => {
@@ -254,10 +254,11 @@ const TerminalList = () => {
   const getStatusChip = (status) => {
     if (!status) return <Chip label="未知" color="default" size="small" />;
 
-    if (status.activeStatus==1 && status.lastActiveTime> new Date(Date.now() - 5 * 60 * 1000)) {
+    // 使用新的时间处理工具判断是否在线（5分钟内活跃且状态为激活）
+    if (status.activeStatus === 1 && isWithinMinutes(status.lastActiveTime, 5)) {
       return <Chip label="在线" color="success" size="small" />;
     } else {
-        return <Chip label="离线" color="error" size="small" />;
+      return <Chip label="离线" color="error" size="small" />;
     }
   };
 
@@ -342,7 +343,7 @@ const TerminalList = () => {
           <Grid item xs={12} sm={6} md={2}>
             <TextField
               fullWidth
-              label="机器ID"
+              label="出厂序列号"
               name="machineId"
               value={filters.machineId}
               onChange={handleFilterChange}
@@ -370,8 +371,8 @@ const TerminalList = () => {
               size="small"
             >
               <MenuItem value="">全部</MenuItem>
-              <MenuItem value="0">在线</MenuItem>
-              <MenuItem value="1">离线</MenuItem>
+              <MenuItem value="1">在线</MenuItem>
+              <MenuItem value="2">离线</MenuItem>
             </TextField>
           </Grid>
           <Grid item xs={12} sm={6} md={2}>
@@ -456,7 +457,7 @@ const TerminalList = () => {
                     <TableCell>{terminal.id}</TableCell>
                     <TableCell>
                       <Tooltip title={terminal.merchantID || ''}>
-                        <span>{terminal.name}</span>
+                        <span>{terminal.merchantName}</span>
                       </Tooltip>
                     </TableCell>
                     <TableCell>{terminal.machineID}</TableCell>
@@ -465,7 +466,7 @@ const TerminalList = () => {
                     <TableCell>{terminal.terminalType}</TableCell>
                     <TableCell>{getStatusChip(terminal.status)}</TableCell>
                     <TableCell>
-                      {terminal.status ? format(new Date(terminal.status.lastActiveTime), 'yyyy-MM-dd HH:mm:ss') : '-'}
+                      {terminal.status ? formatDateTime(terminal.status.lastActiveTime) : '-'}
                     </TableCell>
                     <TableCell>
                       <Tooltip title="查看详情">

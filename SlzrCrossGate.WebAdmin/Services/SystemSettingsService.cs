@@ -27,7 +27,7 @@ namespace SlzrCrossGate.WebAdmin.Services
         public async Task<SystemSettings> GetSettingsAsync()
         {
             // 如果缓存有效，直接返回缓存的设置
-            if (_cachedSettings != null && DateTime.UtcNow - _cacheTime < _cacheDuration)
+            if (_cachedSettings != null && DateTime.Now - _cacheTime < _cacheDuration)
             {
                 return _cachedSettings;
             }
@@ -43,7 +43,7 @@ namespace SlzrCrossGate.WebAdmin.Services
                     EnableTwoFactorAuth = true,
                     ForceTwoFactorAuth = false,
                     EnableWechatLogin = true,
-                    LastModified = DateTime.UtcNow,
+                    LastModified = DateTime.Now,
                     LastModifiedBy = "System"
                 };
 
@@ -54,7 +54,7 @@ namespace SlzrCrossGate.WebAdmin.Services
 
             // 更新缓存
             _cachedSettings = settings;
-            _cacheTime = DateTime.UtcNow;
+            _cacheTime = DateTime.Now;
 
             return settings;
         }
@@ -69,7 +69,7 @@ namespace SlzrCrossGate.WebAdmin.Services
             if (existingSettings == null)
             {
                 // 如果没有设置记录，创建新记录
-                settings.LastModified = DateTime.UtcNow;
+                settings.LastModified = DateTime.Now;
                 settings.LastModifiedBy = userName;
                 _context.SystemSettings.Add(settings);
             }
@@ -79,7 +79,7 @@ namespace SlzrCrossGate.WebAdmin.Services
                 existingSettings.EnableTwoFactorAuth = settings.EnableTwoFactorAuth;
                 existingSettings.ForceTwoFactorAuth = settings.ForceTwoFactorAuth;
                 existingSettings.EnableWechatLogin = settings.EnableWechatLogin;
-                existingSettings.LastModified = DateTime.UtcNow;
+                existingSettings.LastModified = DateTime.Now;
                 existingSettings.LastModifiedBy = userName;
             }
 
@@ -87,7 +87,7 @@ namespace SlzrCrossGate.WebAdmin.Services
 
             // 更新缓存
             _cachedSettings = existingSettings ?? settings;
-            _cacheTime = DateTime.UtcNow;
+            _cacheTime = DateTime.Now;
 
             _logger.LogInformation("Updated system settings by {UserName}", userName);
 

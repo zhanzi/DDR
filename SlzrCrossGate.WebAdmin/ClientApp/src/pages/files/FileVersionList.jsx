@@ -39,7 +39,7 @@ import {
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { fileAPI, merchantAPI } from '../../services/api';
-import { format } from 'date-fns';
+import { formatDateTime } from '../../utils/dateUtils';
 import MerchantAutocomplete from '../../components/MerchantAutocomplete';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -63,7 +63,7 @@ const FileVersionList = () => {
     filePara: '',
     ver: ''
   });
-  
+
   // 选中的商户对象（用于MerchantAutocomplete）
   const [selectedMerchant, setSelectedMerchant] = useState(null);
 
@@ -136,10 +136,10 @@ const FileVersionList = () => {
   useEffect(() => {
     loadFileVersions();
     loadFileTypes();
-    
+
     // 页面加载时加载商户数据
     loadMerchants();
-    
+
     // 检查当前用户是否是系统管理员
     setIsSystemAdmin(user?.roles?.includes('SystemAdmin'));
   }, []);
@@ -165,10 +165,10 @@ const FileVersionList = () => {
       filePara: '',
       ver: ''
     });
-    
+
     // 重置选中的商户
     setSelectedMerchant(null);
-    
+
     // 重置页码并重新加载数据
     setPage(0);
     loadFileVersions();
@@ -190,7 +190,7 @@ const FileVersionList = () => {
     if (merchants.length === 0) {
       await loadMerchants();
     }
-    
+
     setUploadForm({
       merchantId: '',
       fileTypeId: '',
@@ -206,7 +206,7 @@ const FileVersionList = () => {
   // 处理上传表单变更
   const handleUploadFormChange = (event) => {
     const { name, value } = event.target;
-    
+
     // 根据字段类型进行特殊处理
     if (name === 'filePara') {
       // 文件参数：只允许字母和数字，不超过8位
@@ -279,24 +279,24 @@ const FileVersionList = () => {
     try {
       // 使用fileAPI服务发送带有认证令牌的请求
       const response = await fileAPI.downloadFileVersion(fileVersion.id);
-      
+
       // 创建blob URL并触发下载
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement('a');
-      
+
       // 设置下载文件名，组合文件类型、文件参数和版本号
       const merchantId = fileVersion.merchantID;
       const fileTypeId = fileVersion.fileTypeID;
       const filePara = fileVersion.filePara;
       const ver = fileVersion.ver;
       const fileName = `${merchantId}_${fileTypeId}${filePara}_${ver}.bin`;
-      
+
       link.href = url;
       link.setAttribute('download', fileName);
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      
+
       // 记录下载日志
       console.log(`下载文件成功: ID=${fileVersion.id}, 文件名=${fileName}`);
     } catch (error) {
@@ -344,8 +344,8 @@ const FileVersionList = () => {
               onChange={(event, newValue) => {
                 setSelectedMerchant(newValue);
                 // 商户变更时，清空文件类型选择
-                setFilters(prev => ({ 
-                  ...prev, 
+                setFilters(prev => ({
+                  ...prev,
                   merchantId: newValue ? newValue.merchantID : '',  // 确保使用merchantID而非id
                   fileTypeId: '' // 清空文件类型选择
                 }));
@@ -370,11 +370,11 @@ const FileVersionList = () => {
                 // 只显示选中商户的文件类型，尝试多种可能的字段名匹配
                 .filter(type => {
                   if (!selectedMerchant) return false;
-                  
+
                   // 添加日志，帮助调试字段匹配问题
                   console.log("文件类型:", type);
                   console.log("当前选中商户:", selectedMerchant);
-                   
+
                   return type.merchantID && type.merchantID === selectedMerchant.merchantID;
                 })
                 .map((type) => (
@@ -494,7 +494,7 @@ const FileVersionList = () => {
                     <TableCell>{fileVersion.ver}</TableCell>
                     <TableCell>{formatFileSize(fileVersion.fileSize)}</TableCell>
                     <TableCell>{fileVersion.crc}</TableCell>
-                    <TableCell>{format(new Date(fileVersion.createTime), 'yyyy-MM-dd HH:mm:ss')}</TableCell>
+                    <TableCell>{formatDateTime(fileVersion.createTime)}</TableCell>
                     <TableCell>{fileVersion.operator || '-'}</TableCell>
                     <TableCell>
                       <Tooltip title="下载">
@@ -556,8 +556,8 @@ const FileVersionList = () => {
                   onChange={(event, newValue) => {
                     setSelectedUploadMerchant(newValue);
                     // 清空文件类型选择
-                    setUploadForm(prev => ({ 
-                      ...prev, 
+                    setUploadForm(prev => ({
+                      ...prev,
                       merchantId: newValue ? newValue.merchantID : '',  // 确保使用merchantID
                       fileTypeId: '' // 清空文件类型选择
                     }));
@@ -582,11 +582,11 @@ const FileVersionList = () => {
                       // 只显示选中商户的文件类型，使用正确的selectedUploadMerchant变量
                       .filter(type => {
                         if (!selectedUploadMerchant) return false;
-                        
+
                         // 添加日志，帮助调试字段匹配问题
                         console.log("上传对话框 - 文件类型:", type);
                         console.log("上传对话框 - 当前选中商户:", selectedUploadMerchant);
-                        
+
                         // 尝试多种可能的字段名匹配
                         return (
                           // 尝试merchantId字段

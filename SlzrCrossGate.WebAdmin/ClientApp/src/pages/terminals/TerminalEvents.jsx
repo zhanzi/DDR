@@ -31,7 +31,7 @@ import {
 } from '@mui/icons-material';
 import { useParams, useNavigate } from 'react-router-dom';
 import { terminalAPI } from '../../services/api'; // 使用API服务代替直接的axios
-import { format } from 'date-fns';
+import { formatDateTime, formatDateForAPI } from '../../utils/dateUtils'; // 使用统一的时间处理工具
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
@@ -74,8 +74,8 @@ const TerminalEvents = () => {
         page: page + 1,
         pageSize: rowsPerPage,
         eventType: filters.eventType || undefined,
-        startDate: filters.startDate ? format(filters.startDate, 'yyyy-MM-dd') : undefined,
-        endDate: filters.endDate ? format(filters.endDate, 'yyyy-MM-dd') : undefined
+        startDate: filters.startDate ? formatDateForAPI(filters.startDate, true) : undefined,
+        endDate: filters.endDate ? formatDateForAPI(filters.endDate, false) : undefined
       };
 
       const response = await terminalAPI.getTerminalEvents(id, params); // 使用terminalAPI代替axios
@@ -393,7 +393,7 @@ Created = 0,
                 events.map((event) => (
                   <TableRow key={event.id}>
                     <TableCell>{event.id}</TableCell>
-                    <TableCell>{format(new Date(event.eventTime), 'yyyy-MM-dd HH:mm:ss')}</TableCell>
+                    <TableCell>{formatDateTime(event.eventTime)}</TableCell>
                     <TableCell>{getEventTypeChip(event.eventType)}</TableCell>
                     <TableCell>{getSeverityChip(event.severity)}</TableCell>
                     <TableCell>{event.eventName}</TableCell>

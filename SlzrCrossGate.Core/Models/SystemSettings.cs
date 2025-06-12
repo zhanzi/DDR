@@ -18,7 +18,7 @@ namespace SlzrCrossGate.Core.Models
         // 其他系统设置可以在这里添加
         
         // 审计字段
-        public DateTime LastModified { get; set; } = DateTime.UtcNow;
+        public DateTime LastModified { get; set; } = DateTime.Now;
         public string? LastModifiedBy { get; set; }
     }
 }

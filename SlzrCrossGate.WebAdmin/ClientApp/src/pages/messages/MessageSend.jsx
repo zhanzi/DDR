@@ -39,7 +39,7 @@ import {
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { messageAPI, terminalAPI } from '../../services/api';
-import { format } from 'date-fns';
+import { formatDateTime } from '../../utils/dateUtils';
 import MerchantAutocomplete from '../../components/MerchantAutocomplete';
 
 const MessageSend = () => {
@@ -264,7 +264,7 @@ const MessageSend = () => {
             消息类型: {result.messageType}
           </Typography>
           <Typography variant="body2">
-            发送时间: {format(new Date(result.sendTime), 'yyyy-MM-dd HH:mm:ss')}
+            发送时间: {formatDateTime(result.sendTime)}
           </Typography>
         </Alert>
       )}
@@ -301,8 +301,8 @@ const MessageSend = () => {
               onChange={(event, newValue) => {
                 setSelectedMerchant(newValue);
                 const merchantId = newValue ? newValue.merchantID : '';
-                setMessageForm(prev => ({ 
-                  ...prev, 
+                setMessageForm(prev => ({
+                  ...prev,
                   merchantId: merchantId,
                   msgTypeCode: '' // 重置消息类型选择
                 }));
@@ -342,13 +342,13 @@ const MessageSend = () => {
           {/* 消息类型详情 - 所有发送方式共用 */}
           {messageForm.msgTypeCode && (
             <Grid item xs={12}>
-              <Card 
-                variant="outlined" 
+              <Card
+                variant="outlined"
                 sx={{
                   borderRadius: 2,
                   boxShadow: (theme) => `0 6px 16px 0 ${theme.palette.mode === 'dark' ? 'rgba(0,0,0,0.3)' : 'rgba(0,0,0,0.08)'}`,
                   backdropFilter: 'blur(8px)',
-                  background: (theme) => theme.palette.mode === 'dark' 
+                  background: (theme) => theme.palette.mode === 'dark'
                     ? 'rgba(66, 66, 66, 0.8)'
                     : 'rgba(255, 255, 255, 0.9)',
                   transition: 'all 0.3s ease-in-out',
@@ -363,12 +363,12 @@ const MessageSend = () => {
                     <InfoIcon sx={{ mr: 1, fontSize: '1.2rem' }} /> 消息类型详情
                   </Typography>
                   <Divider sx={{ mb: 2 }} />
-                  
+
                   <Grid container spacing={2}>
                     <Grid item xs={12} sm={4}>
-                      <Box sx={{ 
-                        p: 2, 
-                        borderRadius: 1, 
+                      <Box sx={{
+                        p: 2,
+                        borderRadius: 1,
                         bgcolor: (theme) => theme.palette.mode === 'dark' ? 'rgba(99, 99, 99, 0.15)' : 'rgba(25, 118, 210, 0.08)',
                         display: 'flex',
                         flexDirection: 'column',
@@ -384,11 +384,11 @@ const MessageSend = () => {
                         </Typography>
                       </Box>
                     </Grid>
-                    
+
                     <Grid item xs={12} sm={8}>
-                      <Box sx={{ 
-                        p: 2, 
-                        borderRadius: 1, 
+                      <Box sx={{
+                        p: 2,
+                        borderRadius: 1,
                         bgcolor: (theme) => theme.palette.mode === 'dark' ? 'rgba(99, 99, 99, 0.15)' : 'rgba(25, 118, 210, 0.08)',
                         height: '100%'
                       }}>
@@ -398,32 +398,32 @@ const MessageSend = () => {
                         </Typography>
                       </Box>
                     </Grid>
-                    
+
                     <Grid item xs={12}>
-                      <Box sx={{ 
-                        p: 2, 
-                        borderRadius: 1, 
+                      <Box sx={{
+                        p: 2,
+                        borderRadius: 1,
                         bgcolor: (theme) => theme.palette.mode === 'dark' ? 'rgba(99, 99, 99, 0.15)' : 'rgba(25, 118, 210, 0.08)'
                       }}>
                         <Typography variant="subtitle2" color="textSecondary" gutterBottom>
                           <CodeIcon sx={{ mr: 1, fontSize: '1rem', verticalAlign: 'middle' }} />
                           消息示例
                         </Typography>
-                        
+
                         {getSelectedMessageType()?.exampleMessage ? (
-                          <Box 
+                          <Box
                             component="pre"
-                            sx={{ 
-                              p: 2, 
-                              borderRadius: 1, 
+                            sx={{
+                              p: 2,
+                              borderRadius: 1,
                               mt: 1,
                               overflow: 'auto',
-                              backgroundColor: (theme) => 
+                              backgroundColor: (theme) =>
                                 theme.palette.mode === 'dark' ? 'rgba(30, 30, 30, 0.8)' : 'rgba(240, 240, 240, 0.8)',
                               fontFamily: 'monospace',
                               fontSize: '0.875rem',
                               border: '1px solid',
-                              borderColor: (theme) => 
+                              borderColor: (theme) =>
                                 theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'
                             }}
                           >
@@ -520,8 +520,8 @@ const MessageSend = () => {
                 >
                   {lines
                     .filter(line => {
-                      const terminalInLine = terminals.find(t => 
-                        t.lineNO === line.lineNO && 
+                      const terminalInLine = terminals.find(t =>
+                        t.lineNO === line.lineNO &&
                         (!messageForm.merchantId || t.merchantID === messageForm.merchantId)
                       );
                       return Boolean(terminalInLine);

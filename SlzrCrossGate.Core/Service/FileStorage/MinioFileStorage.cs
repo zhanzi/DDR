@@ -45,7 +45,7 @@ namespace SlzrCrossGate.Core.Service.FileStorage
             await EnsureBucketExistsAsync();
 
             // 使用当前年份创建子目录
-            var datePath = DateTime.UtcNow.ToString("yyyyMM");
+            var datePath = DateTime.Now.ToString("yyyyMM");
             var filePath = Path.Combine(datePath, file.FileName+"_"+DateTime.Now.Ticks.ToString()).Replace("\\", "/"); // 确保路径分隔符是 "/"
 
             using (var stream = file.OpenReadStream())

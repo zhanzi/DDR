@@ -176,7 +176,7 @@ const Login = () => {
                 }
                 label="记住我"
               />
-              <Link component={RouterLink} to="/forgot-password" variant="body2">
+              <Link hidden component={RouterLink} to="/forgot-password" variant="body2">
                 忘记密码?
               </Link>
             </Box>
@@ -191,7 +191,7 @@ const Login = () => {
               {loading ? '登录中...' : '登录'}
             </Button>
           </form>
-
+        {/* 
           <Divider sx={{ my: 3 }}>
             <Typography variant="body2" color="text.secondary">
               或者
@@ -211,15 +211,7 @@ const Login = () => {
               </Button>
             </Grid>
           </Grid>
-
-          <Box sx={{ mt: 3, textAlign: 'center' }}>
-            <Typography variant="body2">
-              还没有账号?{' '}
-              <Link component={RouterLink} to="/register" variant="body2">
-                立即注册
-              </Link>
-            </Typography>
-          </Box>
+          */}
         </Paper>
       </Container>
 

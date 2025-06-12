@@ -14,6 +14,10 @@ using System.IO;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// 设置应用程序时区为中国标准时间
+TimeZoneInfo.ClearCachedData();
+var chinaTimeZone = TimeZoneInfo.FindSystemTimeZoneById("China Standard Time");
+// 注意：在Linux系统中可能需要使用 "Asia/Shanghai"
 
 builder.AddServiceDefaults();
 

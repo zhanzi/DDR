@@ -315,7 +315,7 @@ namespace SlzrCrossGate.WebAdmin.Controllers
 
                 // 启用双因素认证
                 await _userManager.SetTwoFactorEnabledAsync(user, true);
-                user.TwoFactorEnabledDate = DateTime.UtcNow;
+                user.TwoFactorEnabledDate = DateTime.Now;
                 await _userManager.UpdateAsync(user);
                 _logger.LogInformation("双因素认证已启用");
 
@@ -1059,7 +1059,7 @@ namespace SlzrCrossGate.WebAdmin.Controllers
 
                         // 启用双因素认证
                         await _userManager.SetTwoFactorEnabledAsync(user, true);
-                        user.TwoFactorEnabledDate = DateTime.UtcNow;
+                        user.TwoFactorEnabledDate = DateTime.Now;
                         await _userManager.UpdateAsync(user);
 
                         return Ok(new { message = "双因素认证已启用", isTwoFactorEnabled = true });
@@ -1245,8 +1245,8 @@ namespace SlzrCrossGate.WebAdmin.Controllers
             // 临时令牌的有效期较短
             var expiresInHours = _configuration["Jwt:ExpiresInHours"] ?? "24";
             var expires = isTemporary
-                ? DateTime.UtcNow.AddMinutes(5)
-                : DateTime.UtcNow.AddHours(double.Parse(expiresInHours));
+                ? DateTime.Now.AddMinutes(5)
+                : DateTime.Now.AddHours(double.Parse(expiresInHours));
 
             var issuer = _configuration["Jwt:Issuer"] ?? "webadmin";
             var audience = _configuration["Jwt:Audience"] ?? "webadmin";

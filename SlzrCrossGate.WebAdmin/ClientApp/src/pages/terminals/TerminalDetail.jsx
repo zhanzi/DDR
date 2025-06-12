@@ -31,7 +31,7 @@ import {
 } from '@mui/icons-material';
 import { useParams, useNavigate } from 'react-router-dom';
 import { terminalAPI } from '../../services/api'; // 替换axios导入为terminalAPI
-import { format } from 'date-fns';
+import { formatDateTime } from '../../utils/dateUtils';
 
 const TerminalDetail = () => {
   const { id } = useParams();
@@ -171,7 +171,7 @@ const TerminalDetail = () => {
           <Grid item xs={12} sm={6} md={4}>
             <Typography variant="subtitle2" color="textSecondary">创建时间</Typography>
             <Typography variant="body1">
-              {format(new Date(terminal.createTime), 'yyyy-MM-dd HH:mm:ss')}
+              {formatDateTime(terminal.createTime)}
             </Typography>
           </Grid>
         </Grid>
@@ -191,7 +191,7 @@ const TerminalDetail = () => {
             <Grid item xs={12} sm={6} md={4}>
               <Typography variant="subtitle2" color="textSecondary">最后活跃时间</Typography>
               <Typography variant="body1">
-                {format(new Date(terminal.status.lastActiveTime), 'yyyy-MM-dd HH:mm:ss')}
+                {formatDateTime(terminal.status.lastActiveTime)}
               </Typography>
             </Grid>
             <Grid item xs={12} sm={6} md={4}>

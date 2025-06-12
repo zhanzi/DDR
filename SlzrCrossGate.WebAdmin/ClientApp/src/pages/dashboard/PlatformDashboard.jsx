@@ -31,7 +31,7 @@ import {
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { dashboardAPI } from '../../services/api'; // 使用统一的API服务
-import { format } from 'date-fns';
+import { formatDateTime, formatDate } from '../../utils/dateUtils';
 import {
   BarChart,
   Bar,
@@ -120,7 +120,7 @@ const PlatformDashboard = () => {
     if (!data) return [];
 
     return data.map(item => ({
-      date: format(new Date(item.date), 'MM-dd'),
+      date: formatDate(item.date).substring(5), // 只取月-日部分
       count: item.count
     })).reverse();
   };
@@ -351,7 +351,7 @@ const PlatformDashboard = () => {
                       </Typography>
                     </Box>
                     <Typography variant="body1">
-                      {format(new Date(systemInfo.serverTime), 'yyyy-MM-dd HH:mm:ss')}
+                      {formatDateTime(systemInfo.serverTime)}
                     </Typography>
                   </Grid>
                   <Grid item xs={12} sm={6} md={3}>
@@ -547,7 +547,7 @@ const PlatformDashboard = () => {
                         <TableRow key={event.id}>
                           <TableCell>{event.merchantID}</TableCell>
                           <TableCell>{event.terminalID}</TableCell>
-                          <TableCell>{format(new Date(event.eventTime), 'yyyy-MM-dd HH:mm:ss')}</TableCell>
+                          <TableCell>{formatDateTime(event.eventTime)}</TableCell>
                           <TableCell>{getEventTypeChip(event.eventType)}</TableCell>
                           <TableCell>{getSeverityChip(event.severity)}</TableCell>
                           <TableCell>{event.eventName}</TableCell>

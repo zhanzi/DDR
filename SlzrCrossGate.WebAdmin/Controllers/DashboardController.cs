@@ -195,7 +195,7 @@ namespace SlzrCrossGate.WebAdmin.Controllers
 
             var activeTerminals = await _dbContext.Terminals
                 .Include(t => t.Status)
-                .Where(t => !t.IsDeleted && t.Status != null && t.Status.ActiveStatus == DeviceActiveStatus.Active)
+                .Where(t => !t.IsDeleted && t.Status != null && t.Status.ActiveStatus == DeviceActiveStatus.Active && t.Status.LastActiveTime > DateTime.Now.AddMinutes(-5))
                 .CountAsync();
 
             var inactiveTerminals = totalTerminals - activeTerminals;

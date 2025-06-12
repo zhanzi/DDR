@@ -25,7 +25,7 @@ import {
 } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { fileAPI, terminalAPI } from '../../services/api';
-import { format } from 'date-fns';
+import { formatDateTime } from '../../utils/dateUtils';
 
 const FilePublish = () => {
   const navigate = useNavigate();
@@ -97,13 +97,13 @@ const FilePublish = () => {
   // 处理表单变更
   const handleFormChange = (event) => {
     const { name, value } = event.target;
-    
+
     // 确保publishType是数字类型
     if (name === 'publishType') {
       // 将值转换为数字
       const numericValue = parseInt(value, 10);
-      setPublishForm(prev => ({ 
-        ...prev, 
+      setPublishForm(prev => ({
+        ...prev,
         [name]: numericValue,
         publishTarget: '' // 清空发布目标
       }));
@@ -197,7 +197,7 @@ const FilePublish = () => {
               </Grid>
               <Grid item xs={12} sm={6} md={3}>
                 <Typography variant="subtitle2" color="textSecondary">上传时间</Typography>
-                <Typography variant="body1">{format(new Date(fileVersion.createTime), 'yyyy-MM-dd HH:mm:ss')}</Typography>
+                <Typography variant="body1">{formatDateTime(fileVersion.createTime)}</Typography>
               </Grid>
               <Grid item xs={12} sm={6} md={3}>
                 <Typography variant="subtitle2" color="textSecondary">上传人</Typography>

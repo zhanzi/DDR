@@ -49,8 +49,8 @@ namespace SlzrCrossGate.WebAdmin.Services
                 var session = new WechatLoginSession
                 {
                     LoginId = loginId,
-                    CreatedAt = DateTime.UtcNow,
-                    ExpiresAt = DateTime.UtcNow.AddMinutes(_qrCodeExpiryMinutes),
+                    CreatedAt = DateTime.Now,
+                    ExpiresAt = DateTime.Now.AddMinutes(_qrCodeExpiryMinutes),
                     Status = WechatLoginStatus.Pending,
                     OpenId = string.Empty,
                     UnionId = string.Empty,
@@ -129,7 +129,7 @@ namespace SlzrCrossGate.WebAdmin.Services
                 session.UnionId = tokenResponse.UnionId ?? string.Empty;
                 session.Nickname = userInfoResponse.Nickname;
                 session.Status = WechatLoginStatus.Scanned;
-                session.ScannedAt = DateTime.UtcNow;
+                session.ScannedAt = DateTime.Now;
 
                 return session;
             }
@@ -146,7 +146,7 @@ namespace SlzrCrossGate.WebAdmin.Services
             if (_loginSessions.TryGetValue(loginId, out var session))
             {
                 // 检查是否过期
-                if (DateTime.UtcNow > session.ExpiresAt)
+                if (DateTime.Now > session.ExpiresAt)
                 {
                     session.Status = WechatLoginStatus.Expired;
                 }
@@ -160,13 +160,13 @@ namespace SlzrCrossGate.WebAdmin.Services
         {
             if (_loginSessions.TryGetValue(loginId, out var session))
             {
-                if (session.Status == WechatLoginStatus.Pending && DateTime.UtcNow <= session.ExpiresAt)
+                if (session.Status == WechatLoginStatus.Pending && DateTime.Now <= session.ExpiresAt)
                 {
                     session.OpenId = openId;
                     session.UnionId = unionId;
                     session.Nickname = nickname;
                     session.Status = WechatLoginStatus.Scanned;
-                    session.ScannedAt = DateTime.UtcNow;
+                    session.ScannedAt = DateTime.Now;
                     return Task.FromResult(true);
                 }
             }
@@ -178,10 +178,10 @@ namespace SlzrCrossGate.WebAdmin.Services
         {
             if (_loginSessions.TryGetValue(loginId, out var session))
             {
-                if (session.Status == WechatLoginStatus.Scanned && DateTime.UtcNow <= session.ExpiresAt)
+                if (session.Status == WechatLoginStatus.Scanned && DateTime.Now <= session.ExpiresAt)
                 {
                     session.Status = WechatLoginStatus.Confirmed;
-                    session.ConfirmedAt = DateTime.UtcNow;
+                    session.ConfirmedAt = DateTime.Now;
                     return Task.FromResult(true);
                 }
             }
@@ -249,7 +249,7 @@ namespace SlzrCrossGate.WebAdmin.Services
             user.WechatOpenId = openId;
             user.WechatUnionId = unionId;
             user.WechatNickname = nickname;
-            user.WechatBindTime = DateTime.UtcNow;
+            user.WechatBindTime = DateTime.Now;
 
             var result = await _userManager.UpdateAsync(user);
             return result.Succeeded;
@@ -275,7 +275,7 @@ namespace SlzrCrossGate.WebAdmin.Services
         // 清理过期的登录会话
         public void CleanupExpiredSessions()
         {
-            var expiredKeys = _loginSessions.Where(kv => DateTime.UtcNow > kv.Value.ExpiresAt)
+            var expiredKeys = _loginSessions.Where(kv => DateTime.Now > kv.Value.ExpiresAt)
                                            .Select(kv => kv.Key)
                                            .ToList();
 

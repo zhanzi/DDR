@@ -73,8 +73,8 @@ namespace SlzrCrossGate.Tcp
         {
             var tcpContext = new TcpConnectionContext(context);
             var remoteEndPoint = tcpContext.RemoteEndPoint;
+            var totalBytesReceived = 0L;
 
-            // 为未鉴权连接设置30秒超时
             using var connectionTimeoutCts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
             using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(
                 connectionTimeoutCts.Token,
@@ -82,15 +82,30 @@ namespace SlzrCrossGate.Tcp
 
             try
             {
-                _logger.LogInformation("New connection，IP:{RemoteEndPoint}", remoteEndPoint);
+                _logger.LogInformation("New connection established, IP:{RemoteEndPoint}, ConnectionId:{ConnectionId}",
+                    remoteEndPoint, context.ConnectionId);
                 var readToken = linkedCts.Token;
+
                 // 持续读取数据
                 while (!tcpContext.ConnectionClosed.IsCancellationRequested)
                 {
                     var result = await tcpContext.Transport.Input.ReadAsync(readToken);
                     var data = result.Buffer;
 
-                    if (result.IsCompleted && data.Length == 0) break;
+                    if (result.IsCompleted && data.Length == 0)
+                    {
+                        _logger.LogInformation("Connection completed with no data, IP:{RemoteEndPoint}, TotalBytesReceived:{TotalBytes}",
+                            remoteEndPoint, totalBytesReceived);
+                        break;
+                    }
+
+                    if (data.Length > 0)
+                    {
+                        totalBytesReceived += data.Length;
+                        _logger.LogDebug("Received {DataLength} bytes from {RemoteEndPoint}, Total:{TotalBytes}, Data:{DataHex}",
+                            data.Length, remoteEndPoint, totalBytesReceived,
+                            Convert.ToHexString(data.Slice(0, Math.Min(data.Length, 50)).ToArray()));
+                    }
 
                     while (true)
                     {
@@ -155,17 +170,33 @@ namespace SlzrCrossGate.Tcp
             {
                 _logger.LogError(ex, "Error parsing ISO 8583 message.");
             }
-            catch (Exception ex) when (ex is OperationCanceledException || ex is IOException)
+            catch (Exception ex) when (ex is OperationCanceledException)
             {
-                _logger.LogInformation("Network error or connection interrupted: {Message}", ex.Message);
+                if (connectionTimeoutCts.Token.IsCancellationRequested)
+                {
+                    _logger.LogWarning("Connection timeout after 300 seconds, IP:{RemoteEndPoint}, TotalBytesReceived:{TotalBytes}",
+                        remoteEndPoint, totalBytesReceived);
+                }
+                else
+                {
+                    _logger.LogInformation("Connection cancelled, IP:{RemoteEndPoint}, TotalBytesReceived:{TotalBytes}",
+                        remoteEndPoint, totalBytesReceived);
+                }
+            }
+            catch (Exception ex) when (ex is IOException)
+            {
+                _logger.LogInformation("Network IO error, IP:{RemoteEndPoint}, TotalBytesReceived:{TotalBytes}, Error:{Message}",
+                    remoteEndPoint, totalBytesReceived, ex.Message);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Connection error TerminalID:{0}, IP:{RemoteEndPoint}", tcpContext.TerminalID, remoteEndPoint);
+                _logger.LogError(ex, "Unexpected connection error, TerminalID:{TerminalID}, IP:{RemoteEndPoint}, TotalBytesReceived:{TotalBytes}",
+                    tcpContext.TerminalID, remoteEndPoint, totalBytesReceived);
             }
             finally
             {
-                _logger.LogInformation("Connection closed, IP:{0}", remoteEndPoint);
+                _logger.LogInformation("Connection closed, IP:{RemoteEndPoint}, TerminalID:{TerminalID}, TotalBytesReceived:{TotalBytes}",
+                    remoteEndPoint, tcpContext.TerminalID, totalBytesReceived);
                 if (!string.IsNullOrEmpty(tcpContext.TerminalID))
                 {
                     _connectionManager.TryRemoveConnection(tcpContext.TerminalID);

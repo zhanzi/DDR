@@ -63,12 +63,12 @@ public class TwoFactorAuthService
         if (!isValid)
         {
             user.FailedTwoFactorAttempts = (user.FailedTwoFactorAttempts ?? 0) + 1;
-            user.LastFailedTwoFactorAttempt = DateTime.UtcNow;
+            user.LastFailedTwoFactorAttempt = DateTime.Now;
             
             // 如果失败次数过多，可以在这里添加锁定逻辑
             if (user.FailedTwoFactorAttempts >= 5)
             {
-                await _userManager.SetLockoutEndDateAsync(user, DateTime.UtcNow.AddMinutes(15));
+                await _userManager.SetLockoutEndDateAsync(user, DateTime.Now.AddMinutes(15));
             }
             
             await _userManager.UpdateAsync(user);

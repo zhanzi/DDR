@@ -66,7 +66,7 @@ namespace SlzrCrossGate.WebAdmin.Controllers
                 merchantId = currentUserMerchantId;
             }
 
-            // 构建查询
+            // 构建查询，包含商户信息
             var query = _dbContext.Terminals
                 .Include(t => t.Status)
                 .Where(t => !t.IsDeleted)
@@ -102,7 +102,14 @@ namespace SlzrCrossGate.WebAdmin.Controllers
 
             if (activeStatus.HasValue)
             {
-                query = query.Where(t => t.Status != null && t.Status.ActiveStatus == activeStatus.Value);
+                if (activeStatus.Value == DeviceActiveStatus.Active)
+                {
+                    query = query.Where(t => t.Status != null && t.Status.ActiveStatus == activeStatus.Value && t.Status.LastActiveTime > DateTime.Now.AddMinutes(-5));
+                }
+                else
+                {
+                    query = query.Where(t => t.Status == null || t.Status.ActiveStatus == DeviceActiveStatus.Inactive || t.Status.LastActiveTime < DateTime.Now.AddMinutes(-5));
+                }
             }
 
             // 文件版本筛选需要特殊处理，因为是JSON字段
@@ -111,10 +118,17 @@ namespace SlzrCrossGate.WebAdmin.Controllers
                 // 这里需要根据数据库类型进行不同的处理
                 // 对于MySQL，可以使用JSON_EXTRACT函数
                 // 但由于EF Core的限制，这里我们先获取所有符合其他条件的终端，然后在内存中筛选
-                var terminals = await query.ToListAsync();
-                var filteredTerminals = terminals.Where(t =>
-                    t.Status != null &&
-                    t.Status.FileVersionMetadata.TryGetValue(fileType, out var version) &&
+                var terminalsWithMerchantsForFilter = await query
+                    .Join(_dbContext.Merchants,
+                        t => t.MerchantID,
+                        m => m.MerchantID,
+                        (t, m) => new { Terminal = t, Merchant = m })
+                    .Where(tm => !tm.Merchant.IsDelete)
+                    .ToListAsync();
+
+                var filteredTerminals = terminalsWithMerchantsForFilter.Where(tm =>
+                    tm.Terminal.Status != null &&
+                    tm.Terminal.Status.FileVersionMetadata.TryGetValue(fileType, out var version) &&
                     version.Current == fileVersion).ToList();
 
                 var totalCount = filteredTerminals.Count;
@@ -123,29 +137,30 @@ namespace SlzrCrossGate.WebAdmin.Controllers
                     .Take(pageSize)
                     .ToList();
 
-                var terminalDtos = pagedTerminals.Select(t => new TerminalDto
+                var terminalDtos = pagedTerminals.Select(tm => new TerminalDto
                 {
-                    ID = t.ID,
-                    MerchantID = t.MerchantID,
-                    MachineID = t.MachineID,
-                    DeviceNO = t.DeviceNO,
-                    LineNO = t.LineNO,
-                    TerminalType = t.TerminalType,
-                    CreateTime = t.CreateTime,
-                    Status = t.Status != null ? new TerminalStatusDto
+                    ID = tm.Terminal.ID,
+                    MerchantID = tm.Terminal.MerchantID,
+                    MerchantName = tm.Merchant.Name ?? "",
+                    MachineID = tm.Terminal.MachineID,
+                    DeviceNO = tm.Terminal.DeviceNO,
+                    LineNO = tm.Terminal.LineNO,
+                    TerminalType = tm.Terminal.TerminalType,
+                    CreateTime = tm.Terminal.CreateTime,
+                    Status = tm.Terminal.Status != null ? new TerminalStatusDto
                     {
-                        ActiveStatus = t.Status.ActiveStatus,
-                        LastActiveTime = t.Status.LastActiveTime,
-                        ConnectionProtocol = t.Status.ConnectionProtocol ?? "",
-                        EndPoint = t.Status.EndPoint ?? "",
-                        FileVersionMetadata = t.Status.FileVersionMetadata,
-                        PropertyMetadata = t.Status.PropertyMetadata
+                        ActiveStatus = tm.Terminal.Status.ActiveStatus,
+                        LastActiveTime = tm.Terminal.Status.LastActiveTime,
+                        ConnectionProtocol = tm.Terminal.Status.ConnectionProtocol ?? "",
+                        EndPoint = tm.Terminal.Status.EndPoint ?? "",
+                        FileVersionMetadata = tm.Terminal.Status.FileVersionMetadata,
+                        PropertyMetadata = tm.Terminal.Status.PropertyMetadata
                     } : null,
-                    TerminalID = t.ID,
-                    TerminalTypeID = t.TerminalType,
-                    IsActive = t.Status?.ActiveStatus == DeviceActiveStatus.Active,
-                    CreatedTime = t.CreateTime,
-                    UpdatedTime = t.CreateTime
+                    TerminalID = tm.Terminal.ID,
+                    TerminalTypeID = tm.Terminal.TerminalType,
+                    IsActive = tm.Terminal.Status?.ActiveStatus == DeviceActiveStatus.Active,
+                    CreatedTime = tm.Terminal.CreateTime,
+                    UpdatedTime = tm.Terminal.CreateTime
                 }).ToList();
 
                 return new PaginatedResult<TerminalDto>
@@ -157,41 +172,50 @@ namespace SlzrCrossGate.WebAdmin.Controllers
                 };
             }
 
+            // 使用JOIN查询获取终端和商户信息
+            var joinQuery = query
+                .Join(_dbContext.Merchants,
+                    t => t.MerchantID,
+                    m => m.MerchantID,
+                    (t, m) => new { Terminal = t, Merchant = m })
+                .Where(tm => !tm.Merchant.IsDelete);
+
             // 获取总记录数
-            var count = await query.CountAsync();
+            var count = await joinQuery.CountAsync();
 
             // 应用分页
-            var terminals2 = await query
+            var terminalsWithMerchants = await joinQuery
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
                 .ToListAsync();
 
             // 转换为DTO
-            var terminalDtos2 = terminals2.Select(t => new TerminalDto
+            var terminalDtos2 = terminalsWithMerchants.Select(tm => new TerminalDto
             {
-                ID = t.ID,
-                MerchantID = t.MerchantID,
-                MachineID = t.MachineID,
-                DeviceNO = t.DeviceNO,
-                LineNO = t.LineNO,
-                TerminalType = t.TerminalType,
-                CreateTime = t.CreateTime,
-                Status = t.Status != null ? new TerminalStatusDto
+                ID = tm.Terminal.ID,
+                MerchantID = tm.Terminal.MerchantID,
+                MerchantName = tm.Merchant.Name ?? "",
+                MachineID = tm.Terminal.MachineID,
+                DeviceNO = tm.Terminal.DeviceNO,
+                LineNO = tm.Terminal.LineNO,
+                TerminalType = tm.Terminal.TerminalType,
+                CreateTime = tm.Terminal.CreateTime,
+                Status = tm.Terminal.Status != null ? new TerminalStatusDto
                 {
-                    ActiveStatus = t.Status.ActiveStatus,
-                    LastActiveTime = t.Status.LastActiveTime,
-                    ConnectionProtocol = t.Status.ConnectionProtocol ?? "",
-                    EndPoint = t.Status.EndPoint ?? "",
-                    FileVersionMetadata = t.Status.FileVersionMetadata,
-                    PropertyMetadata = t.Status.PropertyMetadata
+                    ActiveStatus = tm.Terminal.Status.ActiveStatus,
+                    LastActiveTime = tm.Terminal.Status.LastActiveTime,
+                    ConnectionProtocol = tm.Terminal.Status.ConnectionProtocol ?? "",
+                    EndPoint = tm.Terminal.Status.EndPoint ?? "",
+                    FileVersionMetadata = tm.Terminal.Status.FileVersionMetadata,
+                    PropertyMetadata = tm.Terminal.Status.PropertyMetadata
                 } : null,
 
                 // 兼容属性
-                TerminalID = t.ID,
-                TerminalTypeID = t.TerminalType,
-                IsActive = t.Status?.ActiveStatus == DeviceActiveStatus.Active,
-                CreatedTime = t.CreateTime,
-                UpdatedTime = t.CreateTime
+                TerminalID = tm.Terminal.ID,
+                TerminalTypeID = tm.Terminal.TerminalType,
+                IsActive = tm.Terminal.Status?.ActiveStatus == DeviceActiveStatus.Active,
+                CreatedTime = tm.Terminal.CreateTime,
+                UpdatedTime = tm.Terminal.CreateTime
             }).ToList();
 
             return new PaginatedResult<TerminalDto>
@@ -211,46 +235,51 @@ namespace SlzrCrossGate.WebAdmin.Controllers
             var currentUserMerchantId = await _userService.GetUserMerchantIdAsync(User);
             var isSystemAdmin = User.IsInRole("SystemAdmin");
 
-            var terminal = await _dbContext.Terminals
+            var terminalWithMerchant = await _dbContext.Terminals
                 .Include(t => t.Status)
-                .FirstOrDefaultAsync(t => t.ID == id && !t.IsDeleted);
+                .Join(_dbContext.Merchants,
+                    t => t.MerchantID,
+                    m => m.MerchantID,
+                    (t, m) => new { Terminal = t, Merchant = m })
+                .FirstOrDefaultAsync(tm => tm.Terminal.ID == id && !tm.Terminal.IsDeleted && !tm.Merchant.IsDelete);
 
-            if (terminal == null)
+            if (terminalWithMerchant == null)
             {
                 return NotFound();
             }
 
             // 如果不是系统管理员，只能查看自己商户的终端
-            if (!isSystemAdmin && terminal.MerchantID != currentUserMerchantId)
+            if (!isSystemAdmin && terminalWithMerchant.Terminal.MerchantID != currentUserMerchantId)
             {
                 return Forbid();
             }
 
             return new TerminalDto
             {
-                ID = terminal.ID,
-                MerchantID = terminal.MerchantID,
-                MachineID = terminal.MachineID,
-                DeviceNO = terminal.DeviceNO,
-                LineNO = terminal.LineNO,
-                TerminalType = terminal.TerminalType,
-                CreateTime = terminal.CreateTime,
-                Status = terminal.Status != null ? new TerminalStatusDto
+                ID = terminalWithMerchant.Terminal.ID,
+                MerchantID = terminalWithMerchant.Terminal.MerchantID,
+                MerchantName = terminalWithMerchant.Merchant.Name ?? "",
+                MachineID = terminalWithMerchant.Terminal.MachineID,
+                DeviceNO = terminalWithMerchant.Terminal.DeviceNO,
+                LineNO = terminalWithMerchant.Terminal.LineNO,
+                TerminalType = terminalWithMerchant.Terminal.TerminalType,
+                CreateTime = terminalWithMerchant.Terminal.CreateTime,
+                Status = terminalWithMerchant.Terminal.Status != null ? new TerminalStatusDto
                 {
-                    ActiveStatus = terminal.Status.ActiveStatus,
-                    LastActiveTime = terminal.Status.LastActiveTime,
-                    ConnectionProtocol = terminal.Status.ConnectionProtocol ?? "",
-                    EndPoint = terminal.Status.EndPoint ?? "",
-                    FileVersionMetadata = terminal.Status.FileVersionMetadata,
-                    PropertyMetadata = terminal.Status.PropertyMetadata
+                    ActiveStatus = terminalWithMerchant.Terminal.Status.ActiveStatus,
+                    LastActiveTime = terminalWithMerchant.Terminal.Status.LastActiveTime,
+                    ConnectionProtocol = terminalWithMerchant.Terminal.Status.ConnectionProtocol ?? "",
+                    EndPoint = terminalWithMerchant.Terminal.Status.EndPoint ?? "",
+                    FileVersionMetadata = terminalWithMerchant.Terminal.Status.FileVersionMetadata,
+                    PropertyMetadata = terminalWithMerchant.Terminal.Status.PropertyMetadata
                 } : null,
 
                 // 兼容属性
-                TerminalID = terminal.ID,
-                TerminalTypeID = terminal.TerminalType,
-                IsActive = terminal.Status?.ActiveStatus == DeviceActiveStatus.Active,
-                CreatedTime = terminal.CreateTime,
-                UpdatedTime = terminal.CreateTime
+                TerminalID = terminalWithMerchant.Terminal.ID,
+                TerminalTypeID = terminalWithMerchant.Terminal.TerminalType,
+                IsActive = terminalWithMerchant.Terminal.Status?.ActiveStatus == DeviceActiveStatus.Active,
+                CreatedTime = terminalWithMerchant.Terminal.CreateTime,
+                UpdatedTime = terminalWithMerchant.Terminal.CreateTime
             };
         }
 
@@ -496,7 +525,7 @@ namespace SlzrCrossGate.WebAdmin.Controllers
                 return Conflict("该发布已存在");
             }
 
-            
+
             foreach (var terminal in model.TerminalIds)
             {
                 // 创建文件发布记录

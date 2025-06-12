@@ -940,7 +940,110 @@ app.MapControllers();
    - 添加水平滚动支持，防止表格溢出容器
 9. 实现微信扫码登录功能
 
+## TCP服务部署问题诊断
+
+### CentOS7环境TCP服务连接问题
+- **问题现象**：ApiService在CentOS7上通过Docker Compose部署后，TCP服务有连接建立但立即断开的问题
+- **问题分析**：
+  1. **连接超时机制**：TcpConnectionHandler设置了30秒未认证连接超时，如果客户端连接后未发送有效ISO 8583消息会被断开
+  2. **消息格式验证**：要求严格的ISO 8583消息格式，报文头必须为`6000000000`，消息长度至少7字节
+  3. **环境差异**：CentOS7与Docker Desktop环境在网络配置、防火墙、资源限制等方面可能存在差异
+- **诊断步骤**：
+  1. 检查客户端是否发送了数据：`docker logs tcpserver-api --tail 100 | grep -E "(New connection|Connection closed|Error|Exception)"`
+  2. 启用详细日志记录，查看接收到的原始数据
+  3. 检查网络连通性：`telnet <server-ip> 8822`
+  4. 检查防火墙设置：`firewall-cmd --list-ports`
+  5. 监控网络流量：`tcpdump -i any port 8822`
+- **临时解决方案**：
+  1. 增加连接超时时间到300秒用于调试
+  2. 添加详细的数据接收日志
+  3. 添加连接保持机制
+  4. 优化错误处理和日志记录
+
 ## 最近更新记录
+
+### 2024-12-19
+- **解决了前端时区显示问题**：
+  - 问题：数据库存储的时间（如`2025-06-12T07:07:28.255875`）在前端显示时没有进行时区转换，导致显示的时间与用户期望的本地时间不符
+  - 解决方案：
+    1. 创建了统一的时间处理工具`src/utils/dateUtils.js`，提供以下功能：
+       - `formatDateTime()`: 格式化日期时间，自动处理时区转换
+       - `formatDate()`: 格式化日期（不包含时间）
+       - `formatTime()`: 格式化时间（不包含日期）
+       - `formatRelativeTime()`: 格式化相对时间（如：2小时前）
+       - `isWithinMinutes()`: 检查时间是否在指定分钟内（用于判断在线状态）
+       - `getTimezoneInfo()`: 获取当前时区信息
+    2. 更新了所有相关页面，使用新的时间处理工具替代直接的`format()`调用：
+       - `TerminalList.jsx`: 终端列表页面的最后活跃时间显示和在线状态判断
+       - `TerminalEvents.jsx`: 终端事件页面的事件时间显示
+       - `PlatformDashboard.jsx`: 平台仪表盘的服务器时间和事件统计
+       - `MerchantDashboard.jsx`: 商户仪表盘的事件时间显示
+       - `MessageList.jsx`: 消息列表的发送时间和读取时间显示
+       - `FileVersionList.jsx`: 文件版本列表的上传时间显示
+    3. 工具函数特点：
+       - 自动处理ISO字符串和Date对象的转换
+       - 使用浏览器的本地时区进行显示，无需手动配置
+       - 统一的错误处理和日志记录
+       - 支持中文本地化（使用date-fns的zhCN locale）
+  - 影响：现在所有时间显示都会自动转换为用户的本地时区，解决了+8时区用户看到UTC时间的问题
+
+- **解决了日期筛选的时区问题**：
+  - 问题：用户在+8时区选择日期"2025-01-01"进行查询时，如果直接传递给后端，可能被误解为UTC时间，导致查询到错误的时间范围
+  - 解决方案：
+    1. 新增了`formatDateForAPI()`和`formatDateTimeForAPI()`函数，专门用于API查询时的日期格式化
+    2. `formatDateForAPI(localDate, isStartOfDay)`功能：
+       - `isStartOfDay=true`: 将本地日期转换为当天00:00:00对应的UTC时间
+       - `isStartOfDay=false`: 将本地日期转换为当天23:59:59对应的UTC时间
+    3. 更新了相关页面的日期筛选逻辑：
+       - `TerminalEvents.jsx`: 事件查询的开始和结束日期
+       - `MessageList.jsx`: 消息查询的开始和结束日期
+    4. 创建了测试页面`TimezoneTest.jsx`用于验证时区转换功能
+  - 示例：用户在+8时区选择"2025-01-01"查询：
+    - 开始时间：`2025-01-01 00:00:00 +8` → `2024-12-31T16:00:00.000Z` (UTC)
+    - 结束时间：`2025-01-01 23:59:59 +8` → `2025-01-01T15:59:59.999Z` (UTC)
+  - 影响：确保用户的日期筛选查询到的是期望的本地时间范围内的数据，而不是错误的UTC时间范围
+
+- **完成了后端时间统一调整**：
+  - 调整：将后端所有 `DateTime.UtcNow` 替换为 `DateTime.Now`，统一使用服务器本地时间
+  - 优势：
+    1. 简化了时区处理逻辑，数据库存储的就是本地时间
+    2. 开发和调试更直观，数据库中的时间一目了然
+    3. 减少了前后端时区转换的复杂性
+  - 前端配置：`dateUtils.js` 中的 `BACKEND_USES_LOCAL_TIME = true` 确保前端正确处理本地时间
+  - 最终方案：后端使用 `DateTime.Now`（本地时间）+ 前端智能时间处理工具 = 完美的时区解决方案
+
+- **优化了终端API返回商户名称**：
+  - 问题：`GetTerminals` 和 `GetTerminal` API 只返回商户ID，前端显示时无法直接显示商户名称
+  - 解决方案：
+    1. 修改了 `TerminalsController` 中的查询逻辑，使用 JOIN 查询获取商户信息
+    2. 在 `GetTerminals` 方法中：
+       - 使用 `query.Join(_dbContext.Merchants, ...)` 关联查询商户表
+       - 在 DTO 转换时设置 `MerchantName = tm.Merchant.Name ?? ""`
+    3. 在 `GetTerminal` 方法中：
+       - 同样使用 JOIN 查询获取单个终端的商户信息
+       - 确保返回的 DTO 包含商户名称
+    4. 处理了文件版本筛选的特殊情况，确保在内存筛选时也能获取商户名称
+  - 影响：前端现在可以直接显示商户名称，提升用户体验，减少额外的API调用
+
+- **修复了终端事件查询的时区转换异常**：
+  - 问题：查询终端事件时出现 `System.ArgumentException: The conversion could not be completed because the supplied DateTime did not have the Kind property set correctly`
+  - 根本原因：
+    1. `TerminalEvent` 模型使用 `LocalTimeHelper.Now` 作为默认值
+    2. EF Core 从数据库读取数据时会实例化模型对象，触发默认值计算
+    3. `LocalTimeHelper.Now` 中的时区转换逻辑在某些情况下会因为 `DateTime.Kind` 不正确而失败
+  - 解决方案：
+    1. 修改 `TerminalEvent.EventTime` 的默认值从 `LocalTimeHelper.Now` 改为 `DateTime.Now`
+    2. 简化 `LocalTimeHelper.Now` 的实现，直接返回 `DateTime.Now` 避免复杂的时区转换
+    3. 确保所有模型的时间字段都使用简单的 `DateTime.Now` 作为默认值
+  - 影响：解决了查询终端事件时的异常，确保系统稳定运行
+
+- **清理了不必要的 LocalTimeHelper 类**：
+  - 原因：既然后端统一使用 `DateTime.Now` 且服务器时区配置正确，`LocalTimeHelper` 变得多余
+  - 清理内容：
+    1. 删除了 `SlzrCrossGate.Core\Utils\LocalTimeHelper.cs` 文件
+    2. 修改 `TimezoneMigrationHelper.cs` 中的引用，改为直接使用 `DateTime.Now` 和 `TimeZoneInfo.Local`
+    3. 清理了 `TerminalEvent.cs` 中不需要的 using 语句
+  - 影响：简化了代码结构，减少了不必要的复杂性，降低了维护成本
 
 ### 2024-12-19
 - **实现了ASP.NET Core健康检查功能**：

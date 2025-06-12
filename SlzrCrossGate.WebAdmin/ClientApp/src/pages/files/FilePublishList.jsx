@@ -36,7 +36,7 @@ import {
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { fileAPI } from '../../services/api';
-import { format } from 'date-fns';
+import { formatDateTime } from '../../utils/dateUtils';
 
 const FilePublishList = () => {
   const navigate = useNavigate();
@@ -177,24 +177,24 @@ const FilePublishList = () => {
       try {
         // 使用fileAPI服务发送带有认证令牌的请求
         const response = await fileAPI.downloadFileVersion(fileVersion.fileVerID);
-        
+
         // 创建blob URL并触发下载
         const url = window.URL.createObjectURL(new Blob([response.data]));
         const link = document.createElement('a');
-        
+
         // 设置下载文件名，组合文件类型、文件参数和版本号
         const merchantId = fileVersion.merchantID;
         const fileTypeId = fileVersion.fileTypeID;
         const filePara = fileVersion.filePara;
         const ver = fileVersion.ver;
         const fileName = `${merchantId}_${fileTypeId}${filePara}_${ver}.bin`;
-        
+
         link.href = url;
         link.setAttribute('download', fileName);
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
-        
+
         // 记录下载日志
         console.log(`下载文件成功: ID=${fileVersion.id}, 文件名=${fileName}`);
       } catch (error) {
@@ -421,7 +421,7 @@ const FilePublishList = () => {
                     <TableCell>{formatFileSize(filePublish.fileSize)}</TableCell>
                     <TableCell>{getPublishTypeChip(filePublish.publishType)}</TableCell>
                     <TableCell>{filePublish.publishTarget || '-'}</TableCell>
-                    <TableCell>{format(new Date(filePublish.publishTime), 'yyyy-MM-dd HH:mm:ss')}</TableCell>
+                    <TableCell>{formatDateTime(filePublish.publishTime)}</TableCell>
                     <TableCell>{filePublish.operator || '-'}</TableCell>
                     {tabValue === 1 && (
                       <TableCell>{getOperationTypeChip(filePublish.operationType)}</TableCell>
