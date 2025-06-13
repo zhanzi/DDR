@@ -348,7 +348,7 @@ namespace SlzrCrossGate.Core.Services
             }
         }
 
-        public async Task PublishAsync<T>(string exchange, string routingKey, T message)
+        public async Task PublishAsync<T>(string exchange, string routingKey, T message, bool mandatory = false)
         {
             // 从发布通道池获取一个通道
             var channel = await GetPublishChannelAsync();
@@ -370,6 +370,8 @@ namespace SlzrCrossGate.Core.Services
                 await channel.BasicPublishAsync(
                     exchange,
                     routingKey,
+                    mandatory: true ,//必须至少有一个队列能接收数据
+                    new BasicProperties { Type = $"{typeof(T).FullName}:{typeof(T).Namespace}" },//添加类型信息，格式是：命名空间.类名:命令空间
                     body);
 
                 _logger.LogInformation("Message published to {Exchange} with routing key {RoutingKey}", exchange, routingKey);

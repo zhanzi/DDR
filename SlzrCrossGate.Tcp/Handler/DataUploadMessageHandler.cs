@@ -23,10 +23,10 @@ namespace SlzrCrossGate.Tcp.Handler
 
         public async Task<Iso8583Message> HandleMessageAsync(TcpConnectionContext context, Iso8583Message message)
         {
-            // 获取上传的数据
+            // 锟斤拷取锟较达拷锟斤拷锟斤拷锟斤拷
             var data = message.GetBytes(61); 
 
-            // 上传MQ
+            // 锟较达拷MQ
             await _rabbitMQService.PublishConsumeDataAsync(new SlzrDatatransferModel.ConsumeData()
             {
                 MachineID = message.MachineID,
@@ -36,7 +36,7 @@ namespace SlzrCrossGate.Tcp.Handler
                 buffer = data
             });
 
-            // 发送上传成功响应
+            // 锟斤拷锟斤拷锟较达拷锟缴癸拷锟斤拷应
             var response = new Iso8583Message(_schema, Iso8583MessageType.DataTransferResponse);
             response.SetField(11, message.GetString(11));
             response.SetField(14, message.GetString(14));

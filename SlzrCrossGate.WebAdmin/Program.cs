@@ -292,4 +292,7 @@ app.MapControllers();
 
 app.MapFallbackToFile("index.html");//SPA回退路由
 
+
+app.Logger.LogInformation("启动时间: {Time}", DateTime.Now);
+
 app.Run();

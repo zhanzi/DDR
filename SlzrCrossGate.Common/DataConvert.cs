@@ -272,23 +272,23 @@ namespace SlzrCrossGate.Common
         }
 
         /// <summary>
-        /// 16进制字符串转汉字 默认编码
+        /// 16进制字符串转汉字 默认编码 GBK
         /// </summary>
         /// <param name="str"></param>
         /// <returns></returns>
         public static string HexToString(string str)
         {
-            return System.Text.Encoding.Default.GetString(HexToBytes(str)).Replace("\0", "").Trim();
+            return System.Text.Encoding.GetEncoding("gb2312").GetString(HexToBytes(str)).Replace("\0", "").Trim();
         }
 
         /// <summary>
-        /// 汉字转16进制字符串 默认编码
+        /// 汉字转16进制字符串 默认编码 GBK
         /// </summary>
         /// <param name="str"></param>
         /// <returns></returns>
         public static string StringToHex(string str)
         {
-            return BytesToHex(System.Text.Encoding.Default.GetBytes(str));
+            return BytesToHex(System.Text.Encoding.GetEncoding("gb2312").GetBytes(str));
         }
 
         /// <summary>

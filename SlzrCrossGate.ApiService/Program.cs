@@ -130,8 +130,6 @@ app.UseAuthorization();
 
 app.MapControllers();
 
-Console.WriteLine("Console 日志");
-
-app.Logger.LogInformation("Logger 日志");
+app.Logger.LogInformation("启动时间: {Time}", DateTime.Now);
 
 app.Run();
