@@ -77,12 +77,12 @@ const items = [
     title: '银联密钥',
     roles: ['SystemAdmin', 'MerchantAdmin']
   },
-  {
-    href: '/app/account',
-    icon: UserIcon,
-    title: '账户设置',
-    roles: [] // 所有角色可见
-  },
+  // {
+  //   href: '/app/account',
+  //   icon: UserIcon,
+  //   title: '账户设置',
+  //   roles: [] // 所有角色可见
+  // },
   {
     href: '/app/users',
     icon: UsersIcon,
@@ -107,12 +107,12 @@ const items = [
     title: '商户字典',
     roles: ['SystemAdmin', 'MerchantAdmin']
   },
-  {
-    href: '/app/monitor',
-    icon: MonitorIcon,
-    title: '系统监控',
-    roles: ['SystemAdmin']
-  },
+  // {
+  //   href: '/app/monitor',
+  //   icon: MonitorIcon,
+  //   title: '系统监控',
+  //   roles: ['SystemAdmin']
+  // },
   {
     href: '/app/settings',
     icon: SettingsIcon,

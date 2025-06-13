@@ -82,21 +82,33 @@ const PlatformDashboard = () => {
   // 获取事件类型的显示样式
   const getEventTypeChip = (eventType) => {
     switch (eventType) {
-      case 0: // Created
-        return <Chip label="创建" color="success" size="small" />;
-      case 1: // Connected
-        return <Chip label="连接" color="primary" size="small" />;
-      case 2: // Disconnected
-        return <Chip label="断开" color="error" size="small" />;
-      case 3: // FileVersionUpdated
-        return <Chip label="版本更新" color="info" size="small" />;
-      case 4: // FilePublished
-        return <Chip label="文件发布" color="warning" size="small" />;
-      case 5: // MessageSent
-        return <Chip label="消息发送" color="secondary" size="small" />;
-      default:
-        return <Chip label="其他" color="default" size="small" />;
-    }
+          case 1: // SignIn
+            return <Chip label="签到" color="success" size="small" />;
+          case 2: // SignOut
+            return <Chip label="签退" color="error" size="small" />;
+          case 3: // FileDownloadStart
+            return <Chip label="文件下载开始" color="info" size="small" />;
+          case 4: // FileDownloadEnd
+            return <Chip label="文件下载结束" color="info" size="small" />;
+          case 5: // FileVersionUpdated
+            return <Chip label="文件版本更新" color="info" size="small" />;
+          case 6: // PropertyChanged
+            return <Chip label="属性变更" color="info" size="small" />;
+          case 7: // UnionPayKeyBound
+            return <Chip label="银联密钥绑定" color="info" size="small" />;
+          case 8: // MerchantIDChanged
+            return <Chip label="商户变更" color="info" size="small" />;
+          case 9: // LineNOChanged
+            return <Chip label="线路变更" color="info" size="small" />;
+          case 10: // DeviceNOChanged
+            return <Chip label="设备变更" color="info" size="small" />;
+          case 11: // MessageSent
+            return <Chip label="消息发送" color="secondary" size="small" />;
+          case 12: // FilePublished
+            return <Chip label="文件发布" color="warning" size="small" />;
+          default:
+            return <Chip label="其他" color="default" size="small" />;
+        }
   };
 
   // 获取事件严重性的显示样式

@@ -227,7 +227,7 @@ namespace SlzrCrossGate.WebAdmin.Controllers
                 var uploadFile = new UploadFile
                 {
                     ID = fileId,
-                    FileName = fileName,
+                    FileName = fileName ?? "未知文件",
                     FileSize = (int)fileSize,
                     FilePath = filePath,
                     UploadTime = DateTime.Now,
