@@ -48,11 +48,23 @@ namespace SlzrCrossGate.WebAdmin.DTOs
         public int Count { get; set; }
     }
 
-    // 线路统计DTO
+    // 线路统计DTO (用于仪表盘)
     public class LineStatsDto
     {
-        public string LineNo { get; set; } = string.Empty;
+        public string LineNO { get; set; } = string.Empty;
+        public int TotalCount { get; set; }
+        public int OnlineCount { get; set; }
+        public int OfflineCount { get; set; }
+    }
+
+    // 线路统计详细DTO (用于线路统计API)
+    public class LineStatsDetailDto
+    {
+        public string LineNO { get; set; } = string.Empty;
         public int Count { get; set; }
+        public int TotalCount { get; set; }
+        public int OnlineCount { get; set; }
+        public int OfflineCount { get; set; }
         public int ActiveCount { get; set; }
     }
 

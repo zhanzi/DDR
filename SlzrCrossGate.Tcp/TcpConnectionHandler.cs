@@ -71,7 +71,9 @@ namespace SlzrCrossGate.Tcp
 
         public override async Task OnConnectedAsync(ConnectionContext context)
         {
-            var tcpContext = new TcpConnectionContext(context);
+            // 创建专门的logger给TcpConnectionContext使用
+            var contextLogger = _serviceProvider.GetRequiredService<ILogger<TcpConnectionContext>>();
+            var tcpContext = new TcpConnectionContext(context, contextLogger);
             var remoteEndPoint = tcpContext.RemoteEndPoint;
             var totalBytesReceived = 0L;
 

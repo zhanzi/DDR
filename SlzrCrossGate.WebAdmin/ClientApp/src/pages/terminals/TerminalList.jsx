@@ -25,8 +25,17 @@ import {
   DialogActions,
   FormControl,
   InputLabel,
-  Select
+  Select,
+  Alert,
+  Snackbar,
+  CircularProgress
 } from '@mui/material';
+import ResponsiveTable, {
+  ResponsiveTableHead,
+  ResponsiveTableBody,
+  ResponsiveTableRow,
+  ResponsiveTableCell
+} from '../../components/ResponsiveTable';
 import {
   Refresh as RefreshIcon,
   Search as SearchIcon,
@@ -70,11 +79,86 @@ const TerminalList = () => {
   const [messageType, setMessageType] = useState('');
   const [messageContent, setMessageContent] = useState('');
   const [messageTypes, setMessageTypes] = useState([]);
+  const [selectedMessageType, setSelectedMessageType] = useState(null); // 选中的消息类型详细信息
+  const [currentTerminalMerchantForMessage, setCurrentTerminalMerchantForMessage] = useState(null);
 
   // 文件发布对话框
   const [fileDialog, setFileDialog] = useState(false);
-  const [fileVersion, setFileVersion] = useState('');
+  const [selectedFileVersion, setSelectedFileVersion] = useState(null);
   const [fileVersions, setFileVersions] = useState([]);
+  const [publishLoading, setPublishLoading] = useState(false);
+  const [fileVersionsLoading, setFileVersionsLoading] = useState(false);
+
+  // 文件版本分页和筛选
+  const [fileVersionPage, setFileVersionPage] = useState(0);
+  const [fileVersionRowsPerPage, setFileVersionRowsPerPage] = useState(5);
+  const [fileVersionTotalCount, setFileVersionTotalCount] = useState(0);
+  const [fileVersionFilters, setFileVersionFilters] = useState({
+    fileTypeId: '',
+    filePara: '',
+    ver: ''
+  });
+  const [fileTypes, setFileTypes] = useState([]);
+  const [currentTerminalMerchant, setCurrentTerminalMerchant] = useState(null);
+
+  // 消息提示
+  const [snackbar, setSnackbar] = useState({
+    open: false,
+    message: '',
+    severity: 'success' // 'success', 'error', 'warning', 'info'
+  });
+
+  // 显示消息提示
+  const showMessage = (message, severity = 'success') => {
+    setSnackbar({
+      open: true,
+      message,
+      severity
+    });
+  };
+
+  // 关闭消息提示
+  const handleCloseSnackbar = () => {
+    setSnackbar(prev => ({ ...prev, open: false }));
+  };
+
+  // 处理文件版本筛选条件变更
+  const handleFileVersionFilterChange = (event) => {
+    const { name, value } = event.target;
+    setFileVersionFilters(prev => ({ ...prev, [name]: value }));
+  };
+
+  // 应用文件版本筛选
+  const applyFileVersionFilters = () => {
+    setFileVersionPage(0);
+    loadFileVersionsForPublish();
+  };
+
+  // 清除文件版本筛选
+  const clearFileVersionFilters = () => {
+    setFileVersionFilters({
+      fileTypeId: '',
+      filePara: '',
+      ver: ''
+    });
+    setFileVersionPage(0);
+    loadFileVersionsForPublish();
+  };
+
+  // 处理文件版本分页变更
+  const handleFileVersionPageChange = (_, newPage) => {
+    setFileVersionPage(newPage);
+  };
+
+  const handleFileVersionRowsPerPageChange = (event) => {
+    setFileVersionRowsPerPage(parseInt(event.target.value, 10));
+    setFileVersionPage(0);
+  };
+
+  // 选择文件版本
+  const handleSelectFileVersion = (version) => {
+    setSelectedFileVersion(version);
+  };
 
   // 加载终端列表
   const loadTerminals = useCallback(async () => {
@@ -112,27 +196,57 @@ const TerminalList = () => {
     }
   }, [page, rowsPerPage, filters, selectedMerchant]);
 
-  // 加载消息类型
-  const loadMessageTypes = async () => {
+  // 加载消息类型（根据商户ID）
+  const loadMessageTypes = async (merchantId) => {
+    if (!merchantId) return;
+
     try {
-      const response = await messageAPI.getMessageTypes();
-      setMessageTypes(response.items || []);
+      const response = await messageAPI.getAllMessageTypes(merchantId);
+      setMessageTypes(response || []);
     } catch (error) {
       console.error('Error loading message types:', error);
+      showMessage('加载消息类型失败', 'error');
     }
   };
 
-  // 加载文件版本
-  const loadFileVersions = async (merchantId = null) => {
+  // 加载文件版本（用于发布对话框）
+  const loadFileVersionsForPublish = async () => {
+    if (!currentTerminalMerchant) return;
+
+    setFileVersionsLoading(true);
     try {
-      const params = {};
-      if (merchantId) {
-        params.merchantId = merchantId;
-      }
+      const params = {
+        merchantId: currentTerminalMerchant.merchantID,
+        page: fileVersionPage + 1,
+        pageSize: fileVersionRowsPerPage,
+        ...Object.fromEntries(
+          Object.entries(fileVersionFilters).filter(([_, value]) => value !== '')
+        )
+      };
+
       const response = await fileAPI.getFileVersions(params);
       setFileVersions(response.items || []);
+      setFileVersionTotalCount(response.totalCount || 0);
     } catch (error) {
       console.error('Error loading file versions:', error);
+      showMessage('加载文件版本失败', 'error');
+    } finally {
+      setFileVersionsLoading(false);
+    }
+  };
+
+  // 加载文件类型（用于筛选）
+  const loadFileTypesForPublish = async () => {
+    if (!currentTerminalMerchant) return;
+
+    try {
+      const response = await fileAPI.getAllFileTypes();
+      const merchantFileTypes = response.items?.filter(
+        type => type.merchantID === currentTerminalMerchant.merchantID
+      ) || [];
+      setFileTypes(merchantFileTypes);
+    } catch (error) {
+      console.error('Error loading file types:', error);
     }
   };
 
@@ -141,10 +255,13 @@ const TerminalList = () => {
     loadTerminals();
   }, [loadTerminals]);
 
-  // 只在组件首次加载时获取消息类型
+  // 监听文件版本相关状态变化
   useEffect(() => {
-    loadMessageTypes();
-  }, []);
+    if (currentTerminalMerchant && fileDialog) {
+      loadFileVersionsForPublish();
+      loadFileTypesForPublish();
+    }
+  }, [currentTerminalMerchant, fileDialog, fileVersionPage, fileVersionRowsPerPage]);
 
   // 处理筛选条件变更
   const handleFilterChange = (event) => {
@@ -183,10 +300,31 @@ const TerminalList = () => {
     setPage(0);
   };
 
+  // 处理消息类型选择
+  const handleMessageTypeChange = (typeCode) => {
+    setMessageType(typeCode);
+    // 查找选中的消息类型详细信息
+    const selectedType = messageTypes.find(type => type.code === typeCode);
+    setSelectedMessageType(selectedType);
+
+    // 如果有示例消息，可以预填充到内容框中
+    if (selectedType && selectedType.exampleMessage) {
+      setMessageContent(selectedType.exampleMessage);
+    } else {
+      setMessageContent('');
+    }
+  };
+
   // 打开消息对话框
   const openMessageDialog = (terminal) => {
     setSelectedTerminals([terminal]);
+    setCurrentTerminalMerchantForMessage({ merchantID: terminal.merchantID, name: terminal.merchantName });
+    setMessageType('');
+    setMessageContent('');
+    setSelectedMessageType(null);
     setMessageDialog(true);
+    // 加载该商户的消息类型
+    loadMessageTypes(terminal.merchantID);
   };
 
   // 发送消息
@@ -198,6 +336,8 @@ const TerminalList = () => {
         messageContent
       );
 
+      // 发送成功
+      showMessage('消息发送成功！', 'success');
       setMessageDialog(false);
       setMessageType('');
       setMessageContent('');
@@ -206,32 +346,85 @@ const TerminalList = () => {
       loadTerminals();
     } catch (error) {
       console.error('Error sending message:', error);
+
+      // 处理错误信息
+      let errorMessage = '消息发送失败';
+      if (error.response?.data) {
+        if (typeof error.response.data === 'string') {
+          errorMessage = error.response.data;
+        } else if (error.response.data.message) {
+          errorMessage = error.response.data.message;
+        } else if (error.response.data.title) {
+          errorMessage = error.response.data.title;
+        }
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+
+      showMessage(errorMessage, 'error');
     }
   };
 
   // 打开文件发布对话框
   const openFileDialog = (terminal) => {
     setSelectedTerminals([terminal]);
+    setCurrentTerminalMerchant({ merchantID: terminal.merchantID, name: terminal.merchantName });
+    setSelectedFileVersion(null);
+    // 重置筛选和分页
+    setFileVersionFilters({
+      fileTypeId: '',
+      filePara: '',
+      ver: ''
+    });
+    setFileVersionPage(0);
     setFileDialog(true);
-    // 根据终端的商户ID加载对应的文件版本
-    loadFileVersions(terminal.merchantID);
   };
 
   // 发布文件
   const publishFile = async () => {
+    if (!selectedFileVersion) {
+      showMessage('请选择要发布的文件版本', 'warning');
+      return;
+    }
+
+    setPublishLoading(true);
     try {
       await terminalAPI.publishFile(
         selectedTerminals.map(t => t.id),
-        fileVersion
+        selectedFileVersion.id
       );
 
+      // 发布成功
+      showMessage(`文件版本 ${selectedFileVersion.fileFullType}-${selectedFileVersion.ver} 发布成功！`, 'success');
       setFileDialog(false);
-      setFileVersion('');
+      setSelectedFileVersion(null);
 
       // 刷新终端列表
       loadTerminals();
     } catch (error) {
       console.error('Error publishing file:', error);
+
+      // 处理错误信息，确保显示用户友好的错误消息
+      let errorMessage = '文件发布失败';
+      if (error.response?.data) {
+        if (typeof error.response.data === 'string') {
+          errorMessage = error.response.data;
+        } else if (error.response.data.message) {
+          errorMessage = error.response.data.message;
+        } else if (error.response.data.title) {
+          errorMessage = error.response.data.title;
+        } else if (error.response.data.errors) {
+          // 处理验证错误
+          const errors = Object.values(error.response.data.errors).flat();
+          errorMessage = errors.join(', ');
+        }
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+
+      showMessage(errorMessage, 'error');
+    } finally {
+      setPublishLoading(false);
     }
   };
 
@@ -260,6 +453,15 @@ const TerminalList = () => {
     } else {
       return <Chip label="离线" color="error" size="small" />;
     }
+  };
+
+  // 格式化文件大小
+  const formatFileSize = (bytes) => {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
   return (
@@ -423,52 +625,80 @@ const TerminalList = () => {
 
       {/* 终端列表 */}
       <Paper>
-        <TableContainer>
-          <Table>
-            <TableHead>
-              <TableRow>
-                <TableCell>终端ID</TableCell>
-                <TableCell>商户ID</TableCell>
-                <TableCell>出厂序列号</TableCell>
-                <TableCell>设备编号</TableCell>
-                <TableCell>线路编号</TableCell>
-                <TableCell>终端类型</TableCell>
-                <TableCell>状态</TableCell>
-                <TableCell>最后活跃时间</TableCell>
-                <TableCell>操作</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {loading ? (
-                <TableRow>
-                  <TableCell colSpan={9} align="center">
-                    加载中...
-                  </TableCell>
-                </TableRow>
-              ) : terminals.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={9} align="center">
-                    没有找到终端
-                  </TableCell>
-                </TableRow>
-              ) : (
-                terminals.map((terminal) => (
-                  <TableRow key={terminal.id}>
-                    <TableCell>{terminal.id}</TableCell>
-                    <TableCell>
-                      <Tooltip title={terminal.merchantID || ''}>
-                        <span>{terminal.merchantName}</span>
-                      </Tooltip>
-                    </TableCell>
-                    <TableCell>{terminal.machineID}</TableCell>
-                    <TableCell>{terminal.deviceNO}</TableCell>
-                    <TableCell>{terminal.lineNO}</TableCell>
-                    <TableCell>{terminal.terminalType}</TableCell>
-                    <TableCell>{getStatusChip(terminal.status)}</TableCell>
-                    <TableCell>
-                      {terminal.status ? formatDateTime(terminal.status.lastActiveTime) : '-'}
-                    </TableCell>
-                    <TableCell>
+        <ResponsiveTable minWidth={1200} stickyActions={true}>
+          <ResponsiveTableHead>
+            <ResponsiveTableRow>
+              <ResponsiveTableCell>终端ID</ResponsiveTableCell>
+              <ResponsiveTableCell hideOn={['xs']}>商户</ResponsiveTableCell>
+              <ResponsiveTableCell hideOn={['xs', 'sm']}>出厂序列号</ResponsiveTableCell>
+              <ResponsiveTableCell>设备编号</ResponsiveTableCell>
+              <ResponsiveTableCell hideOn={['xs', 'sm']}>线路编号</ResponsiveTableCell>
+              <ResponsiveTableCell hideOn={['xs', 'sm']}>终端类型</ResponsiveTableCell>
+              <ResponsiveTableCell>状态</ResponsiveTableCell>
+              <ResponsiveTableCell hideOn={['xs']}>最后活跃时间</ResponsiveTableCell>
+              <ResponsiveTableCell sticky={true} minWidth={160}>操作</ResponsiveTableCell>
+            </ResponsiveTableRow>
+          </ResponsiveTableHead>
+          <ResponsiveTableBody>
+            {loading ? (
+              <ResponsiveTableRow>
+                <ResponsiveTableCell colSpan={9} align="center">
+                  加载中...
+                </ResponsiveTableCell>
+              </ResponsiveTableRow>
+            ) : terminals.length === 0 ? (
+              <ResponsiveTableRow>
+                <ResponsiveTableCell colSpan={9} align="center">
+                  没有找到终端
+                </ResponsiveTableCell>
+              </ResponsiveTableRow>
+            ) : (
+              terminals.map((terminal) => (
+                <ResponsiveTableRow key={terminal.id}>
+                  <ResponsiveTableCell>
+                    <Box>
+                      <Typography variant="body2" fontWeight="bold">
+                        {terminal.id}
+                      </Typography>
+                      {/* 在小屏幕上显示商户信息 */}
+                      <Typography variant="caption" color="textSecondary" sx={{ display: { xs: 'block', sm: 'none' } }}>
+                        {terminal.merchantName}
+                      </Typography>
+                    </Box>
+                  </ResponsiveTableCell>
+                  <ResponsiveTableCell hideOn={['xs']}>
+                    <Tooltip title={terminal.merchantID || ''}>
+                      <span>{terminal.merchantName}</span>
+                    </Tooltip>
+                  </ResponsiveTableCell>
+                  <ResponsiveTableCell hideOn={['xs', 'sm']}>{terminal.machineID}</ResponsiveTableCell>
+                  <ResponsiveTableCell>
+                    <Box>
+                      <Typography variant="body2">
+                        {terminal.deviceNO}
+                      </Typography>
+                      {/* 在小屏幕上显示线路和类型信息 */}
+                      <Typography variant="caption" color="textSecondary" sx={{ display: { xs: 'block', md: 'none' } }}>
+                        线路: {terminal.lineNO} | 类型: {terminal.terminalType}
+                      </Typography>
+                    </Box>
+                  </ResponsiveTableCell>
+                  <ResponsiveTableCell hideOn={['xs', 'sm']}>{terminal.lineNO}</ResponsiveTableCell>
+                  <ResponsiveTableCell hideOn={['xs', 'sm']}>{terminal.terminalType}</ResponsiveTableCell>
+                  <ResponsiveTableCell>
+                    <Box>
+                      {getStatusChip(terminal.status)}
+                      {/* 在小屏幕上显示最后活跃时间 */}
+                      <Typography variant="caption" color="textSecondary" sx={{ display: { xs: 'block', sm: 'none' }, mt: 0.5 }}>
+                        {terminal.status ? formatDateTime(terminal.status.lastActiveTime) : '-'}
+                      </Typography>
+                    </Box>
+                  </ResponsiveTableCell>
+                  <ResponsiveTableCell hideOn={['xs']}>
+                    {terminal.status ? formatDateTime(terminal.status.lastActiveTime) : '-'}
+                  </ResponsiveTableCell>
+                  <ResponsiveTableCell sticky={true}>
+                    <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
                       <Tooltip title="查看详情">
                         <IconButton
                           size="small"
@@ -505,13 +735,13 @@ const TerminalList = () => {
                           <HistoryIcon fontSize="small" />
                         </IconButton>
                       </Tooltip>
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </TableContainer>
+                    </Box>
+                  </ResponsiveTableCell>
+                </ResponsiveTableRow>
+              ))
+            )}
+          </ResponsiveTableBody>
+        </ResponsiveTable>
         <TablePagination
           rowsPerPageOptions={[5, 10, 25, 50]}
           component="div"
@@ -526,27 +756,66 @@ const TerminalList = () => {
       </Paper>
 
       {/* 消息发送对话框 */}
-      <Dialog open={messageDialog} onClose={() => setMessageDialog(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>发送消息</DialogTitle>
+      <Dialog open={messageDialog} onClose={() => setMessageDialog(false)} maxWidth="md" fullWidth>
+        <DialogTitle>
+          发送消息
+          <Typography variant="subtitle2" color="textSecondary">
+            终端: {selectedTerminals.map(t => `${t.id}(${t.deviceNO})`).join(', ')} |
+            商户: {currentTerminalMerchantForMessage?.name}
+          </Typography>
+        </DialogTitle>
         <DialogContent>
           <Box sx={{ mt: 2 }}>
-            <Typography variant="subtitle2" gutterBottom>
-              选中的终端: {selectedTerminals.map(t => t.id).join(', ')}
-            </Typography>
             <FormControl fullWidth sx={{ mt: 2 }}>
               <InputLabel>消息类型</InputLabel>
               <Select
                 value={messageType}
-                onChange={(e) => setMessageType(e.target.value)}
+                onChange={(e) => handleMessageTypeChange(e.target.value)}
                 label="消息类型"
               >
                 {messageTypes.map((type) => (
                   <MenuItem key={type.code} value={type.code}>
-                    {type.name}
+                    {type.code} - {type.name}
                   </MenuItem>
                 ))}
               </Select>
             </FormControl>
+
+            {/* 消息类型详细信息 */}
+            {selectedMessageType && (
+              <Paper sx={{ p: 2, mt: 2, backgroundColor: 'primary.light', color: 'primary.contrastText' }}>
+                <Typography variant="subtitle1" gutterBottom>
+                  消息类型信息
+                </Typography>
+                <Grid container spacing={2}>
+                  <Grid item xs={12} sm={6}>
+                    <Typography variant="body2">
+                      <strong>编码:</strong> {selectedMessageType.code}
+                    </Typography>
+                  </Grid>
+                  <Grid item xs={12} sm={6}>
+                    <Typography variant="body2">
+                      <strong>编码类型:</strong> {selectedMessageType.codeType === 1 ? 'ASCII' : 'HEX'}
+                    </Typography>
+                  </Grid>
+                  {selectedMessageType.remark && (
+                    <Grid item xs={12}>
+                      <Typography variant="body2">
+                        <strong>备注:</strong> {selectedMessageType.remark}
+                      </Typography>
+                    </Grid>
+                  )}
+                  {selectedMessageType.exampleMessage && (
+                    <Grid item xs={12}>
+                      <Typography variant="body2">
+                        <strong>示例:</strong> {selectedMessageType.exampleMessage}
+                      </Typography>
+                    </Grid>
+                  )}
+                </Grid>
+              </Paper>
+            )}
+
             <TextField
               fullWidth
               multiline
@@ -555,6 +824,7 @@ const TerminalList = () => {
               value={messageContent}
               onChange={(e) => setMessageContent(e.target.value)}
               sx={{ mt: 2 }}
+              helperText={selectedMessageType ? "请根据上方的消息类型信息和示例输入消息内容" : "请先选择消息类型"}
             />
           </Box>
         </DialogContent>
@@ -572,41 +842,199 @@ const TerminalList = () => {
       </Dialog>
 
       {/* 文件发布对话框 */}
-      <Dialog open={fileDialog} onClose={() => setFileDialog(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>发布文件</DialogTitle>
+      <Dialog open={fileDialog} onClose={() => setFileDialog(false)} maxWidth="lg" fullWidth>
+        <DialogTitle>
+          发布文件到终端
+          <Typography variant="subtitle2" color="textSecondary">
+            终端: {selectedTerminals.map(t => `${t.id}(${t.deviceNO})`).join(', ')} |
+            商户: {currentTerminalMerchant?.name}
+          </Typography>
+        </DialogTitle>
         <DialogContent>
           <Box sx={{ mt: 2 }}>
-            <Typography variant="subtitle2" gutterBottom>
-              选中的终端: {selectedTerminals.map(t => t.id).join(', ')}
-            </Typography>
-            <FormControl fullWidth sx={{ mt: 2 }}>
-              <InputLabel>文件版本</InputLabel>
-              <Select
-                value={fileVersion}
-                onChange={(e) => setFileVersion(e.target.value)}
-                label="文件版本"
-              >
-                {fileVersions.map((version) => (
-                  <MenuItem key={version.id} value={version.id}>
-                    {version.fileFullType} - {version.ver}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
+            {/* 筛选条件 */}
+            <Paper sx={{ p: 2, mb: 2 }}>
+              <Typography variant="subtitle1" gutterBottom>筛选条件</Typography>
+              <Grid container spacing={2} alignItems="center">
+                <Grid item xs={12} sm={3}>
+                  <TextField
+                    fullWidth
+                    select
+                    label="文件类型"
+                    name="fileTypeId"
+                    value={fileVersionFilters.fileTypeId}
+                    onChange={handleFileVersionFilterChange}
+                    size="small"
+                  >
+                    <MenuItem value="">全部</MenuItem>
+                    {fileTypes.map((type) => (
+                      <MenuItem key={type.code} value={type.code}>
+                        {type.code} - {type.name}
+                      </MenuItem>
+                    ))}
+                  </TextField>
+                </Grid>
+                <Grid item xs={12} sm={3}>
+                  <TextField
+                    fullWidth
+                    label="文件参数"
+                    name="filePara"
+                    value={fileVersionFilters.filePara}
+                    onChange={handleFileVersionFilterChange}
+                    size="small"
+                  />
+                </Grid>
+                <Grid item xs={12} sm={3}>
+                  <TextField
+                    fullWidth
+                    label="版本号"
+                    name="ver"
+                    value={fileVersionFilters.ver}
+                    onChange={handleFileVersionFilterChange}
+                    size="small"
+                  />
+                </Grid>
+                <Grid item xs={12} sm={3}>
+                  <Box sx={{ display: 'flex', gap: 1 }}>
+                    <Button
+                      variant="contained"
+                      size="small"
+                      startIcon={<SearchIcon />}
+                      onClick={applyFileVersionFilters}
+                    >
+                      搜索
+                    </Button>
+                    <Button
+                      variant="outlined"
+                      size="small"
+                      startIcon={<ClearIcon />}
+                      onClick={clearFileVersionFilters}
+                    >
+                      清除
+                    </Button>
+                  </Box>
+                </Grid>
+              </Grid>
+            </Paper>
+
+            {/* 文件版本列表 */}
+            <Paper>
+              <TableContainer sx={{ maxHeight: 400 }}>
+                <Table stickyHeader>
+                  <TableHead>
+                    <TableRow>
+                      <TableCell padding="checkbox">选择</TableCell>
+                      <TableCell>文件类型</TableCell>
+                      <TableCell>文件参数</TableCell>
+                      <TableCell>版本号</TableCell>
+                      <TableCell>文件大小</TableCell>
+                      <TableCell>CRC校验</TableCell>
+                      <TableCell>创建时间</TableCell>
+                      <TableCell>操作人</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {fileVersionsLoading ? (
+                      <TableRow>
+                        <TableCell colSpan={8} align="center">
+                          <CircularProgress size={24} />
+                        </TableCell>
+                      </TableRow>
+                    ) : fileVersions.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={8} align="center">
+                          没有找到文件版本
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      fileVersions.map((version) => (
+                        <TableRow
+                          key={version.id}
+                          hover
+                          selected={selectedFileVersion?.id === version.id}
+                          onClick={() => handleSelectFileVersion(version)}
+                          sx={{ cursor: 'pointer' }}
+                        >
+                          <TableCell padding="checkbox">
+                            <input
+                              type="radio"
+                              checked={selectedFileVersion?.id === version.id}
+                              onChange={() => handleSelectFileVersion(version)}
+                            />
+                          </TableCell>
+                          <TableCell>{version.fileTypeName}({version.fileTypeID})</TableCell>
+                          <TableCell>{version.filePara || '-'}</TableCell>
+                          <TableCell>{version.ver}</TableCell>
+                          <TableCell>{formatFileSize(version.fileSize)}</TableCell>
+                          <TableCell>{version.crc}</TableCell>
+                          <TableCell>{formatDateTime(version.createTime)}</TableCell>
+                          <TableCell>{version.operator || '-'}</TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+              <TablePagination
+                rowsPerPageOptions={[5, 10, 25]}
+                component="div"
+                count={fileVersionTotalCount}
+                rowsPerPage={fileVersionRowsPerPage}
+                page={fileVersionPage}
+                onPageChange={handleFileVersionPageChange}
+                onRowsPerPageChange={handleFileVersionRowsPerPageChange}
+                labelRowsPerPage="每页行数:"
+                labelDisplayedRows={({ from, to, count }) => `${from}-${to} 共 ${count}`}
+              />
+            </Paper>
+
+            {/* 选中的文件版本信息 */}
+            {selectedFileVersion && (
+              <Paper sx={{ p: 2, mt: 2, backgroundColor: 'primary.light', color: 'primary.contrastText' }}>
+                <Typography variant="subtitle1" gutterBottom>
+                  已选择文件版本
+                </Typography>
+                <Typography variant="body2">
+                  {selectedFileVersion.fileTypeName}({selectedFileVersion.fileTypeID}) -
+                  参数: {selectedFileVersion.filePara || '无'} -
+                  版本: {selectedFileVersion.ver} -
+                  大小: {formatFileSize(selectedFileVersion.fileSize)}
+                </Typography>
+              </Paper>
+            )}
           </Box>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setFileDialog(false)}>取消</Button>
+          <Button onClick={() => setFileDialog(false)} disabled={publishLoading}>
+            取消
+          </Button>
           <Button
             onClick={publishFile}
             variant="contained"
             color="primary"
-            disabled={!fileVersion}
+            disabled={!selectedFileVersion || publishLoading}
+            startIcon={publishLoading ? <CircularProgress size={20} /> : null}
           >
-            发布
+            {publishLoading ? '发布中...' : '发布'}
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* 消息提示 */}
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={6000}
+        onClose={handleCloseSnackbar}
+        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+      >
+        <Alert
+          onClose={handleCloseSnackbar}
+          severity={snackbar.severity}
+          sx={{ width: '100%' }}
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 };

@@ -10,6 +10,11 @@ using SlzrCrossGate.WebAdmin.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.AspNetCore.Server.Kestrel.Core;
+using Microsoft.AspNetCore.Server.IIS;
+using Microsoft.AspNetCore.Http.Features;
+using SlzrCrossGate.WebAdmin.Middleware;
+using SlzrCrossGate.WebAdmin.Filters;
 using System.IO;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -23,7 +28,30 @@ builder.AddServiceDefaults();
 
 // Add services to the container.
 
-builder.Services.AddControllers();
+// 配置控制器和过滤器
+builder.Services.AddControllers(options =>
+{
+    // 添加全局操作日志过滤器
+    options.Filters.Add<ActionLoggingFilter>();
+});
+
+// 配置文件上传大小限制
+builder.Services.Configure<IISServerOptions>(options =>
+{
+    options.MaxRequestBodySize = 100 * 1024 * 1024; // 100MB
+});
+
+builder.Services.Configure<KestrelServerOptions>(options =>
+{
+    options.Limits.MaxRequestBodySize = 100 * 1024 * 1024; // 100MB
+});
+
+builder.Services.Configure<FormOptions>(options =>
+{
+    options.ValueLengthLimit = int.MaxValue;
+    options.MultipartBodyLengthLimit = 100 * 1024 * 1024; // 100MB
+    options.MultipartHeadersLengthLimit = int.MaxValue;
+});
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
@@ -177,8 +205,6 @@ builder.Services.AddAuthentication(options =>
                             identity.AddClaim(new System.Security.Claims.Claim(
                                 System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Sub,
                                 nameIdClaim.Value));
-
-                            logger.LogInformation("已将ClaimTypes.NameIdentifier映射到JwtRegisteredClaimNames.Sub");
                         }
                     }
                 }
@@ -248,6 +274,9 @@ if (app.Environment.IsDevelopment())
 //    await tenantService.SetCurrentTenantAsync();
 //    await next.Invoke();
 //});
+
+// 添加全局异常处理中间件（必须在其他中间件之前）
+app.UseMiddleware<GlobalExceptionHandlingMiddleware>();
 
 app.UseDefaultFiles();
 

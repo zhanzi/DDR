@@ -187,7 +187,7 @@ const FilePublishList = () => {
         const fileTypeId = fileVersion.fileTypeID;
         const filePara = fileVersion.filePara;
         const ver = fileVersion.ver;
-        const fileName = `${merchantId}_${fileTypeId}${filePara}_${ver}.bin`;
+        const fileName = `$${fileTypeId}${filePara}_${ver}.bin`;
 
         link.href = url;
         link.setAttribute('download', fileName);

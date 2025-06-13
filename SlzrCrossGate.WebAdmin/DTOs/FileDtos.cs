@@ -1,4 +1,5 @@
 using SlzrCrossGate.Core.Models;
+using System.ComponentModel.DataAnnotations;
 
 namespace SlzrCrossGate.WebAdmin.DTOs
 {
@@ -47,10 +48,23 @@ namespace SlzrCrossGate.WebAdmin.DTOs
 
     public class CreateFileVersionDto
     {
+        [Required(ErrorMessage = "商户ID不能为空")]
+        [StringLength(8, ErrorMessage = "商户ID最多8个字符")]
         public string MerchantID { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "文件类型ID不能为空")]
+        [StringLength(3, ErrorMessage = "文件类型ID最多3个字符")]
         public string FileTypeID { get; set; } = string.Empty;
+
+        [StringLength(8, ErrorMessage = "文件参数最多8个字符")]
         public string? FilePara { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "版本号不能为空")]
+        [StringLength(4, MinimumLength = 4, ErrorMessage = "版本号必须为4个字符")]
+        [RegularExpression(@"^[0-9A-Fa-f]{4}$", ErrorMessage = "版本号必须为4位16进制字符")]
         public string Ver { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "请选择要上传的文件")]
         public IFormFile? File { get; set; }
     }
 

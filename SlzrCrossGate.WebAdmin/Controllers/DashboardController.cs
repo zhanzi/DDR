@@ -126,9 +126,10 @@ namespace SlzrCrossGate.WebAdmin.Controllers
                 .GroupBy(t => t.LineNO)
                 .Select(g => new LineStatsDto
                 {
-                    LineNo = g.Key,
-                    Count = g.Count(),
-                    ActiveCount = g.Count(t => t.Status != null && t.Status.ActiveStatus == DeviceActiveStatus.Active)
+                    LineNO = g.Key,
+                    TotalCount = g.Count(),
+                    OnlineCount = g.Count(t => t.Status != null && t.Status.ActiveStatus == DeviceActiveStatus.Active),
+                    OfflineCount = g.Count(t => t.Status == null || t.Status.ActiveStatus != DeviceActiveStatus.Active)
                 })
                 .ToList();
 

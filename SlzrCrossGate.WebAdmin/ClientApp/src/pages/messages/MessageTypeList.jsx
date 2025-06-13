@@ -6,12 +6,6 @@ import {
   Grid,
   Button,
   TextField,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
   TablePagination,
   IconButton,
   Tooltip,
@@ -27,6 +21,12 @@ import {
   InputLabel,
   FormHelperText
 } from '@mui/material';
+import ResponsiveTable, {
+  ResponsiveTableHead,
+  ResponsiveTableBody,
+  ResponsiveTableRow,
+  ResponsiveTableCell
+} from '../../components/ResponsiveTable';
 import { useNavigate } from 'react-router-dom';
 import {
   Refresh as RefreshIcon,
@@ -181,7 +181,7 @@ const MessageTypeList = () => {
   // 处理对话框输入变更
   const handleDialogInputChange = (event) => {
     const { name, value } = event.target;
-    
+
     // 针对类型代码字段进行特殊处理
     if (name === 'code') {
       // 类型代码：只允许16进制字符(0-9, A-F, a-f)，自动转为大写，限制4位
@@ -283,9 +283,9 @@ const MessageTypeList = () => {
               value={selectedMerchant}
               onChange={(event, newValue) => {
                 setSelectedMerchant(newValue);
-                setFilters(prev => ({ 
-                  ...prev, 
-                  merchantId: newValue ? newValue.merchantID : '' 
+                setFilters(prev => ({
+                  ...prev,
+                  merchantId: newValue ? newValue.merchantID : ''
                 }));
               }}
               size="small"
@@ -360,44 +360,69 @@ const MessageTypeList = () => {
 
       {/* 消息类型列表 */}
       <Paper>
-        <TableContainer>
-          <Table>
-            <TableHead>
-              <TableRow>
-                <TableCell>类型代码</TableCell>
-                <TableCell>商户</TableCell>
-                <TableCell>类型名称</TableCell>
-                <TableCell>消息编码</TableCell>
-                <TableCell>备注</TableCell>
-                <TableCell>操作</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {loading ? (
-                <TableRow>
-                  <TableCell colSpan={6} align="center">
-                    <CircularProgress size={24} />
-                  </TableCell>
-                </TableRow>
-              ) : messageTypes.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={6} align="center">
-                    没有找到消息类型
-                  </TableCell>
-                </TableRow>
-              ) : (
-                messageTypes.map((messageType) => (
-                  <TableRow key={`${messageType.code}-${messageType.merchantId}`}>
-                    <TableCell>{messageType.code}</TableCell>
-                    <TableCell>
-                      <Tooltip title={messageType.merchantID || ''}>
-                        <span>{messageType.merchantName}</span>
-                      </Tooltip>
-                    </TableCell>
-                    <TableCell>{messageType.name || '-'}</TableCell>
-                    <TableCell>{getMessageCodeTypeChip(messageType.codeType)}</TableCell>
-                    <TableCell>{messageType.remark || '-'}</TableCell>
-                    <TableCell>
+        <ResponsiveTable minWidth={800} stickyActions={true}>
+          <ResponsiveTableHead>
+            <ResponsiveTableRow>
+              <ResponsiveTableCell>类型代码</ResponsiveTableCell>
+              <ResponsiveTableCell hideOn={['xs']}>商户</ResponsiveTableCell>
+              <ResponsiveTableCell>类型名称</ResponsiveTableCell>
+              <ResponsiveTableCell hideOn={['xs', 'sm']}>消息编码</ResponsiveTableCell>
+              <ResponsiveTableCell hideOn={['xs', 'sm']}>备注</ResponsiveTableCell>
+              <ResponsiveTableCell sticky={true} minWidth={100}>操作</ResponsiveTableCell>
+            </ResponsiveTableRow>
+          </ResponsiveTableHead>
+          <ResponsiveTableBody>
+            {loading ? (
+              <ResponsiveTableRow>
+                <ResponsiveTableCell colSpan={6} align="center">
+                  <CircularProgress size={24} />
+                </ResponsiveTableCell>
+              </ResponsiveTableRow>
+            ) : messageTypes.length === 0 ? (
+              <ResponsiveTableRow>
+                <ResponsiveTableCell colSpan={6} align="center">
+                  没有找到消息类型
+                </ResponsiveTableCell>
+              </ResponsiveTableRow>
+            ) : (
+              messageTypes.map((messageType) => (
+                <ResponsiveTableRow key={`${messageType.code}-${messageType.merchantId}`}>
+                  <ResponsiveTableCell>
+                    <Box>
+                      <Typography variant="body2" fontWeight="bold">
+                        {messageType.code}
+                      </Typography>
+                      {/* 在小屏幕上显示商户信息 */}
+                      <Typography variant="caption" color="textSecondary" sx={{ display: { xs: 'block', sm: 'none' } }}>
+                        {messageType.merchantName}
+                      </Typography>
+                    </Box>
+                  </ResponsiveTableCell>
+                  <ResponsiveTableCell hideOn={['xs']}>
+                    <Tooltip title={messageType.merchantID || ''}>
+                      <span>{messageType.merchantName}</span>
+                    </Tooltip>
+                  </ResponsiveTableCell>
+                  <ResponsiveTableCell>
+                    <Box>
+                      <Typography variant="body2">
+                        {messageType.name || '-'}
+                      </Typography>
+                      {/* 在小屏幕上显示编码类型和备注 */}
+                      <Box sx={{ display: { xs: 'block', md: 'none' }, mt: 0.5 }}>
+                        {getMessageCodeTypeChip(messageType.codeType)}
+                        {messageType.remark && (
+                          <Typography variant="caption" color="textSecondary" sx={{ display: 'block', mt: 0.5 }}>
+                            {messageType.remark}
+                          </Typography>
+                        )}
+                      </Box>
+                    </Box>
+                  </ResponsiveTableCell>
+                  <ResponsiveTableCell hideOn={['xs', 'sm']}>{getMessageCodeTypeChip(messageType.codeType)}</ResponsiveTableCell>
+                  <ResponsiveTableCell hideOn={['xs', 'sm']}>{messageType.remark || '-'}</ResponsiveTableCell>
+                  <ResponsiveTableCell sticky={true}>
+                    <Box sx={{ display: 'flex', gap: 0.5 }}>
                       <Tooltip title="编辑">
                         <IconButton
                           size="small"
@@ -416,13 +441,13 @@ const MessageTypeList = () => {
                           <DeleteIcon fontSize="small" />
                         </IconButton>
                       </Tooltip>
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </TableContainer>
+                    </Box>
+                  </ResponsiveTableCell>
+                </ResponsiveTableRow>
+              ))
+            )}
+          </ResponsiveTableBody>
+        </ResponsiveTable>
         <TablePagination
           rowsPerPageOptions={[5, 10, 25, 50]}
           component="div"
@@ -455,10 +480,10 @@ const MessageTypeList = () => {
                   required
                   error={!currentMessageType.code || (currentMessageType.code.length > 0 && currentMessageType.code.length < 4)}
                   helperText={
-                    !currentMessageType.code 
-                      ? '请输入类型代码' 
-                      : currentMessageType.code.length > 0 && currentMessageType.code.length < 4 
-                        ? '类型代码必须为4位16进制字符(0-9,A-F)' 
+                    !currentMessageType.code
+                      ? '请输入类型代码'
+                      : currentMessageType.code.length > 0 && currentMessageType.code.length < 4
+                        ? '类型代码必须为4位16进制字符(0-9,A-F)'
                         : '输入4位16进制字符，自动转为大写'
                   }
                   inputProps={{
@@ -472,9 +497,9 @@ const MessageTypeList = () => {
                   value={dialogSelectedMerchant}
                   onChange={(event, newValue) => {
                     setDialogSelectedMerchant(newValue);
-                    setCurrentMessageType(prev => ({ 
-                      ...prev, 
-                      merchantId: newValue ? newValue.merchantID : '' 
+                    setCurrentMessageType(prev => ({
+                      ...prev,
+                      merchantId: newValue ? newValue.merchantID : ''
                     }));
                   }}
                   disabled={dialogMode === 'edit'}
@@ -530,11 +555,11 @@ const MessageTypeList = () => {
                   onChange={handleDialogInputChange}
                   multiline
                   rows={4}
-                  placeholder={currentMessageType.codeType === 1 ? 
-                    '例如：{"command":"get_status"}' : 
+                  placeholder={currentMessageType.codeType === 1 ?
+                    '例如：{"command":"get_status"}' :
                     '例如：01020304AABBCCDD'}
-                  helperText={`消息示例格式：${currentMessageType.codeType === 1 ? 
-                    '文本内容，如JSON格式' : 
+                  helperText={`消息示例格式：${currentMessageType.codeType === 1 ?
+                    '文本内容，如JSON格式' :
                     '十六进制字符串，如01020304'}`}
                 />
               </Grid>
@@ -553,9 +578,9 @@ const MessageTypeList = () => {
             variant="contained"
             color="primary"
             disabled={
-              dialogLoading || 
-              !currentMessageType.code || 
-              currentMessageType.code.length !== 4 || 
+              dialogLoading ||
+              !currentMessageType.code ||
+              currentMessageType.code.length !== 4 ||
               !currentMessageType.merchantId
             }
           >

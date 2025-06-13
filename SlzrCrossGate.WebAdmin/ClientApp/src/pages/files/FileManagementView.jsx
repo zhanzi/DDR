@@ -39,13 +39,6 @@ const FileManagementView = () => {
       color: '#2196f3'
     },
     {
-      title: '文件发布',
-      description: '将文件版本发布到商户、线路或终端。',
-      icon: <PublishIcon sx={{ fontSize: 60, color: 'success.main' }} />,
-      path: '/app/files/publish',
-      color: '#4caf50'
-    },
-    {
       title: '发布记录',
       description: '查看文件发布历史记录和当前发布状态。',
       icon: <HistoryIcon sx={{ fontSize: 60, color: 'warning.main' }} />,
@@ -53,6 +46,16 @@ const FileManagementView = () => {
       color: '#ff9800'
     }
   ];
+
+    {/*}
+    {
+      title: '文件发布',
+      description: '将文件版本发布到商户、线路或终端。',
+      icon: <PublishIcon sx={{ fontSize: 60, color: 'success.main' }} />,
+      path: '/app/files/publish',
+      color: '#4caf50'
+    },
+    */}
 
   return (
     <Container maxWidth={false}>
@@ -66,7 +69,7 @@ const FileManagementView = () => {
 
         <Grid container spacing={3} sx={{ mt: 1 }}>
           {fileManagementModules.map((module) => (
-            <Grid item xs={12} sm={6} md={3} key={module.title}>
+            <Grid item xs={12} sm={6} md={4} key={module.title}>
               <Card 
                 sx={{ 
                   height: '100%', 

@@ -328,6 +328,90 @@ namespace SlzrCrossGate.WebAdmin.Controllers
             };
         }
 
+        // GET: api/Terminals/LineStats
+        [HttpGet("linestats")]
+        public async Task<ActionResult<PaginatedResult<LineStatsDetailDto>>> GetLineStats(
+            [FromQuery] string? merchantId = null,
+            [FromQuery] int page = 1,
+            [FromQuery] int pageSize = 10)
+        {
+            // 获取当前用户的商户ID
+            var currentUserMerchantId = await _userService.GetUserMerchantIdAsync(User);
+            var isSystemAdmin = User.IsInRole("SystemAdmin");
+
+            // 如果不是系统管理员，只能查看自己商户的终端
+            if (!isSystemAdmin && merchantId != null && merchantId != currentUserMerchantId)
+            {
+                return Forbid();
+            }
+
+            // 如果不是系统管理员且未指定商户ID，则使用当前用户的商户ID
+            if (!isSystemAdmin && merchantId == null)
+            {
+                merchantId = currentUserMerchantId;
+            }
+
+            if (string.IsNullOrEmpty(merchantId))
+            {
+                return BadRequest("MerchantId is required");
+            }
+
+            try
+            {
+                // 使用原生SQL查询获取线路统计信息，性能更好
+                var sql = @"
+                    SELECT
+                        t.LineNO,
+                        COUNT(*) as Count,
+                        COUNT(*) as TotalCount,
+                        SUM(CASE
+                            WHEN ts.ActiveStatus = 1 AND ts.LastActiveTime > DATE_SUB(NOW(), INTERVAL 5 MINUTE)
+                            THEN 1 ELSE 0
+                        END) as OnlineCount,
+                        SUM(CASE
+                            WHEN ts.ActiveStatus != 1 OR ts.LastActiveTime <= DATE_SUB(NOW(), INTERVAL 5 MINUTE) OR ts.ActiveStatus IS NULL
+                            THEN 1 ELSE 0
+                        END) as OfflineCount,
+                        SUM(CASE
+                            WHEN ts.ActiveStatus = 1 AND ts.LastActiveTime > DATE_SUB(NOW(), INTERVAL 5 MINUTE)
+                            THEN 1 ELSE 0
+                        END) as ActiveCount
+                    FROM Terminals t
+                    LEFT JOIN TerminalStatuses ts ON t.ID = ts.ID
+                    WHERE t.MerchantID = {0} AND t.IsDeleted = 0
+                    GROUP BY t.LineNO
+                    ORDER BY t.LineNO
+                    LIMIT {1} OFFSET {2}";
+
+                var offset = (page - 1) * pageSize;
+
+                // 执行查询
+                var lineStats = await _dbContext.Database
+                    .SqlQueryRaw<LineStatsDetailDto>(sql, merchantId, pageSize, offset)
+                    .ToListAsync();
+
+                // 使用EF Core查询获取总数，避免原生SQL的复杂性
+                var totalCount = await _dbContext.Terminals
+                    .Where(t => t.MerchantID == merchantId && !t.IsDeleted)
+                    .Select(t => t.LineNO)
+                    .Distinct()
+                    .CountAsync();
+
+                return new PaginatedResult<LineStatsDetailDto>
+                {
+                    Items = lineStats,
+                    TotalCount = totalCount,
+                    Page = page,
+                    PageSize = pageSize
+                };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting line stats for merchant {MerchantId}", merchantId);
+                return StatusCode(500, "Internal server error");
+            }
+        }
+
         // GET: api/Terminals/5/Events
         [HttpGet("{id}/events")]
         public async Task<ActionResult<PaginatedResult<TerminalEventDto>>> GetTerminalEvents(

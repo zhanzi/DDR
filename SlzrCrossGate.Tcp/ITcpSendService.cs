@@ -20,9 +20,9 @@ namespace SlzrCrossGate.Tcp
             _connectionManager = connectionManager;
         }
 
-        public Task<bool> SendAsync(string terminalId, byte[] message)
+        public async Task<bool> SendAsync(string terminalId, byte[] message)
         {
-            return Task.FromResult(_connectionManager.TrySendMessage(terminalId, message));
+            return await _connectionManager.TrySendMessageAsync(terminalId, message);
         }
     }
 }

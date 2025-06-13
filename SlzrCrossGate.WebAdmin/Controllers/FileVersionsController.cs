@@ -7,6 +7,7 @@ using SlzrCrossGate.Core.Models;
 using SlzrCrossGate.Core.Service.FileStorage;
 using SlzrCrossGate.WebAdmin.DTOs;
 using SlzrCrossGate.WebAdmin.Services;
+using SlzrCrossGate.WebAdmin.Extensions;
 using System.Security.Claims;
 
 namespace SlzrCrossGate.WebAdmin.Controllers
@@ -14,12 +15,12 @@ namespace SlzrCrossGate.WebAdmin.Controllers
     [Route("api/[controller]")]
     [ApiController]
     [Authorize]
-    public class FileVersionsController(TcpDbContext dbContext, UserService userService,FileService fileService) : ControllerBase
+    public class FileVersionsController(TcpDbContext dbContext, UserService userService, FileService fileService, ILogger<FileVersionsController> logger) : ControllerBase
     {
         private readonly TcpDbContext _dbContext = dbContext;
         private readonly UserService _userService = userService;
-
-        private readonly FileService _fileService= fileService;
+        private readonly FileService _fileService = fileService;
+        private readonly ILogger<FileVersionsController> _logger = logger;
 
         // GET: api/FileVersions
         [HttpGet]
@@ -169,105 +170,125 @@ namespace SlzrCrossGate.WebAdmin.Controllers
 
         // POST: api/FileVersions
         [HttpPost]
+        [RequestSizeLimit(100 * 1024 * 1024)] // 100MB
+        [RequestFormLimits(MultipartBodyLengthLimit = 100 * 1024 * 1024)] // 100MB
         public async Task<ActionResult<FileVersionDto>> CreateFileVersion([FromForm] CreateFileVersionDto model)
         {
-            // 获取当前用户的商户ID和用户名
-            var currentUserMerchantId = await _userService.GetUserMerchantIdAsync(User);
-            var isSystemAdmin = User.IsInRole("SystemAdmin");
             var username = UserService.GetUserNameForOperator(User);
+            var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
 
-            // 如果不是系统管理员，只能为自己的商户创建文件版本
-            if (!isSystemAdmin && model.MerchantID != currentUserMerchantId)
+            _logger.LogUserAction("开始上传文件版本", username, ipAddress);
+
+            try
             {
-                return Forbid();
+                // 获取当前用户的商户ID和用户名
+                var currentUserMerchantId = await _userService.GetUserMerchantIdAsync(User);
+                var isSystemAdmin = User.IsInRole("SystemAdmin");
+
+                // 如果不是系统管理员，只能为自己的商户创建文件版本
+                if (!isSystemAdmin && model.MerchantID != currentUserMerchantId)
+                {
+                    return Forbid();
+                }
+
+                // 检查文件类型是否存在
+                var fileType = await _dbContext.FileTypes
+                    .FirstOrDefaultAsync(t => t.ID == model.FileTypeID && t.MerchantID == model.MerchantID);
+
+                if (fileType == null)
+                {
+                    return BadRequest("文件类型不存在");
+                }
+
+                // 处理上传的文件
+                if (model.File == null || model.File.Length == 0)
+                {
+                    return BadRequest("请上传文件");
+                }
+
+                // 生成文件ID
+                var fileId = Guid.NewGuid().ToString("N");
+                var fileName = model.File.FileName;
+                var fileSize = model.File.Length;
+
+                _logger.LogFileOperation("开始上传文件", fileName ?? "未知文件", username, fileSize);
+
+                // 计算CRC
+                string crc;
+                using (var stream = model.File.OpenReadStream())
+                {
+                    crc = CalculateCrc32(stream);
+                }
+
+                // 保存文件
+                var filePath = await _fileService.UploadFileAsync(model.File, username);
+
+                // 创建上传文件记录
+                var uploadFile = new UploadFile
+                {
+                    ID = fileId,
+                    FileName = fileName,
+                    FileSize = (int)fileSize,
+                    FilePath = filePath,
+                    UploadTime = DateTime.Now,
+                    Crc = crc,
+                    UploadedBy = username,
+                    ContentType = model.File.ContentType
+                };
+
+                _dbContext.UploadFiles.Add(uploadFile);
+
+                // 确保FilePara不为null，如果为空则设为空字符串
+                if (string.IsNullOrEmpty(model.FilePara))
+                {
+                    model.FilePara = "";
+                }
+
+                // 创建文件版本记录
+                var fileFullType = $"{model.FileTypeID}{model.FilePara}";
+                var fileVersion = new FileVer
+                {
+                    MerchantID = model.MerchantID,
+                    FileTypeID = model.FileTypeID,
+                    FilePara = model.FilePara,
+                    FileFullType = fileFullType,
+                    Ver = model.Ver,
+                    CreateTime = DateTime.Now,
+                    UpdateTime = DateTime.Now,
+                    UploadFileID = fileId,
+                    FileSize = (int)fileSize,
+                    Crc = crc,
+                    Operator = username,
+                    IsDelete = false
+                };
+
+                _dbContext.FileVers.Add(fileVersion);
+                await _dbContext.SaveChangesAsync();
+
+                _logger.LogBusinessOperation("文件版本创建成功", username, $"文件ID: {fileVersion.ID}");
+
+                return CreatedAtAction(nameof(GetFileVersion), new { id = fileVersion.ID }, new FileVersionDto
+                {
+                    ID = fileVersion.ID,
+                    MerchantID = fileVersion.MerchantID,
+                    FileTypeID = fileVersion.FileTypeID,
+                    FilePara = fileVersion.FilePara,
+                    FileFullType = fileVersion.FileFullType,
+                    Ver = fileVersion.Ver,
+                    CreateTime = fileVersion.CreateTime,
+                    UpdateTime = fileVersion.UpdateTime,
+                    UploadFileID = fileVersion.UploadFileID,
+                    FileSize = fileVersion.FileSize,
+                    Crc = fileVersion.Crc,
+                    Operator = fileVersion.Operator,
+                    FileTypeName = fileType.Name
+                });
             }
-
-            // 检查文件类型是否存在
-            var fileType = await _dbContext.FileTypes
-                .FirstOrDefaultAsync(t => t.ID == model.FileTypeID && t.MerchantID == model.MerchantID);
-
-            if (fileType == null)
+            catch (Exception ex)
             {
-                return BadRequest("文件类型不存在");
+                _logger.LogError(ex, "文件上传失败: 用户 {Username}, 文件 {FileName}", username, model.File?.FileName);
+                throw; // 重新抛出异常，让全局异常处理中间件处理
             }
-
-            // 处理上传的文件
-            if (model.File == null || model.File.Length == 0)
-            {
-                return BadRequest("请上传文件");
-            }
-
-            // 生成文件ID
-            var fileId = Guid.NewGuid().ToString("N");
-            var fileName = model.File.FileName;
-            var fileSize = model.File.Length;
-
-            // 计算CRC
-            string crc;
-            using (var stream = model.File.OpenReadStream())
-            {
-                crc = CalculateCrc32(stream);
-            }
-
-            // 保存文件
-            var filePath=await _fileService.UploadFileAsync(model.File, username);
-
-
-            // 创建上传文件记录
-            var uploadFile = new UploadFile
-            {
-                ID = fileId,
-                FileName = fileName,
-                FileSize = (int)fileSize, // 显式转换为 int
-                FilePath = filePath,
-                UploadTime = DateTime.Now,
-                Crc = crc, // 添加必要的 Crc 属性
-                UploadedBy= username,
-                ContentType= model.File.ContentType
-             };
-
-            _dbContext.UploadFiles.Add(uploadFile);
-
-            if(string.IsNullOrEmpty(  model.FilePara)){
-                model.FilePara = "";
-            }
-            // 创建文件版本记录
-            var fileFullType = $"{model.FileTypeID}{model.FilePara}";
-            var fileVersion = new FileVer
-            {
-                MerchantID = model.MerchantID,
-                FileTypeID = model.FileTypeID,
-                FilePara = model.FilePara,
-                FileFullType = fileFullType,
-                Ver = model.Ver,
-                CreateTime = DateTime.Now,
-                UpdateTime = DateTime.Now,
-                UploadFileID = fileId,
-                FileSize = (int)fileSize, // 显式转换为 int
-                Crc = crc,
-                Operator = username,
-                IsDelete = false
-            };
-
-            _dbContext.FileVers.Add(fileVersion);
-            await _dbContext.SaveChangesAsync();
-
-            return CreatedAtAction(nameof(GetFileVersion), new { id = fileVersion.ID }, new FileVersionDto
-            {
-                ID = fileVersion.ID,
-                MerchantID = fileVersion.MerchantID,
-                FileTypeID = fileVersion.FileTypeID,
-                FilePara = fileVersion.FilePara,
-                FileFullType = fileVersion.FileFullType,
-                Ver = fileVersion.Ver,
-                CreateTime = fileVersion.CreateTime,
-                UpdateTime = fileVersion.UpdateTime,
-                UploadFileID = fileVersion.UploadFileID,
-                FileSize = fileVersion.FileSize,
-                Crc = fileVersion.Crc,
-                Operator = fileVersion.Operator,
-                FileTypeName = fileType.Name
-            });
         }
 
         // DELETE: api/FileVersions/5

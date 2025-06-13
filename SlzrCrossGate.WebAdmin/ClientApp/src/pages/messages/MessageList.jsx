@@ -6,12 +6,6 @@ import {
   Grid,
   Button,
   TextField,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
   TablePagination,
   IconButton,
   Tooltip,
@@ -29,6 +23,12 @@ import {
   Select,
   Stack
 } from '@mui/material';
+import ResponsiveTable, {
+  ResponsiveTableHead,
+  ResponsiveTableBody,
+  ResponsiveTableRow,
+  ResponsiveTableCell
+} from '../../components/ResponsiveTable';
 import {
   Refresh as RefreshIcon,
   Search as SearchIcon,
@@ -404,80 +404,106 @@ const MessageList = () => {
 
       {/* 消息列表 */}
       <Paper>
-        <TableContainer>
-          <Table>
-            <TableHead>
-              <TableRow>
-                <TableCell>ID</TableCell>
-                <TableCell>商户</TableCell>
-                <TableCell>终端ID</TableCell>
-                <TableCell>终端设备号</TableCell>
-                <TableCell>消息类型</TableCell>
-                <TableCell>内容</TableCell>
-                <TableCell>状态</TableCell>
-                <TableCell>发送时间</TableCell>
-                <TableCell>操作人</TableCell>
-                <TableCell>操作</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {loading ? (
-                <TableRow>
-                  <TableCell colSpan={10} align="center">
-                    <CircularProgress size={24} />
-                  </TableCell>
-                </TableRow>
-              ) : messages.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={10} align="center">
-                    没有找到消息
-                  </TableCell>
-                </TableRow>
-              ) : (
-                messages.map((message) => (
-                  <TableRow key={message.id}>
-                    <TableCell>{message.id}</TableCell>
-                    <TableCell>
-                      <Tooltip title={message.merchantID || ''}>
-                        <span>{message.merchantName}</span>
-                      </Tooltip>
-                    </TableCell>
-                    <TableCell>{message.terminalID}</TableCell>
-                    <TableCell>{message.terminalDeviceNO || '-'}</TableCell>
-                    <TableCell>{message.msgTypeName || message.msgTypeID || '-'}</TableCell>
-                    <TableCell>
-                      {message.content ? (
-                        message.content.length > 30
-                          ? `${message.content.substring(0, 30)}...`
-                          : message.content
-                      ) : '-'}
-                    </TableCell>
-                    <TableCell>
-                      <Chip
-                        label={message.isRead ? "已读" : "未读"}
-                        color={message.isRead ? "success" : "error"}
+        <ResponsiveTable minWidth={1000} stickyActions={true}>
+          <ResponsiveTableHead>
+            <ResponsiveTableRow>
+              <ResponsiveTableCell>ID</ResponsiveTableCell>
+              <ResponsiveTableCell hideOn={['xs']}>商户</ResponsiveTableCell>
+              <ResponsiveTableCell hideOn={['xs', 'sm']}>终端ID</ResponsiveTableCell>
+              <ResponsiveTableCell hideOn={['xs', 'sm']}>终端设备号</ResponsiveTableCell>
+              <ResponsiveTableCell>消息类型</ResponsiveTableCell>
+              <ResponsiveTableCell>内容</ResponsiveTableCell>
+              <ResponsiveTableCell>状态</ResponsiveTableCell>
+              <ResponsiveTableCell hideOn={['xs']}>发送时间</ResponsiveTableCell>
+              <ResponsiveTableCell hideOn={['xs', 'sm']}>操作人</ResponsiveTableCell>
+              <ResponsiveTableCell sticky={true} minWidth={80}>操作</ResponsiveTableCell>
+            </ResponsiveTableRow>
+          </ResponsiveTableHead>
+          <ResponsiveTableBody>
+            {loading ? (
+              <ResponsiveTableRow>
+                <ResponsiveTableCell colSpan={10} align="center">
+                  <CircularProgress size={24} />
+                </ResponsiveTableCell>
+              </ResponsiveTableRow>
+            ) : messages.length === 0 ? (
+              <ResponsiveTableRow>
+                <ResponsiveTableCell colSpan={10} align="center">
+                  没有找到消息
+                </ResponsiveTableCell>
+              </ResponsiveTableRow>
+            ) : (
+              messages.map((message) => (
+                <ResponsiveTableRow key={message.id}>
+                  <ResponsiveTableCell>
+                    <Box>
+                      <Typography variant="body2" fontWeight="bold">
+                        {message.id}
+                      </Typography>
+                      {/* 在小屏幕上显示商户信息 */}
+                      <Typography variant="caption" color="textSecondary" sx={{ display: { xs: 'block', sm: 'none' } }}>
+                        {message.merchantName}
+                      </Typography>
+                    </Box>
+                  </ResponsiveTableCell>
+                  <ResponsiveTableCell hideOn={['xs']}>
+                    <Tooltip title={message.merchantID || ''}>
+                      <span>{message.merchantName}</span>
+                    </Tooltip>
+                  </ResponsiveTableCell>
+                  <ResponsiveTableCell hideOn={['xs', 'sm']}>{message.terminalID}</ResponsiveTableCell>
+                  <ResponsiveTableCell hideOn={['xs', 'sm']}>{message.terminalDeviceNO || '-'}</ResponsiveTableCell>
+                  <ResponsiveTableCell>
+                    <Box>
+                      <Typography variant="body2">
+                        {message.msgTypeName || message.msgTypeID || '-'}
+                      </Typography>
+                      {/* 在小屏幕上显示终端信息 */}
+                      <Typography variant="caption" color="textSecondary" sx={{ display: { xs: 'block', md: 'none' } }}>
+                        终端: {message.terminalDeviceNO || message.terminalID}
+                      </Typography>
+                    </Box>
+                  </ResponsiveTableCell>
+                  <ResponsiveTableCell>
+                    <Box>
+                      <Typography variant="body2">
+                        {message.content ? (
+                          message.content.length > 30
+                            ? `${message.content.substring(0, 30)}...`
+                            : message.content
+                        ) : '-'}
+                      </Typography>
+                      {/* 在小屏幕上显示时间和操作人 */}
+                      <Typography variant="caption" color="textSecondary" sx={{ display: { xs: 'block', sm: 'none' } }}>
+                        {formatDateTime(message.createTime)} | {message.operator || '系统'}
+                      </Typography>
+                    </Box>
+                  </ResponsiveTableCell>
+                  <ResponsiveTableCell>
+                    <Chip
+                      label={message.isRead ? "已读" : "未读"}
+                      color={message.isRead ? "success" : "error"}
+                      size="small"
+                    />
+                  </ResponsiveTableCell>
+                  <ResponsiveTableCell hideOn={['xs']}>{formatDateTime(message.createTime)}</ResponsiveTableCell>
+                  <ResponsiveTableCell hideOn={['xs', 'sm']}>{message.operator || '-'}</ResponsiveTableCell>
+                  <ResponsiveTableCell sticky={true}>
+                    <Tooltip title="查看详情">
+                      <IconButton
                         size="small"
-                      />
-                    </TableCell>
-                    <TableCell>{formatDateTime(message.createTime)}</TableCell>
-                    <TableCell>{message.operator || '-'}</TableCell>
-                    <TableCell>
-                      <Tooltip title="查看详情">
-                        <IconButton
-                          size="small"
-                          color="primary"
-                          onClick={() => openMessageDetail(message)}
-                        >
-                          <VisibilityIcon fontSize="small" />
-                        </IconButton>
-                      </Tooltip>
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </TableContainer>
+                        color="primary"
+                        onClick={() => openMessageDetail(message)}
+                      >
+                        <VisibilityIcon fontSize="small" />
+                      </IconButton>
+                    </Tooltip>
+                  </ResponsiveTableCell>
+                </ResponsiveTableRow>
+              ))
+            )}
+          </ResponsiveTableBody>
+        </ResponsiveTable>
         <TablePagination
           rowsPerPageOptions={[5, 10, 25, 50]}
           component="div"
@@ -519,13 +545,13 @@ const MessageList = () => {
               </Grid>
               <Grid item xs={12} sm={6}>
                 <Typography variant="subtitle2" color="textSecondary">状态</Typography>
-                <Typography variant="body1">
+                <Box sx={{ mt: 0.5 }}>
                   <Chip
                     label={selectedMessage.isRead ? "已读" : "未读"}
                     color={selectedMessage.isRead ? "success" : "error"}
                     size="small"
                   />
-                </Typography>
+                </Box>
               </Grid>
               <Grid item xs={12} sm={6}>
                 <Typography variant="subtitle2" color="textSecondary">发送时间</Typography>

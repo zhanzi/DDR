@@ -16,7 +16,6 @@ import {
   TablePagination,
   Paper,
   CircularProgress,
-  Chip,
   IconButton,
   Tooltip,
   Alert
@@ -24,7 +23,8 @@ import {
 import {
   Search as SearchIcon,
   Download as DownloadIcon,
-  Refresh as RefreshIcon
+  Refresh as RefreshIcon,
+  ContentCopy as ContentCopyIcon
 } from '@mui/icons-material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
@@ -40,7 +40,7 @@ import { formatDateTime, formatDateForAPI } from '../../utils/dateUtils';
 const TerminalRecords = () => {
   const { enqueueSnackbar } = useSnackbar();
   const { user } = useAuth();
-  
+
   // 状态管理
   const [loading, setLoading] = useState(false);
   const [exporting, setExporting] = useState(false);
@@ -48,7 +48,7 @@ const TerminalRecords = () => {
   const [totalCount, setTotalCount] = useState(0);
   const [page, setPage] = useState(0);
   const [pageSize, setPageSize] = useState(20);
-  
+
   // 筛选条件
   const [selectedMerchant, setSelectedMerchant] = useState(null);
   const [machineId, setMachineId] = useState('');
@@ -63,7 +63,7 @@ const TerminalRecords = () => {
   const loadRecords = useCallback(async () => {
     try {
       setLoading(true);
-      
+
       const params = {
         page: page + 1, // API使用1-based索引
         pageSize,
@@ -119,7 +119,7 @@ const TerminalRecords = () => {
   const handleExport = async () => {
     try {
       setExporting(true);
-      
+
       const params = {
         merchantID: selectedMerchant?.merchantID || '',
         machineID: machineId.trim() || undefined,
@@ -136,7 +136,7 @@ const TerminalRecords = () => {
       });
 
       const response = await consumeDataAPI.exportConsumeData(params);
-      
+
       // 创建下载链接
       const url = window.URL.createObjectURL(new Blob([response]));
       const link = document.createElement('a');
@@ -146,7 +146,7 @@ const TerminalRecords = () => {
       link.click();
       link.remove();
       window.URL.revokeObjectURL(url);
-      
+
       enqueueSnackbar('导出成功', { variant: 'success' });
     } catch (error) {
       console.error('导出失败:', error);
@@ -166,16 +166,27 @@ const TerminalRecords = () => {
     setPage(0);
   };
 
-  // 格式化Buffer为HEX显示（截断显示）
-  const formatBufferHex = (hexString) => {
+  // 格式化Buffer为HEX显示（响应式截断显示）
+  const formatBufferHex = (hexString, maxLength = 64) => {
     if (!hexString) return '';
-    if (hexString.length <= 32) return hexString;
-    return `${hexString.substring(0, 32)}...`;
+    if (hexString.length <= maxLength) return hexString;
+    return `${hexString.substring(0, maxLength)}...`;
+  };
+
+  // 复制交易数据到剪贴板
+  const handleCopyBuffer = async (bufferHex) => {
+    try {
+      await navigator.clipboard.writeText(bufferHex);
+      enqueueSnackbar('交易数据已复制到剪贴板', { variant: 'success' });
+    } catch (error) {
+      console.error('复制失败:', error);
+      enqueueSnackbar('复制失败，请手动选择复制', { variant: 'error' });
+    }
   };
 
   return (
-    <LocalizationProvider 
-      dateAdapter={AdapterDateFns} 
+    <LocalizationProvider
+      dateAdapter={AdapterDateFns}
       localeText={zhCN.components.MuiLocalizationProvider.defaultProps.localeText}
     >
       <Container maxWidth={false}>
@@ -190,7 +201,7 @@ const TerminalRecords = () => {
             <Typography variant="h6" sx={{ mb: 2 }}>
               筛选条件
             </Typography>
-            
+
             <Grid container spacing={2} alignItems="center">
               {/* 商户选择 */}
               <Grid item xs={12} sm={6} md={3}>
@@ -340,16 +351,9 @@ const TerminalRecords = () => {
                       <TableRow key={record.id} hover>
                         <TableCell>{record.id}</TableCell>
                         <TableCell>
-                          <Box>
-                            <Typography variant="body2" fontWeight="medium">
-                              {record.merchantName || record.merchantID || '-'}
-                            </Typography>
-                            {record.merchantName && record.merchantID && (
-                              <Typography variant="caption" color="textSecondary">
-                                {record.merchantID}
-                              </Typography>
-                            )}
-                          </Box>
+                          <Tooltip title={record.merchantID || ''}>
+                            <span>{record.merchantName}</span>
+                          </Tooltip>
                         </TableCell>
                         <TableCell>{record.machineID || '-'}</TableCell>
                         <TableCell>{record.machineNO || '-'}</TableCell>
@@ -357,14 +361,43 @@ const TerminalRecords = () => {
                           {record.psamNO || '-'}
                         </TableCell>
                         <TableCell>
-                          <Tooltip title={record.bufferHex} arrow>
-                            <Chip
-                              label={formatBufferHex(record.bufferHex)}
-                              size="small"
-                              variant="outlined"
-                              sx={{ fontFamily: 'monospace', fontSize: '0.75rem' }}
-                            />
-                          </Tooltip>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <Tooltip title={record.bufferHex} arrow>
+                              <Typography
+                                variant="body2"
+                                sx={{
+                                  fontFamily: 'monospace',
+                                  fontSize: '0.75rem',
+                                  color: 'text.secondary',
+                                  backgroundColor: 'grey.50',
+                                  padding: '4px 8px',
+                                  borderRadius: 1,
+                                  display: 'inline-block',
+                                  maxWidth: { xs: '120px', sm: '200px', md: '300px', lg: '400px' },
+                                  overflow: 'hidden',
+                                  textOverflow: 'ellipsis',
+                                  whiteSpace: 'nowrap'
+                                }}
+                              >
+                                {formatBufferHex(record.bufferHex,
+                                  // 根据屏幕尺寸动态调整显示长度
+                                  window.innerWidth < 600 ? 24 :    // xs: 24字符
+                                  window.innerWidth < 900 ? 48 :    // sm: 48字符
+                                  window.innerWidth < 1200 ? 72 :   // md: 72字符
+                                  96                                // lg+: 96字符
+                                )}
+                              </Typography>
+                            </Tooltip>
+                            <Tooltip title="复制交易数据">
+                              <IconButton
+                                size="small"
+                                onClick={() => handleCopyBuffer(record.bufferHex)}
+                                sx={{ opacity: 0.7, '&:hover': { opacity: 1 } }}
+                              >
+                                <ContentCopyIcon fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
+                          </Box>
                         </TableCell>
                         <TableCell>
                           {formatDateTime(record.receiveTime)}
@@ -394,8 +427,7 @@ const TerminalRecords = () => {
           <Alert severity="info" sx={{ mt: 2 }}>
             <Typography variant="body2">
               • 导出的CSV文件只包含交易数据的HEX格式，每行一条记录<br/>
-              • 最多导出10,000条记录，如需更多数据请缩小查询范围<br/>
-              • 非系统管理员只能查看自己商户下的终端记录
+              • 最多导出10,000条记录，如需更多数据请缩小查询范围
             </Typography>
           </Alert>
         </Box>

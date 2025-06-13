@@ -16,7 +16,7 @@ namespace SlzrCrossGate.Tcp
         private readonly TerminalManager _terminalManager;
 
 
-        private readonly TimeSpan _connectionTimeout = TimeSpan.FromSeconds(60); 
+        private readonly TimeSpan _connectionTimeout = TimeSpan.FromSeconds(60);
         private readonly Timer _connectionCheckerTimer;
 
         public TcpConnectionManager(ILogger<TcpConnectionManager> logger, TerminalManager terminalManager)
@@ -67,7 +67,7 @@ namespace SlzrCrossGate.Tcp
             return added;
         }
 
-        public void SetTerminalActive(string terminalId) { 
+        public void SetTerminalActive(string terminalId) {
             _terminalManager.SetTerminalActive(terminalId);
         }
 
@@ -82,11 +82,47 @@ namespace SlzrCrossGate.Tcp
             return removed;
         }
 
+        public async Task<bool> TrySendMessageAsync(string terminalId, ReadOnlyMemory<byte> message)
+        {
+            if (_connections.TryGetValue(terminalId, out var context))
+            {
+                return await context.SendMessageAsync(message);
+            }
+            return false;
+        }
+
+        // 保留同步版本以兼容现有代码，但建议使用异步版本
         public bool TrySendMessage(string terminalId, ReadOnlyMemory<byte> message)
         {
             if (_connections.TryGetValue(terminalId, out var context))
             {
-                return context.Transport.Output.WriteAsync(message).IsCompletedSuccessfully;
+                try
+                {
+                    // 检查连接是否已关闭
+                    if (context.ConnectionClosed.IsCancellationRequested)
+                    {
+                        return false;
+                    }
+
+                    // 写入数据并立即刷新
+                    var writeTask = context.Transport.Output.WriteAsync(message);
+                    if (!writeTask.IsCompletedSuccessfully)
+                    {
+                        return false;
+                    }
+
+                    var flushTask = context.Transport.Output.FlushAsync();
+                    if (flushTask.IsCompletedSuccessfully)
+                    {
+                        var result = flushTask.Result;
+                        return result.IsCompleted && !result.IsCanceled;
+                    }
+                    return false;
+                }
+                catch
+                {
+                    return false;
+                }
             }
             return false;
         }

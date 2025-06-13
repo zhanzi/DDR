@@ -186,11 +186,12 @@ export const terminalAPI = {
   createTerminalType: (data) => api.post('/TerminalTypes', data),
   updateTerminalType: (id, data) => api.put(`/TerminalTypes/${id}`, data),
   deleteTerminalType: (id) => api.delete(`/TerminalTypes/${id}`),
-  sendMessage: (terminalIds, messageTypeId, content) =>
-    api.post('/Terminals/SendMessage', { terminalIds, messageTypeId, content }),
+  sendMessage: (terminalIds, msgTypeCode, content) =>
+    api.post('/Terminals/SendMessage', { terminalIds, msgTypeCode, content }),
   publishFile: (terminalIds, fileVerId) =>
     api.post('/Terminals/PublishFile', { terminalIds, fileVerId }),
   getTerminalStats: (params) => api.get(`/Terminals/Stats`,{ params }),
+  getLineStats: (params) => api.get('/Terminals/LineStats', { params }),
 };
 
 // 文件相关API

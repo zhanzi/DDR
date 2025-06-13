@@ -6,12 +6,6 @@ import {
   Grid,
   Button,
   TextField,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
   TablePagination,
   IconButton,
   Tooltip,
@@ -27,6 +21,12 @@ import {
   Select,
   Chip
 } from '@mui/material';
+import ResponsiveTable, {
+  ResponsiveTableHead,
+  ResponsiveTableBody,
+  ResponsiveTableRow,
+  ResponsiveTableCell
+} from '../../components/ResponsiveTable';
 import {
   ChevronRight as ChevronRight,
   Refresh as RefreshIcon,
@@ -76,6 +76,7 @@ const FileVersionList = () => {
     ver: '',
     file: null
   });
+  const [autoParseInfo, setAutoParseInfo] = useState(null); // 自动解析信息
   const [uploadError, setUploadError] = useState('');
   const [uploadLoading, setUploadLoading] = useState(false);
   const [selectedUploadMerchant, setSelectedUploadMerchant] = useState(null);
@@ -125,7 +126,7 @@ const FileVersionList = () => {
       setLoadingMerchants(true);
       const response = await merchantAPI.getMerchants({ pageSize: 100 }); // 获取足够多的商户数据
       setMerchants(response.items || []);
-      console.log("商户数据加载成功:", response.items);
+      // 商户数据加载成功，调试日志已移除
     } catch (error) {
       console.error('Error loading merchants:', error);
     } finally {
@@ -200,6 +201,7 @@ const FileVersionList = () => {
     });
     setSelectedUploadMerchant(null); // 重置选中的商户
     setUploadError('');
+    setAutoParseInfo(null); // 清空自动解析信息
     setOpenUploadDialog(true);
   };
 
@@ -221,9 +223,64 @@ const FileVersionList = () => {
     }
   };
 
+  // 解析文件名并自动填充表单
+  const parseFileName = (fileName) => {
+    if (!fileName) return null;
+
+    // 移除文件扩展名
+    const nameWithoutExt = fileName.replace(/\.[^/.]+$/, "");
+
+    // 正则表达式匹配格式：{3位文件类型}{0-8位文件参数}_{4位版本号}{其他可选内容}
+    // 总长度3-11位字母数字 + 下划线 + 4位16进制 + 任意后续内容
+    // 例如：APKBUS_0012 解析为 APK + BUS + 0012
+    // 例如：APK_12345 解析为 APK + (空) + 1234 (忽略5)
+    const regex = /^([A-Za-z0-9]{3})([A-Za-z0-9]{0,8})_([0-9A-Fa-f]{4}).*$/;
+    const match = nameWithoutExt.match(regex);
+
+    if (match) {
+      return {
+        fileTypeId: match[1].toUpperCase(), // 文件类型转大写 (固定3位)
+        filePara: match[2].toUpperCase(),   // 文件参数转大写 (0-8位)
+        ver: match[3].toUpperCase()         // 版本号转大写 (4位16进制)
+      };
+    }
+
+    return null;
+  };
+
   // 处理文件选择
   const handleFileSelect = (event) => {
-    setUploadForm(prev => ({ ...prev, file: event.target.files[0] }));
+    const selectedFile = event.target.files[0];
+    if (!selectedFile) return;
+
+    // 解析文件名
+    const parsedInfo = parseFileName(selectedFile.name);
+
+    if (parsedInfo) {
+      // 如果解析成功，自动填充表单
+      setUploadForm(prev => ({
+        ...prev,
+        file: selectedFile,
+        fileTypeId: parsedInfo.fileTypeId,
+        filePara: parsedInfo.filePara,
+        ver: parsedInfo.ver
+      }));
+
+      // 设置自动解析信息用于显示提示
+      setAutoParseInfo({
+        fileName: selectedFile.name,
+        fileTypeId: parsedInfo.fileTypeId,
+        filePara: parsedInfo.filePara,
+        ver: parsedInfo.ver
+      });
+
+      console.log('已自动解析文件名:', parsedInfo);
+    } else {
+      // 如果解析失败，只设置文件
+      setUploadForm(prev => ({ ...prev, file: selectedFile }));
+      setAutoParseInfo(null);
+      console.log('文件名格式不匹配自动解析规则:', selectedFile.name);
+    }
   };
 
   // 上传文件
@@ -233,11 +290,11 @@ const FileVersionList = () => {
 
     try {
       const formData = new FormData();
-      formData.append('merchantId', uploadForm.merchantId);
-      formData.append('fileTypeId', uploadForm.fileTypeId);
-      formData.append('filePara', uploadForm.filePara);
-      formData.append('ver', uploadForm.ver);
-      formData.append('file', uploadForm.file);
+      formData.append('MerchantID', uploadForm.merchantId);
+      formData.append('FileTypeID', uploadForm.fileTypeId);
+      formData.append('FilePara', uploadForm.filePara || ''); // 确保不为null或undefined
+      formData.append('Ver', uploadForm.ver);
+      formData.append('File', uploadForm.file);
 
       await fileAPI.uploadFile(formData);
 
@@ -245,7 +302,20 @@ const FileVersionList = () => {
       loadFileVersions();
     } catch (error) {
       console.error('Error uploading file:', error);
-      setUploadError(error.response?.data || '上传失败');
+      // 处理错误信息，确保显示字符串而不是对象
+      let errorMessage = '上传失败';
+      if (error.response?.data) {
+        if (typeof error.response.data === 'string') {
+          errorMessage = error.response.data;
+        } else if (error.response.data.message) {
+          errorMessage = error.response.data.message;
+        } else if (error.response.data.title) {
+          errorMessage = error.response.data.title;
+        } else {
+          errorMessage = JSON.stringify(error.response.data);
+        }
+      }
+      setUploadError(errorMessage);
     } finally {
       setUploadLoading(false);
     }
@@ -289,7 +359,7 @@ const FileVersionList = () => {
       const fileTypeId = fileVersion.fileTypeID;
       const filePara = fileVersion.filePara;
       const ver = fileVersion.ver;
-      const fileName = `${merchantId}_${fileTypeId}${filePara}_${ver}.bin`;
+      const fileName = `$${fileTypeId}${filePara}_${ver}.bin`;
 
       link.href = url;
       link.setAttribute('download', fileName);
@@ -349,7 +419,7 @@ const FileVersionList = () => {
                   merchantId: newValue ? newValue.merchantID : '',  // 确保使用merchantID而非id
                   fileTypeId: '' // 清空文件类型选择
                 }));
-                console.log("商户变更:", newValue ? `ID:${newValue.merchantID}, 名称:${newValue.name}` : "未选择");
+                // 商户变更日志已移除
               }}
               size="small"
             />
@@ -371,9 +441,7 @@ const FileVersionList = () => {
                 .filter(type => {
                   if (!selectedMerchant) return false;
 
-                  // 添加日志，帮助调试字段匹配问题
-                  console.log("文件类型:", type);
-                  console.log("当前选中商户:", selectedMerchant);
+                  // 调试日志已移除，避免控制台输出过多信息
 
                   return type.merchantID && type.merchantID === selectedMerchant.merchantID;
                 })
@@ -451,52 +519,82 @@ const FileVersionList = () => {
 
       {/* 文件版本列表 */}
       <Paper>
-        <TableContainer>
-          <Table>
-            <TableHead>
-              <TableRow>
-                <TableCell>ID</TableCell>
-                <TableCell>商户</TableCell>
-                <TableCell>文件类型</TableCell>
-                <TableCell>文件参数</TableCell>
-                <TableCell>版本号</TableCell>
-                <TableCell>文件大小</TableCell>
-                <TableCell>CRC校验</TableCell>
-                <TableCell>上传时间</TableCell>
-                <TableCell>操作人</TableCell>
-                <TableCell>操作</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {loading ? (
-                <TableRow>
-                  <TableCell colSpan={10} align="center">
-                    <CircularProgress size={24} />
-                  </TableCell>
-                </TableRow>
-              ) : fileVersions.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={10} align="center">
-                    没有找到文件版本
-                  </TableCell>
-                </TableRow>
-              ) : (
-                fileVersions.map((fileVersion) => (
-                  <TableRow key={fileVersion.id}>
-                    <TableCell>{fileVersion.id}</TableCell>
-                    <TableCell>
-                      <Tooltip title={fileVersion.merchantID || ''}>
-                        <span>{fileVersion.merchantName}</span>
-                      </Tooltip>
-                    </TableCell>
-                    <TableCell>{fileVersion.fileTypeName}({fileVersion.fileTypeID})</TableCell>
-                    <TableCell>{fileVersion.filePara}</TableCell>
-                    <TableCell>{fileVersion.ver}</TableCell>
-                    <TableCell>{formatFileSize(fileVersion.fileSize)}</TableCell>
-                    <TableCell>{fileVersion.crc}</TableCell>
-                    <TableCell>{formatDateTime(fileVersion.createTime)}</TableCell>
-                    <TableCell>{fileVersion.operator || '-'}</TableCell>
-                    <TableCell>
+        <ResponsiveTable minWidth={1100} stickyActions={true}>
+          <ResponsiveTableHead>
+            <ResponsiveTableRow>
+              <ResponsiveTableCell>ID</ResponsiveTableCell>
+              <ResponsiveTableCell hideOn={['xs']}>商户</ResponsiveTableCell>
+              <ResponsiveTableCell>文件类型</ResponsiveTableCell>
+              <ResponsiveTableCell hideOn={['xs', 'sm']}>文件参数</ResponsiveTableCell>
+              <ResponsiveTableCell>版本号</ResponsiveTableCell>
+              <ResponsiveTableCell hideOn={['xs', 'sm']}>文件大小</ResponsiveTableCell>
+              <ResponsiveTableCell hideOn={['xs', 'sm']}>CRC校验</ResponsiveTableCell>
+              <ResponsiveTableCell hideOn={['xs']}>上传时间</ResponsiveTableCell>
+              <ResponsiveTableCell hideOn={['xs', 'sm']}>操作人</ResponsiveTableCell>
+              <ResponsiveTableCell sticky={true} minWidth={120}>操作</ResponsiveTableCell>
+            </ResponsiveTableRow>
+          </ResponsiveTableHead>
+          <ResponsiveTableBody>
+            {loading ? (
+              <ResponsiveTableRow>
+                <ResponsiveTableCell colSpan={10} align="center">
+                  <CircularProgress size={24} />
+                </ResponsiveTableCell>
+              </ResponsiveTableRow>
+            ) : fileVersions.length === 0 ? (
+              <ResponsiveTableRow>
+                <ResponsiveTableCell colSpan={10} align="center">
+                  没有找到文件版本
+                </ResponsiveTableCell>
+              </ResponsiveTableRow>
+            ) : (
+              fileVersions.map((fileVersion) => (
+                <ResponsiveTableRow key={fileVersion.id}>
+                  <ResponsiveTableCell>
+                    <Box>
+                      <Typography variant="body2" fontWeight="bold">
+                        {fileVersion.id}
+                      </Typography>
+                      {/* 在小屏幕上显示商户信息 */}
+                      <Typography variant="caption" color="textSecondary" sx={{ display: { xs: 'block', sm: 'none' } }}>
+                        {fileVersion.merchantName}
+                      </Typography>
+                    </Box>
+                  </ResponsiveTableCell>
+                  <ResponsiveTableCell hideOn={['xs']}>
+                    <Tooltip title={fileVersion.merchantID || ''}>
+                      <span>{fileVersion.merchantName}</span>
+                    </Tooltip>
+                  </ResponsiveTableCell>
+                  <ResponsiveTableCell>
+                    <Box>
+                      <Typography variant="body2">
+                        {fileVersion.fileTypeName}({fileVersion.fileTypeID})
+                      </Typography>
+                      {/* 在小屏幕上显示文件参数 */}
+                      <Typography variant="caption" color="textSecondary" sx={{ display: { xs: 'block', md: 'none' } }}>
+                        参数: {fileVersion.filePara || '-'}
+                      </Typography>
+                    </Box>
+                  </ResponsiveTableCell>
+                  <ResponsiveTableCell hideOn={['xs', 'sm']}>{fileVersion.filePara}</ResponsiveTableCell>
+                  <ResponsiveTableCell>
+                    <Box>
+                      <Typography variant="body2" fontWeight="bold">
+                        {fileVersion.ver}
+                      </Typography>
+                      {/* 在小屏幕上显示文件大小和时间 */}
+                      <Typography variant="caption" color="textSecondary" sx={{ display: { xs: 'block', sm: 'none' } }}>
+                        {formatFileSize(fileVersion.fileSize)} | {formatDateTime(fileVersion.createTime)}
+                      </Typography>
+                    </Box>
+                  </ResponsiveTableCell>
+                  <ResponsiveTableCell hideOn={['xs', 'sm']}>{formatFileSize(fileVersion.fileSize)}</ResponsiveTableCell>
+                  <ResponsiveTableCell hideOn={['xs', 'sm']}>{fileVersion.crc}</ResponsiveTableCell>
+                  <ResponsiveTableCell hideOn={['xs']}>{formatDateTime(fileVersion.createTime)}</ResponsiveTableCell>
+                  <ResponsiveTableCell hideOn={['xs', 'sm']}>{fileVersion.operator || '-'}</ResponsiveTableCell>
+                  <ResponsiveTableCell sticky={true}>
+                    <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
                       <Tooltip title="下载">
                         <IconButton
                           size="small"
@@ -524,13 +622,13 @@ const FileVersionList = () => {
                           <DeleteIcon fontSize="small" />
                         </IconButton>
                       </Tooltip>
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </TableContainer>
+                    </Box>
+                  </ResponsiveTableCell>
+                </ResponsiveTableRow>
+              ))
+            )}
+          </ResponsiveTableBody>
+        </ResponsiveTable>
         <TablePagination
           rowsPerPageOptions={[5, 10, 25, 50]}
           component="div"
@@ -583,9 +681,7 @@ const FileVersionList = () => {
                       .filter(type => {
                         if (!selectedUploadMerchant) return false;
 
-                        // 添加日志，帮助调试字段匹配问题
-                        console.log("上传对话框 - 文件类型:", type);
-                        console.log("上传对话框 - 当前选中商户:", selectedUploadMerchant);
+                        // 调试日志已移除，避免控制台输出过多信息
 
                         // 尝试多种可能的字段名匹配
                         return (
@@ -657,6 +753,36 @@ const FileVersionList = () => {
                   <Typography color="error" variant="caption">
                     请选择文件
                   </Typography>
+                )}
+
+                {/* 自动解析提示 */}
+                {autoParseInfo && (
+                  <Box sx={{
+                    mt: 1,
+                    p: 1.5,
+                    backgroundColor: 'success.light',
+                    borderRadius: 1,
+                    border: '1px solid',
+                    borderColor: 'success.main'
+                  }}>
+                    <Typography variant="body2" color="success.dark" sx={{ fontWeight: 'bold', mb: 0.5 }}>
+                      ✓ 已自动解析文件名
+                    </Typography>
+                    <Typography variant="caption" display="block" color="success.dark">
+                      文件类型: <strong>{autoParseInfo.fileTypeId}</strong> |
+                      文件参数: <strong>{autoParseInfo.filePara}</strong> |
+                      版本: <strong>{autoParseInfo.ver}</strong>
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>
+                      格式: {'{文件类型3位}{文件参数0-8位}_{版本4位16进制}{其他可选}'}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+                      示例: APKBUS_0012_sy.apk → APK + BUS + 0012
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+                      示例: APK_12345.bin → APK + (空) + 1234
+                    </Typography>
+                  </Box>
                 )}
               </Grid>
             </Grid>

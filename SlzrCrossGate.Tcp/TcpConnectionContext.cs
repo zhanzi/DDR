@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Connections;
 using Microsoft.AspNetCore.Http.Features;
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
@@ -14,9 +15,12 @@ namespace SlzrCrossGate.Tcp
     public class TcpConnectionContext : ConnectionContext
     {
         ConnectionContext _connectionContext;
-        public TcpConnectionContext(ConnectionContext connectionContext)
+        ILogger<TcpConnectionContext> _logger;
+
+        public TcpConnectionContext(ConnectionContext connectionContext, ILogger<TcpConnectionContext> logger)
         {
             _connectionContext = connectionContext;
+            this._logger = logger;
         }
 
         public override IDuplexPipe Transport { get => _connectionContext.Transport; set => _connectionContext.Transport = value; }
@@ -47,10 +51,39 @@ namespace SlzrCrossGate.Tcp
         //send message
         public async Task<bool> SendMessageAsync(ReadOnlyMemory<byte> message)
         {
-            LastSendtime = DateTime.Now;
-            await Transport.Output.WriteAsync(message);
-            var result = await Transport.Output.FlushAsync();
-            return result.IsCompleted;
+            try
+            {
+                // 检查连接是否已关闭
+                if (ConnectionClosed.IsCancellationRequested)
+                {
+                    return false;
+                }
+
+                LastSendtime = DateTime.Now;
+                await Transport.Output.WriteAsync(message, ConnectionClosed);
+                var result = await Transport.Output.FlushAsync(ConnectionClosed);
+
+                // 正确的成功判断：操作完成且未被取消
+                return result.IsCompleted && !result.IsCanceled;
+            }
+            catch (OperationCanceledException)
+            {
+                _logger.LogWarning("Connection cancelled while sending message to {TerminalID}", TerminalID);
+                // 连接已取消
+                return false;
+            }
+            catch (InvalidOperationException)
+            {
+                _logger.LogWarning("Connection closed while sending message to {TerminalID}", TerminalID);
+                // 管道已关闭
+                return false;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error sending message to {TerminalID}", TerminalID);
+                // 其他网络错误
+                return false;
+            }
         }
 
         // update last activity time
