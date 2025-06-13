@@ -27,7 +27,8 @@ import {
   Archive as ArchiveIcon,
   Book as BookIcon,
   Smartphone as SmartphoneIcon,
-  Cpu as CpuIcon
+  Cpu as CpuIcon,
+  List as ListIcon
 } from 'react-feather';
 import NavItem from './NavItem';
 import { useTheme } from '../contexts/ThemeContext';
@@ -47,22 +48,28 @@ const items = [
     roles: []
   },
   {
+    href: '/app/terminal-records',
+    icon: ListIcon,
+    title: '终端记录',
+    roles: ['SystemAdmin', 'MerchantAdmin']
+  },
+  {
     href: '/app/files',
     icon: ArchiveIcon,
     title: '文件管理',
-    roles: [] 
+    roles: []
   },
   {
     href: '/app/messages',
     icon: MessageCircleIcon,
     title: '消息管理',
-    roles: [] 
+    roles: []
   },
   {
     href: '/app/fare-params',
     icon: CreditCardIcon,
     title: '票价参数',
-    roles: ['SystemAdmin', 'MerchantAdmin'] 
+    roles: ['SystemAdmin', 'MerchantAdmin']
   },
   {
     href: '/app/union-pay-terminal-keys',
@@ -98,13 +105,13 @@ const items = [
     href: '/app/dictionary',
     icon: BookIcon,
     title: '商户字典',
-    roles: ['SystemAdmin', 'MerchantAdmin'] 
+    roles: ['SystemAdmin', 'MerchantAdmin']
   },
   {
     href: '/app/monitor',
     icon: MonitorIcon,
     title: '系统监控',
-    roles: ['SystemAdmin'] 
+    roles: ['SystemAdmin']
   },
   {
     href: '/app/settings',
@@ -239,12 +246,12 @@ const DashboardSidebar = ({
               if (!item.roles || item.roles.length === 0) {
                 return true;
               }
-              
+
               // 如果用户没有角色信息，只显示无角色限制的菜单
               if (!user || !user.roles || user.roles.length === 0) {
                 return false;
               }
-              
+
               // 检查用户是否拥有所需角色
               return item.roles.some(role => user.roles.includes(role));
             })

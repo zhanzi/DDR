@@ -1079,6 +1079,29 @@ app.MapControllers();
     - LoginProvider/ProviderKey/Name等：varchar(128)
 
 ### 2024-12-19
+- **实现了终端记录查询功能**：
+  - 功能：为WebAdmin添加终端记录查询页面，用于查询和导出ConsumeData表中的交易记录
+  - 后端实现：
+    1. 创建了`ConsumeDataController`控制器，提供查询和导出API
+    2. 创建了`ConsumeDataDto`数据传输对象，包含Buffer字段的HEX格式转换
+    3. 扩展了`ConsumeDataService`服务，添加分页查询和权限控制功能
+  - 前端实现：
+    1. 创建了`TerminalRecords.jsx`页面，支持多条件筛选和分页查询
+    2. 添加了路由配置`/app/terminal-records`
+    3. 在侧边栏添加了"终端记录"菜单项
+    4. 在`api.js`中添加了`consumeDataAPI`相关接口
+  - 功能特性：
+    - 支持商户筛选（非系统管理员只能查看自己商户的记录）
+    - 支持出厂序列号（MachineID）和设备编号（MachineNO）筛选
+    - 支持接收时间范围筛选
+    - 支持分页查询和排序
+    - 支持CSV导出，Buffer字段自动转换为HEX格式
+    - 响应式设计，移动端友好
+  - API端点：
+    - `GET /api/ConsumeData` - 分页查询终端记录
+    - `GET /api/ConsumeData/export` - 导出CSV文件
+  - 权限控制：SystemAdmin和MerchantAdmin角色可访问，商户管理员只能查看自己商户的数据
+
 - **创建了完整的服务器运维文档**：
   - 文件：`registry-deployment-guide.md`
   - 内容：详细的服务器部署、运行、维护指南，包括：

@@ -25,6 +25,7 @@ import MerchantDetailView from './pages/merchants/MerchantDetailView';
 import TerminalList from './pages/terminals/TerminalList';
 import TerminalDetail from './pages/terminals/TerminalDetail';
 import TerminalEvents from './pages/terminals/TerminalEvents';
+import TerminalRecords from './pages/terminals/TerminalRecords';
 import FileManagementView from './pages/files/FileManagementView';
 import FileTypeList from './pages/files/FileTypeList';
 import FileVersionList from './pages/files/FileVersionList';
@@ -43,7 +44,7 @@ import LinePriceVersionEditView from './pages/fare-params/LinePriceVersionEditVi
 import LinePricePreviewView from './pages/fare-params/LinePricePreviewView';
 
 // 引入银联终端密钥管理页面
-import UnionPayTerminalKeyList from './pages/unionPayTerminalKeys/UnionPayTerminalKeyList'; 
+import UnionPayTerminalKeyList from './pages/unionPayTerminalKeys/UnionPayTerminalKeyList';
 
 
 const routes = [
@@ -57,198 +58,206 @@ const routes = [
     children: [
       { path: 'dashboard', element: <DashboardView /> },
       { path: 'account', element: <AccountView /> },
-      { 
-        path: 'users', 
+      {
+        path: 'users',
         element: (
           <RoleGuard roles={['SystemAdmin', 'MerchantAdmin']}>
             <UserListView />
           </RoleGuard>
-        ) 
+        )
       },
-      { 
-        path: 'users/:id', 
+      {
+        path: 'users/:id',
         element: (
           <RoleGuard roles={['SystemAdmin', 'MerchantAdmin']}>
             <UserDetailView />
           </RoleGuard>
-        ) 
+        )
       },
-      { 
-        path: 'roles', 
+      {
+        path: 'roles',
         element: (
           <RoleGuard roles={['SystemAdmin']}>
             <RoleListView />
           </RoleGuard>
-        ) 
+        )
       },
-      { 
-        path: 'roles/:id', 
+      {
+        path: 'roles/:id',
         element: (
           <RoleGuard roles={['SystemAdmin']}>
             <RoleDetailView />
           </RoleGuard>
-        ) 
+        )
       },
-      { 
-        path: 'merchants', 
+      {
+        path: 'merchants',
         element: (
           <RoleGuard roles={['SystemAdmin']}>
             <MerchantListView />
           </RoleGuard>
-        ) 
+        )
       },
-      { 
-        path: 'merchants/:id', 
+      {
+        path: 'merchants/:id',
         element: (
           <RoleGuard roles={['SystemAdmin']}>
             <MerchantDetailView />
           </RoleGuard>
-        ) 
+        )
       },
-      { 
-        path: 'terminals', 
+      {
+        path: 'terminals',
         element: (
           <RoleGuard roles={['SystemAdmin', 'MerchantAdmin']}>
             <TerminalList />
           </RoleGuard>
-        ) 
+        )
       },
-      { 
-        path: 'terminals/:id', 
+      {
+        path: 'terminals/:id',
         element: (
           <RoleGuard roles={['SystemAdmin', 'MerchantAdmin']}>
             <TerminalDetail />
           </RoleGuard>
-        ) 
+        )
       },
-      { 
-        path: 'terminals/:id/events', 
+      {
+        path: 'terminals/:id/events',
         element: (
           <RoleGuard roles={['SystemAdmin', 'MerchantAdmin']}>
             <TerminalEvents />
           </RoleGuard>
-        ) 
+        )
       },
-      { 
-        path: 'files', 
+      {
+        path: 'terminal-records',
+        element: (
+          <RoleGuard roles={['SystemAdmin', 'MerchantAdmin']}>
+            <TerminalRecords />
+          </RoleGuard>
+        )
+      },
+      {
+        path: 'files',
         element: (
           <RoleGuard roles={['SystemAdmin', 'MerchantAdmin']}>
             <FileManagementView />
           </RoleGuard>
-        ) 
+        )
       },
-      { 
-        path: 'files/types', 
+      {
+        path: 'files/types',
         element: (
           <RoleGuard roles={['SystemAdmin', 'MerchantAdmin']}>
             <FileTypeList />
           </RoleGuard>
-        ) 
+        )
       },
-      { 
-        path: 'files/versions', 
+      {
+        path: 'files/versions',
         element: (
           <RoleGuard roles={['SystemAdmin', 'MerchantAdmin']}>
             <FileVersionList />
           </RoleGuard>
-        ) 
+        )
       },
-      { 
-        path: 'files/publish', 
+      {
+        path: 'files/publish',
         element: (
           <RoleGuard roles={['SystemAdmin', 'MerchantAdmin']}>
             <FilePublish />
           </RoleGuard>
-        ) 
+        )
       },
-      { 
-        path: 'files/publish-list', 
+      {
+        path: 'files/publish-list',
         element: (
           <RoleGuard roles={['SystemAdmin', 'MerchantAdmin']}>
             <FilePublishList />
           </RoleGuard>
-        ) 
+        )
       },
-      { 
-        path: 'messages/types', 
+      {
+        path: 'messages/types',
         element: (
           <RoleGuard roles={['SystemAdmin', 'MerchantAdmin']}>
             <MessageTypeList />
           </RoleGuard>
-        ) 
+        )
       },
-      { 
-        path: 'messages/send', 
+      {
+        path: 'messages/send',
         element: (
           <RoleGuard roles={['SystemAdmin', 'MerchantAdmin']}>
             <MessageSend />
           </RoleGuard>
-        ) 
+        )
       },
-      { 
-        path: 'messages', 
+      {
+        path: 'messages',
         element: (
           <RoleGuard roles={['SystemAdmin', 'MerchantAdmin']}>
             <MessageList />
           </RoleGuard>
-        ) 
+        )
       },
-      { 
-        path: 'dictionary', 
+      {
+        path: 'dictionary',
         element: (
           <RoleGuard roles={['SystemAdmin', 'MerchantAdmin']}>
             <DictionaryListView />
           </RoleGuard>
-        ) 
+        )
       },
-      { 
-        path: 'fare-params', 
+      {
+        path: 'fare-params',
         element: (
           <RoleGuard roles={['SystemAdmin', 'MerchantAdmin']}>
             <LinePriceListView />
           </RoleGuard>
-        ) 
+        )
       },
 
-      { 
-        path: 'fare-params/:id', 
+      {
+        path: 'fare-params/:id',
         element: (
           <RoleGuard roles={['SystemAdmin', 'MerchantAdmin']}>
             <LinePriceEditView />
           </RoleGuard>
-        ) 
+        )
       },
-      { 
-        path: 'fare-params/:id/versions', 
+      {
+        path: 'fare-params/:id/versions',
         element: (
           <RoleGuard roles={['SystemAdmin', 'MerchantAdmin']}>
             <LinePriceVersionsView />
           </RoleGuard>
-        ) 
+        )
       },
-      { 
-        path: 'fare-params/:id/versions/:versionId', 
+      {
+        path: 'fare-params/:id/versions/:versionId',
         element: (
           <RoleGuard roles={['SystemAdmin', 'MerchantAdmin']}>
             <LinePriceVersionEditView />
           </RoleGuard>
-        ) 
+        )
       },
-      { 
-        path: 'fare-params/:id/versions/:versionId/preview', 
+      {
+        path: 'fare-params/:id/versions/:versionId/preview',
         element: (
           <RoleGuard roles={['SystemAdmin', 'MerchantAdmin']}>
             <LinePricePreviewView />
           </RoleGuard>
-        ) 
+        )
       },
-      { 
-        path: 'settings', 
+      {
+        path: 'settings',
         element: (
           <RoleGuard roles={['SystemAdmin']}>
             <SystemSettings />
           </RoleGuard>
-        ) 
+        )
       },
       {
         path: 'union-pay-terminal-keys',

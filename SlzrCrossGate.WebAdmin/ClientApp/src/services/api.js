@@ -233,7 +233,7 @@ export const messageAPI = {
   createMessageType: (data) => api.post('/MessageTypes', data),
   updateMessageType: (code, merchantId, data) => api.put(`/MessageTypes/${code}/${merchantId}`, data),
   deleteMessageType: (code, merchantId) => api.delete(`/MessageTypes/${code}/${merchantId}`),
-  
+
   // 获取所有消息类型(不分页，用于下拉框)
   getAllMessageTypes: async (merchantId) => {
     const params = merchantId ? { merchantId } : {};
@@ -291,35 +291,35 @@ export const linePriceAPI = {
   deleteLinePrice: (id) => api.delete(`/LinePrice/${id}`),
 
   // 线路票价版本
-  getLinePriceVersions: (linePriceInfoId, params) => 
+  getLinePriceVersions: (linePriceInfoId, params) =>
     api.get(`/LinePrice/${linePriceInfoId}/Versions`, { params }),
-  getLinePriceVersion: (versionId) => 
+  getLinePriceVersion: (versionId) =>
     api.get(`/LinePrice/Versions/${versionId}`),
-  createLinePriceVersion: (linePriceInfoId, data) => 
+  createLinePriceVersion: (linePriceInfoId, data) =>
     api.post(`/LinePrice/${linePriceInfoId}/Versions`, data),
-  updateLinePriceVersion: (versionId, data) => 
+  updateLinePriceVersion: (versionId, data) =>
     api.put(`/LinePrice/Versions/${versionId}`, data),
-  copyLinePriceVersion: (versionId) => 
+  copyLinePriceVersion: (versionId) =>
     api.post(`/LinePrice/Versions/${versionId}/CopyCreate`),
-  deleteLinePriceVersion: (versionId) => 
+  deleteLinePriceVersion: (versionId) =>
     api.delete(`/LinePrice/Versions/${versionId}`),
-  
+
   // 搜索线路
-  searchLinePrices: (params) => 
+  searchLinePrices: (params) =>
     api.get('/LinePrice/search', { params }),
-    
+
   // 跨线路复制版本
-  copyLinePriceVersionToOtherLines: (versionId, data) => 
+  copyLinePriceVersionToOtherLines: (versionId, data) =>
     api.post(`/LinePrice/Versions/${versionId}/CopyToLines`, data),
-    
+
   // 票价文件操作
-  previewLinePriceFile: (versionId, data) => 
+  previewLinePriceFile: (versionId, data) =>
     api.post(`/LinePrice/Versions/${versionId}/Preview`, data),
-  submitLinePriceVersion: (versionId, data) => 
+  submitLinePriceVersion: (versionId, data) =>
     api.post(`/LinePrice/Versions/${versionId}/Submit`, data),
-  publishLinePriceFile: (versionId, data) => 
+  publishLinePriceFile: (versionId, data) =>
     api.post(`/LinePrice/Versions/${versionId}/Publish`, data),
-  
+
   // 字典配置
   getDictionaryConfig: (merchantId, dictionaryType) =>
     api.get(`/LinePrice/DictionaryConfig/${merchantId}/${dictionaryType}`),
@@ -352,6 +352,17 @@ export const unionPayTerminalKeyAPI = {
   }),
   // 下载导入模板
   downloadTemplate: () => api.get('/UnionPayTerminalKeys/template', {
+    responseType: 'blob',
+  }),
+};
+
+// 终端记录相关API
+export const consumeDataAPI = {
+  // 分页查询终端记录
+  getConsumeData: (params) => api.get('/ConsumeData', { params }),
+  // 导出终端记录为CSV文件
+  exportConsumeData: (params) => api.get('/ConsumeData/export', {
+    params,
     responseType: 'blob',
   }),
 };
