@@ -666,6 +666,56 @@ const FileVersionList = () => {
                   helperText={!uploadForm.merchantId ? '请选择商户' : ''}
                 />
               </Grid>
+              <Grid item xs={12}>
+                <Button
+                  variant="outlined"
+                  component="label"
+                  fullWidth
+                  sx={{ height: '56px' }}
+                >
+                  {uploadForm.file ? uploadForm.file.name : '选择文件'}
+                  <input
+                    type="file"
+                    hidden
+                    onChange={handleFileSelect}
+                  />
+                </Button>
+                {!uploadForm.file && (
+                  <Typography color="error" variant="caption">
+                    请选择文件
+                  </Typography>
+                )}
+
+                {/* 自动解析提示 */}
+                {autoParseInfo && (
+                  <Box sx={{
+                    mt: 1,
+                    p: 1.5,
+                    backgroundColor: 'success.light',
+                    borderRadius: 1,
+                    border: '1px solid',
+                    borderColor: 'success.main'
+                  }}>
+                    <Typography variant="body2" color="success.dark" sx={{ fontWeight: 'bold', mb: 0.5 }}>
+                      ✓ 已自动解析文件名
+                    </Typography>
+                    <Typography variant="caption" display="block" color="success.dark">
+                      文件类型: <strong>{autoParseInfo.fileTypeId}</strong> |
+                      文件参数: <strong>{autoParseInfo.filePara}</strong> |
+                      版本: <strong>{autoParseInfo.ver}</strong>
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>
+                      格式: {'{文件类型3位}{文件参数0-8位}_{版本4位16进制}{其他可选}'}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+                      示例: APKBUS_0012_sy.apk → APK + BUS + 0012
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+                      示例: APK_12345.bin → APK + (空) + 1234
+                    </Typography>
+                  </Box>
+                )}
+              </Grid>
               <Grid item xs={12} sm={6}>
                 <FormControl fullWidth required error={!uploadForm.fileTypeId}>
                   <InputLabel>文件类型</InputLabel>
@@ -735,56 +785,7 @@ const FileVersionList = () => {
                   }}
                 />
               </Grid>
-              <Grid item xs={12}>
-                <Button
-                  variant="outlined"
-                  component="label"
-                  fullWidth
-                  sx={{ height: '56px' }}
-                >
-                  {uploadForm.file ? uploadForm.file.name : '选择文件'}
-                  <input
-                    type="file"
-                    hidden
-                    onChange={handleFileSelect}
-                  />
-                </Button>
-                {!uploadForm.file && (
-                  <Typography color="error" variant="caption">
-                    请选择文件
-                  </Typography>
-                )}
-
-                {/* 自动解析提示 */}
-                {autoParseInfo && (
-                  <Box sx={{
-                    mt: 1,
-                    p: 1.5,
-                    backgroundColor: 'success.light',
-                    borderRadius: 1,
-                    border: '1px solid',
-                    borderColor: 'success.main'
-                  }}>
-                    <Typography variant="body2" color="success.dark" sx={{ fontWeight: 'bold', mb: 0.5 }}>
-                      ✓ 已自动解析文件名
-                    </Typography>
-                    <Typography variant="caption" display="block" color="success.dark">
-                      文件类型: <strong>{autoParseInfo.fileTypeId}</strong> |
-                      文件参数: <strong>{autoParseInfo.filePara}</strong> |
-                      版本: <strong>{autoParseInfo.ver}</strong>
-                    </Typography>
-                    <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>
-                      格式: {'{文件类型3位}{文件参数0-8位}_{版本4位16进制}{其他可选}'}
-                    </Typography>
-                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
-                      示例: APKBUS_0012_sy.apk → APK + BUS + 0012
-                    </Typography>
-                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
-                      示例: APK_12345.bin → APK + (空) + 1234
-                    </Typography>
-                  </Box>
-                )}
-              </Grid>
+              
             </Grid>
             {uploadError && (
               <Typography color="error" sx={{ mt: 2 }}>
