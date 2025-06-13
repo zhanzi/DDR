@@ -369,7 +369,8 @@ const TerminalRecords = () => {
                                   fontFamily: 'monospace',
                                   fontSize: '0.75rem',
                                   color: 'text.secondary',
-                                  backgroundColor: 'grey.50',
+                                  backgroundColor: (theme) => 
+                                    theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.05)' : 'grey.50',
                                   padding: '4px 8px',
                                   borderRadius: 1,
                                   display: 'inline-block',
@@ -437,3 +438,4 @@ const TerminalRecords = () => {
 };
 
 export default TerminalRecords;
+

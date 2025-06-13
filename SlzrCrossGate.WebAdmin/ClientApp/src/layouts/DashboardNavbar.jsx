@@ -135,7 +135,7 @@ const DashboardNavbar = ({
         </Typography>
 
         <Box sx={{ display: 'flex', alignItems: 'center' }}>
-          <Tooltip title="搜索">
+        {/* <Tooltip title="搜索">
             <IconButton
               color="inherit"
               sx={{
@@ -152,8 +152,8 @@ const DashboardNavbar = ({
             >
               <SearchIcon />
             </IconButton>
-          </Tooltip>
-
+          </Tooltip> -->
+*/}
           <Tooltip title={mode === 'dark' ? '切换到亮色模式' : '切换到暗色模式'}>
             <IconButton
               color="inherit"
@@ -173,7 +173,7 @@ const DashboardNavbar = ({
               {mode === 'dark' ? <LightModeIcon /> : <DarkModeIcon />}
             </IconButton>
           </Tooltip>
-
+{/*
           <Tooltip title="通知">
             <IconButton
               color="inherit"
@@ -194,7 +194,7 @@ const DashboardNavbar = ({
               </Badge>
             </IconButton>
           </Tooltip>
-
+*/}
           <Tooltip title="账户设置">
             <IconButton
               color="inherit"
