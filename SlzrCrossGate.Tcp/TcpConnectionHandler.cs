@@ -160,7 +160,10 @@ namespace SlzrCrossGate.Tcp
                                 }
                             }
                         }
-                        _connectionManager.SetTerminalActive(message.TerimalID);
+                        if (message.MessageType != "0800")
+                        {
+                            _connectionManager.SetTerminalActive(message.TerimalID);
+                        }
                         await HandleMessageAsync(tcpContext, message);
                     }
 
