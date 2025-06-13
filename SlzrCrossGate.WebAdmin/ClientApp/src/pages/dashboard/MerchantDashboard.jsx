@@ -166,10 +166,10 @@ const MerchantDashboard = () => {
     if (!data) return [];
 
     return data.map(item => ({
-      name: item.lineNo,
-      总数: item.count,
-      在线: item.activeCount,
-      离线: item.count - item.activeCount
+      name: item.lineNO,           // 修正：使用正确的字段名 lineNO
+      总数: item.totalCount,       // 修正：使用正确的字段名 totalCount
+      在线: item.onlineCount,      // 修正：使用正确的字段名 onlineCount
+      离线: item.offlineCount      // 修正：使用正确的字段名 offlineCount
     }));
   };
 

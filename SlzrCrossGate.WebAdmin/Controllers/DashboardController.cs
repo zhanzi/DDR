@@ -128,8 +128,8 @@ namespace SlzrCrossGate.WebAdmin.Controllers
                 {
                     LineNO = g.Key,
                     TotalCount = g.Count(),
-                    OnlineCount = g.Count(t => t.Status != null && t.Status.ActiveStatus == DeviceActiveStatus.Active),
-                    OfflineCount = g.Count(t => t.Status == null || t.Status.ActiveStatus != DeviceActiveStatus.Active)
+                    OnlineCount = g.Count(t => t.Status != null && t.Status.ActiveStatus == DeviceActiveStatus.Active && t.Status.LastActiveTime > DateTime.Now.AddMinutes(-5)),
+                    OfflineCount = g.Count(t => t.Status == null || t.Status.ActiveStatus != DeviceActiveStatus.Active || t.Status.LastActiveTime < DateTime.Now.AddMinutes(-5))
                 })
                 .ToList();
 

@@ -1671,3 +1671,19 @@ app.MapControllers();
     - 使用SQL CASE WHEN语句实现单条SQL的批量更新作为备选方案
     - 分批处理避免单次操作数据量过大
   - 性能提升：相比原始方案提升400-1000倍，满足高并发终端通讯需求
+
+### 2024-12-20
+- **修复了商户仪表盘线路终端分布显示NaN的问题**：
+  - 问题现象：商户仪表盘中"线路终端分布"图表显示NaN值，但后端API正常返回线路统计数据
+  - 根本原因：前端`formatLineStatsData`函数中使用了错误的字段名，与后端返回的数据结构不匹配
+  - 字段名对比：
+    - 后端返回：`lineNO`, `totalCount`, `onlineCount`, `offlineCount`
+    - 前端错误使用：`lineNo`, `count`, `activeCount`, `count - activeCount`
+  - 解决方案：
+    1. 修正`formatLineStatsData`函数中的字段映射：
+       - `item.lineNo` → `item.lineNO`
+       - `item.count` → `item.totalCount`
+       - `item.activeCount` → `item.onlineCount`
+       - `item.count - item.activeCount` → `item.offlineCount`
+    2. 确保前端数据处理与后端API返回的数据结构完全匹配
+  - 影响：修复后线路终端分布图表能正确显示各线路的终端总数、在线数和离线数
