@@ -92,6 +92,11 @@ declare class DDR implements DDRInstance {
      */
     getMetadata(): Record<string, any>;
     /**
+     * 设置主题
+     * @param theme 主题名称
+     */
+    setTheme(theme: string): void;
+    /**
      * 从元数据中根据路径获取值
      * @param path 路径，例如："company.name"
      * @returns 找到的值或undefined

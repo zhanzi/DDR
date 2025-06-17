@@ -3,10 +3,10 @@
  * 此文件将合并到主CSS中
  */
 
-/* 表头样式修复 - 使用!important确保优先级 */
+/* 表头样式修复 - 移除height: auto !important，允许JavaScript控制高度 */
 .ddr-header, .ddr-report-header {
   flex: 0 0 auto;
-  height: auto !important; /* 强制使用自动高度 */
+  /* 移除 height: auto !important，让JavaScript可以控制高度 */
   min-height: 80px;
   padding: 20px 25px 0 !important; /* 完全移除底部内边距 */
   margin-bottom: 0 !important; /* 移除底部外边距 */

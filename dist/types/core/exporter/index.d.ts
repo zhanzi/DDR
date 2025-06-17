@@ -50,6 +50,10 @@ export declare class Exporter {
      */
     static _isCellMerged(merges: any[], row: number, col: number): boolean;
     /**
+     * 验证合并单元格的有效性
+     */
+    static _validateMerges(merges: any[], ws: any): any[];
+    /**
      * 颜色转十六进制（支持多种格式）
      */
     static _rgbToHex(color: string): string;

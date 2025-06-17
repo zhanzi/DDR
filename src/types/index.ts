@@ -83,6 +83,7 @@ export interface DDRConfig {
       formatter?: string;     // 格式化函数
       metadataPath?: string;  // 可以使用后端返回的预计算汇总值
     }>;
+    summaryAlign?: "left" | "center" | "right"; // 汇总行对齐方式，默认center
     signatures?: Array<{      // 签名区域
       label: string;          // 签名标签
       name?: string;          // 静态签名人
@@ -305,4 +306,7 @@ export interface DDRInstance {
 
   // 获取元数据
   getMetadata(): Record<string, any>;
+
+  // 设置主题
+  setTheme(theme: string): void;
 }

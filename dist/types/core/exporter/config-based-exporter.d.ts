@@ -32,6 +32,10 @@ export declare class ConfigBasedExporter {
      */
     private static _applyStyles;
     /**
+     * 验证并清理合并单元格
+     */
+    private static _validateAndCleanMerges;
+    /**
      * 应用基础样式（简化版，避免文件损坏）
      */
     private static _applyBasicStyles;

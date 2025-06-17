@@ -72,6 +72,7 @@ export interface DDRConfig {
             formatter?: string;
             metadataPath?: string;
         }>;
+        summaryAlign?: "left" | "center" | "right";
         signatures?: Array<{
             label: string;
             name?: string;
@@ -251,4 +252,5 @@ export interface DDRInstance {
     print(): void;
     getData(): any[];
     getMetadata(): Record<string, any>;
+    setTheme(theme: string): void;
 }

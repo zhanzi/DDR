@@ -528,6 +528,23 @@ var DDR = /** @class */function () {
     return __assign({}, this.metadata);
   };
   /**
+   * 设置主题
+   * @param theme 主题名称
+   */
+  DDR.prototype.setTheme = function (theme) {
+    var _this = this;
+    // 移除所有主题类名
+    this.container.classList.forEach(function (className) {
+      if (className.startsWith('ddr-theme-')) {
+        _this.container.classList.remove(className);
+      }
+    });
+    // 添加新主题类名
+    this.container.classList.add("ddr-theme-".concat(theme));
+    // 更新选项中的主题
+    this.options.theme = theme;
+  };
+  /**
    * 从元数据中根据路径获取值
    * @param path 路径，例如："company.name"
    * @returns 找到的值或undefined
@@ -850,11 +867,19 @@ var DDR = /** @class */function () {
   */
   DDR.prototype._createHeader = function (headerConfig) {
     var _this = this;
+    var _a, _b;
     if (!headerConfig) return null;
     var headerElement = document.createElement('div');
     headerElement.className = 'ddr-report-header';
-    // 不再设置固定高度，改为最小高度，让其自动适应内容
-    headerElement.style.minHeight = "".concat(headerConfig.height || 80, "px");
+    // 优先使用layout.headerHeight，其次使用header.height，最后使用默认值
+    var headerHeight = ((_a = this.config.layout) === null || _a === void 0 ? void 0 : _a.headerHeight) || headerConfig.height || 80;
+    // 如果配置了具体的headerHeight，使用固定高度；否则使用最小高度让其自适应
+    if ((_b = this.config.layout) === null || _b === void 0 ? void 0 : _b.headerHeight) {
+      headerElement.style.setProperty('height', "".concat(headerHeight, "px"), 'important');
+      console.log("\uD83D\uDCCF \u5E94\u7528layout.headerHeight\u914D\u7F6E: ".concat(headerHeight, "px (\u4F7F\u7528!important)"));
+    } else {
+      headerElement.style.minHeight = "".concat(headerHeight, "px");
+    }
     // 创建顶部区域容器（Logo + 标题）
     var topContainer = document.createElement('div');
     topContainer.className = 'ddr-header-top';
@@ -979,6 +1004,9 @@ var DDR = /** @class */function () {
     if (footerConfig.summary && footerConfig.summary.length > 0) {
       var summaryElement_1 = document.createElement('div');
       summaryElement_1.className = 'ddr-footer-summary';
+      // 应用汇总行对齐方式配置
+      var summaryAlign = footerConfig.summaryAlign || 'right'; // 默认右对齐，保持向后兼容
+      summaryElement_1.style.justifyContent = summaryAlign === 'left' ? 'flex-start' : summaryAlign === 'center' ? 'center' : 'flex-end';
       footerConfig.summary.forEach(function (summaryConfig) {
         var summaryItem = document.createElement('div');
         summaryItem.className = 'ddr-summary-item';
@@ -1454,6 +1482,7 @@ var DDR = /** @class */function () {
    * @returns 表头元素
    */
   DDR.prototype._createTableHeader = function (columns) {
+    var _this = this;
     var thead = document.createElement('thead');
     thead.className = 'ddr-thead';
     // 处理嵌套表头的情况
@@ -1465,8 +1494,13 @@ var DDR = /** @class */function () {
     });
     // 填充表头单元格
     this._fillHeaderCells(columns, rows, 0, 0);
-    // 将行添加到表头
+    // 将行添加到表头，并应用配置的行高
     rows.forEach(function (row) {
+      var _a;
+      // 应用配置的行高到表头行
+      if ((_a = _this.config.layout) === null || _a === void 0 ? void 0 : _a.rowHeight) {
+        row.style.height = typeof _this.config.layout.rowHeight === 'number' ? "".concat(_this.config.layout.rowHeight, "px") : _this.config.layout.rowHeight;
+      }
       thead.appendChild(row);
     });
     return thead;
@@ -3788,12 +3822,12 @@ var ConfigBasedExporter = /** @class */function () {
           }
           wb = xlsx_minExports.utils.book_new();
           xlsx_minExports.utils.book_append_sheet(wb, ws, sheetName);
-          // 设置工作簿属性
+          // 设置工作簿属性 - 使用更安全的属性设置
           wb.Props = {
-            Title: fileName,
+            Title: String(fileName).substring(0, 255),
             Subject: "报表数据",
-            Author: "DDR报表组件",
-            CreatedDate: new Date()
+            Author: "DDR报表组件"
+            // 移除CreatedDate，避免日期格式问题
           };
           // 导出文件 - 使用更安全的导出方式
           try {
@@ -3871,10 +3905,10 @@ var ConfigBasedExporter = /** @class */function () {
         config.header.fields.forEach(function (field) {
           var label = field.label || '';
           var value = _this._resolveMetadataValue(field, data.metadata) || '';
-          console.log("\uD83D\uDCCB \u5143\u6570\u636E\u5B57\u6BB5: ".concat(label, " = ").concat(value, ", position: ").concat(field.position || 'right'));
+          var actualPosition = field.position || 'left';
           if (label && value) {
             var fieldText = "".concat(label, " ").concat(value);
-            var position = field.position || 'right'; // 默认右对齐
+            var position = actualPosition;
             switch (position) {
               case 'left':
                 leftFields_1.push(fieldText);
@@ -3907,14 +3941,6 @@ var ConfigBasedExporter = /** @class */function () {
           }
           result.push(metadataRow);
           result.push([]); // 空行分隔
-          console.log('📋 元数据行布局:', {
-            leftFields: leftFields_1,
-            rightFields: allRightFields,
-            leftStart: 0,
-            leftEnd: Math.floor(columnCount / 2) - 1,
-            rightStart: Math.ceil(columnCount / 2),
-            rightEnd: columnCount - 1
-          });
         }
       }
     }
@@ -3976,7 +4002,6 @@ var ConfigBasedExporter = /** @class */function () {
           var summaryRow = new Array(columnCount).fill('');
           summaryRow[0] = summaryTexts_1.join('  '); // 放在第一列，后续会合并
           result.push(summaryRow);
-          console.log('📋 汇总信息行:', summaryTexts_1.join('  '));
         }
       }
       // 再处理其他表尾字段（支持左中右布局）
@@ -3989,7 +4014,7 @@ var ConfigBasedExporter = /** @class */function () {
           var value = _this._resolveMetadataValue(field, data.metadata) || '';
           if (label && value) {
             var fieldText = "".concat(label, " ").concat(value);
-            var position = field.position || 'right'; // 表尾字段默认右对齐
+            var position = field.position || 'left'; // 表尾字段默认左对齐，与网页显示保持一致
             switch (position) {
               case 'left':
                 leftFooterFields_1.push(fieldText);
@@ -4007,10 +4032,7 @@ var ConfigBasedExporter = /** @class */function () {
         if (leftFooterFields_1.length > 0 || centerFooterFields_1.length > 0 || rightFooterFields_1.length > 0) {
           var columnCount = config.columns ? config.columns.length : 6;
           var fieldsRow = new Array(columnCount).fill('');
-          // 计算三等分区域
-          var leftEnd = Math.floor(columnCount / 3) - 1;
           var centerStart = Math.floor(columnCount / 3);
-          var centerEnd = Math.floor(columnCount * 2 / 3) - 1;
           var rightStart = Math.floor(columnCount * 2 / 3);
           // 左侧字段 - 占用左三分之一
           if (leftFooterFields_1.length > 0) {
@@ -4028,14 +4050,6 @@ var ConfigBasedExporter = /** @class */function () {
             // 标记右侧合并区域：从第rightStart列到最后一列
           }
           result.push(fieldsRow);
-          console.log('📋 表尾字段行布局:', {
-            leftFooterFields: leftFooterFields_1,
-            centerFooterFields: centerFooterFields_1,
-            rightFooterFields: rightFooterFields_1,
-            leftRange: "0-".concat(leftEnd),
-            centerRange: "".concat(centerStart, "-").concat(centerEnd),
-            rightRange: "".concat(rightStart, "-").concat(columnCount - 1)
-          });
         }
       }
     }
@@ -4198,7 +4212,6 @@ var ConfigBasedExporter = /** @class */function () {
           if (column.key === 'index' || column.title === '序号' || col === 0) {
             minWidth = 4;
             maxAllowedWidth = 8; // 序号列最大8字符宽度
-            console.log("\uD83D\uDCCF \u68C0\u6D4B\u5230\u5E8F\u53F7\u5217 ".concat(col, "\uFF0C\u4F7F\u7528\u8F83\u5C0F\u5BBD\u5EA6"));
           }
           // 数值列（销售额、成本等）
           else if (column.formatter === 'currency' || column.formatter === 'number') {
@@ -4228,7 +4241,6 @@ var ConfigBasedExporter = /** @class */function () {
         ws['!cols'][col] = {
           wch: finalWidth
         };
-        console.log("\uD83D\uDCCF \u5217".concat(col, "(").concat(((_b = (_a = config.columns) === null || _a === void 0 ? void 0 : _a[col]) === null || _b === void 0 ? void 0 : _b.title) || '未知', ")\u5BBD\u5EA6\u8BBE\u7F6E\u4E3A: ").concat(finalWidth, "\u5B57\u7B26"));
       }
       // 应用样式
       var currentRow = 0;
@@ -4261,9 +4273,10 @@ var ConfigBasedExporter = /** @class */function () {
             };
           }
         }
-        // 标题行合并 - 添加安全检查
-        if (columnCount > 1 && currentRow >= 0 && columnCount <= 256) {
-          merges.push({
+        // 标题行合并 - 添加更严格的安全检查
+        if (columnCount > 1 && currentRow >= 0 && columnCount <= 256 && currentRow < 1048576) {
+          // 确保合并范围有效
+          var mergeRange = {
             s: {
               r: currentRow,
               c: 0
@@ -4272,8 +4285,11 @@ var ConfigBasedExporter = /** @class */function () {
               r: currentRow,
               c: columnCount - 1
             }
-          });
-          console.log("\uD83D\uDCCB \u6DFB\u52A0\u6807\u9898\u884C\u5408\u5E76: A".concat(currentRow + 1, ":").concat(String.fromCharCode(65 + columnCount - 1)).concat(currentRow + 1));
+          };
+          // 验证合并范围的有效性
+          if (mergeRange.s.r <= mergeRange.e.r && mergeRange.s.c <= mergeRange.e.c) {
+            merges.push(mergeRange);
+          }
         }
         currentRow += 2; // 标题行 + 空行
       }
@@ -4313,7 +4329,6 @@ var ConfigBasedExporter = /** @class */function () {
                 }
               }
             };
-            console.log("\uD83D\uDCCB \u5143\u6570\u636E\u5217".concat(col, "\u5BF9\u9F50\u65B9\u5F0F: ").concat(horizontalAlign));
           }
         }
         // 添加元数据行的分区合并
@@ -4337,7 +4352,6 @@ var ConfigBasedExporter = /** @class */function () {
               c: leftEnd
             }
           });
-          console.log("\uD83D\uDCCB \u6DFB\u52A0\u5143\u6570\u636E\u5DE6\u4FA7\u5408\u5E76: A".concat(currentRow + 1, ":").concat(String.fromCharCode(65 + leftEnd)).concat(currentRow + 1));
         }
         // 右侧区域合并 - 添加安全检查
         if (ws[rightCellRef] && ws[rightCellRef].v && rightStart >= 0 && rightStart < columnCount) {
@@ -4351,7 +4365,6 @@ var ConfigBasedExporter = /** @class */function () {
               c: columnCount - 1
             }
           });
-          console.log("\uD83D\uDCCB \u6DFB\u52A0\u5143\u6570\u636E\u53F3\u4FA7\u5408\u5E76: ".concat(String.fromCharCode(65 + rightStart)).concat(currentRow + 1, ":").concat(String.fromCharCode(65 + columnCount - 1)).concat(currentRow + 1));
         }
         currentRow += 2; // 元数据行 + 空行
       }
@@ -4447,7 +4460,7 @@ var ConfigBasedExporter = /** @class */function () {
                 },
                 alignment: {
                   vertical: "center",
-                  horizontal: col === 0 ? "left" : ((_d = (_c = config.columns) === null || _c === void 0 ? void 0 : _c[col]) === null || _d === void 0 ? void 0 : _d.align) || "right"
+                  horizontal: col === 0 ? "left" : ((_b = (_a = config.columns) === null || _a === void 0 ? void 0 : _a[col]) === null || _b === void 0 ? void 0 : _b.align) || "right"
                 },
                 border: {
                   top: {
@@ -4492,7 +4505,7 @@ var ConfigBasedExporter = /** @class */function () {
                 },
                 alignment: {
                   vertical: "center",
-                  horizontal: col === 0 ? "left" : ((_f = (_e = config.columns) === null || _e === void 0 ? void 0 : _e[col]) === null || _f === void 0 ? void 0 : _f.align) || "right"
+                  horizontal: col === 0 ? "left" : ((_d = (_c = config.columns) === null || _c === void 0 ? void 0 : _c[col]) === null || _d === void 0 ? void 0 : _d.align) || "right"
                 },
                 border: {
                   top: {
@@ -4586,68 +4599,82 @@ var ConfigBasedExporter = /** @class */function () {
             var firstColValue = ws[firstColRef] && ws[firstColRef].v ? String(ws[firstColRef].v) : '';
             // 如果第一列包含汇总信息（包含"汇总"或":"），则合并该行
             if (firstColValue.includes('汇总') || firstColValue.includes(':')) {
-              merges.push({
-                s: {
-                  r: row,
-                  c: 0
-                },
-                e: {
-                  r: row,
-                  c: columnCount - 1
+              // 添加更严格的合并范围检查
+              if (row >= 0 && row < 1048576 && columnCount > 1 && columnCount <= 256) {
+                var mergeRange = {
+                  s: {
+                    r: row,
+                    c: 0
+                  },
+                  e: {
+                    r: row,
+                    c: columnCount - 1
+                  }
+                };
+                // 验证合并范围的有效性
+                if (mergeRange.s.r <= mergeRange.e.r && mergeRange.s.c <= mergeRange.e.c) {
+                  merges.push(mergeRange);
+                  console.log("\uD83D\uDCCB \u6DFB\u52A0\u6C47\u603B\u884C\u5408\u5E76: \u884C".concat(row + 1));
                 }
-              });
-              console.log("\uD83D\uDCCB \u6DFB\u52A0\u6C47\u603B\u884C\u5408\u5E76: \u884C".concat(row + 1));
-              // 为汇总行应用居中样式
-              for (var col = 0; col < columnCount; col++) {
-                var cellRef = xlsx_minExports.utils.encode_cell({
-                  r: row,
-                  c: col
-                });
-                if (ws[cellRef]) {
-                  ws[cellRef].s = {
-                    font: {
-                      bold: true,
-                      sz: 11,
-                      color: {
-                        rgb: "333333"
-                      }
-                    },
-                    alignment: {
-                      horizontal: "center",
-                      vertical: "center"
-                    },
-                    fill: {
-                      fgColor: {
-                        rgb: "F0F8FF"
-                      }
-                    },
-                    border: {
-                      top: {
-                        style: "thin",
+              }
+              // 为汇总行应用居中样式 - 添加边界检查
+              for (var col = 0; col < Math.min(columnCount, 256); col++) {
+                try {
+                  var cellRef = xlsx_minExports.utils.encode_cell({
+                    r: row,
+                    c: col
+                  });
+                  if (ws[cellRef] && row >= 0 && row < 1048576 && col >= 0 && col < 16384) {
+                    // 获取汇总行对齐方式配置
+                    var summaryAlign = ((_e = config.footer) === null || _e === void 0 ? void 0 : _e.summaryAlign) || "center";
+                    console.log("\uD83D\uDCCB \u6C47\u603B\u884C\u5BF9\u9F50\u65B9\u5F0F: ".concat(summaryAlign, " (\u914D\u7F6E\u503C: ").concat(((_f = config.footer) === null || _f === void 0 ? void 0 : _f.summaryAlign) || '未设置', ")"));
+                    ws[cellRef].s = {
+                      font: {
+                        bold: true,
+                        sz: 11,
                         color: {
-                          rgb: "E8E8E8"
+                          rgb: "333333"
                         }
                       },
-                      bottom: {
-                        style: "thin",
-                        color: {
-                          rgb: "E8E8E8"
+                      alignment: {
+                        horizontal: summaryAlign,
+                        vertical: "center"
+                      },
+                      fill: {
+                        fgColor: {
+                          rgb: "F0F8FF"
                         }
                       },
-                      left: {
-                        style: "thin",
-                        color: {
-                          rgb: "E8E8E8"
-                        }
-                      },
-                      right: {
-                        style: "thin",
-                        color: {
-                          rgb: "E8E8E8"
+                      border: {
+                        top: {
+                          style: "thin",
+                          color: {
+                            rgb: "E8E8E8"
+                          }
+                        },
+                        bottom: {
+                          style: "thin",
+                          color: {
+                            rgb: "E8E8E8"
+                          }
+                        },
+                        left: {
+                          style: "thin",
+                          color: {
+                            rgb: "E8E8E8"
+                          }
+                        },
+                        right: {
+                          style: "thin",
+                          color: {
+                            rgb: "E8E8E8"
+                          }
                         }
                       }
-                    }
-                  };
+                    };
+                  }
+                } catch (styleError) {
+                  console.warn("\u6837\u5F0F\u5E94\u7528\u5931\u8D25 - \u884C".concat(row + 1, "\u5217").concat(col + 1, ":"), styleError);
                 }
               }
               footerRowsProcessed++;
@@ -4657,21 +4684,38 @@ var ConfigBasedExporter = /** @class */function () {
         }
         // 查找表尾字段行（汇总行之后的行）
         if (config.footer.fields && config.footer.fields.length > 0) {
-          for (var row = currentRow + footerRowsProcessed; row <= range.e.r; row++) {
-            // 检查是否有表尾字段内容
+          // 直接定位到表尾字段行：从汇总行开始查找下一行
+          var footerFieldsRow = -1;
+          // 如果找到了汇总行，表尾字段行就在汇总行的下一行
+          if (footerRowsProcessed > 0) {
+            // 从汇总行开始查找
+            for (var row = currentRow; row <= range.e.r; row++) {
+              var firstColRef = xlsx_minExports.utils.encode_cell({
+                r: row,
+                c: 0
+              });
+              var firstColValue = ws[firstColRef] && ws[firstColRef].v ? String(ws[firstColRef].v) : '';
+              // 找到汇总行后，下一行就是表尾字段行
+              if (firstColValue.includes('汇总') || firstColValue.includes(':')) {
+                footerFieldsRow = row + 1;
+                break;
+              }
+            }
+          } else {
+            // 如果没有汇总行，表尾字段行就在数据结束后
+            footerFieldsRow = range.e.r;
+          }
+          if (footerFieldsRow > 0 && footerFieldsRow <= range.e.r) {
+            // 检查这一行是否有表尾字段内容
             var hasFooterFields = false;
             for (var col = 0; col < columnCount; col++) {
               var cellRef = xlsx_minExports.utils.encode_cell({
-                r: row,
+                r: footerFieldsRow,
                 c: col
               });
               if (ws[cellRef] && ws[cellRef].v) {
-                var cellValue = String(ws[cellRef].v);
-                // 如果包含常见的表尾字段关键词
-                if (cellValue.includes(':') && !cellValue.includes('汇总')) {
-                  hasFooterFields = true;
-                  break;
-                }
+                hasFooterFields = true;
+                break;
               }
             }
             if (hasFooterFields) {
@@ -4682,62 +4726,59 @@ var ConfigBasedExporter = /** @class */function () {
               var rightStart = Math.floor(columnCount * 2 / 3);
               // 检查并添加左侧合并
               var leftCellRef = xlsx_minExports.utils.encode_cell({
-                r: row,
+                r: footerFieldsRow,
                 c: 0
               });
               if (ws[leftCellRef] && ws[leftCellRef].v) {
                 merges.push({
                   s: {
-                    r: row,
+                    r: footerFieldsRow,
                     c: 0
                   },
                   e: {
-                    r: row,
+                    r: footerFieldsRow,
                     c: leftEnd
                   }
                 });
-                console.log("\uD83D\uDCCB \u6DFB\u52A0\u8868\u5C3E\u5DE6\u4FA7\u5408\u5E76: A".concat(row + 1, ":").concat(String.fromCharCode(65 + leftEnd)).concat(row + 1));
               }
               // 检查并添加中间合并
               var centerCellRef = xlsx_minExports.utils.encode_cell({
-                r: row,
+                r: footerFieldsRow,
                 c: centerStart
               });
               if (ws[centerCellRef] && ws[centerCellRef].v) {
                 merges.push({
                   s: {
-                    r: row,
+                    r: footerFieldsRow,
                     c: centerStart
                   },
                   e: {
-                    r: row,
+                    r: footerFieldsRow,
                     c: centerEnd
                   }
                 });
-                console.log("\uD83D\uDCCB \u6DFB\u52A0\u8868\u5C3E\u4E2D\u95F4\u5408\u5E76: ".concat(String.fromCharCode(65 + centerStart)).concat(row + 1, ":").concat(String.fromCharCode(65 + centerEnd)).concat(row + 1));
               }
               // 检查并添加右侧合并
               var rightCellRef = xlsx_minExports.utils.encode_cell({
-                r: row,
+                r: footerFieldsRow,
                 c: rightStart
               });
               if (ws[rightCellRef] && ws[rightCellRef].v) {
                 merges.push({
                   s: {
-                    r: row,
+                    r: footerFieldsRow,
                     c: rightStart
                   },
                   e: {
-                    r: row,
+                    r: footerFieldsRow,
                     c: columnCount - 1
                   }
                 });
-                console.log("\uD83D\uDCCB \u6DFB\u52A0\u8868\u5C3E\u53F3\u4FA7\u5408\u5E76: ".concat(String.fromCharCode(65 + rightStart)).concat(row + 1, ":").concat(String.fromCharCode(65 + columnCount - 1)).concat(row + 1));
               }
               // 为表尾字段行应用样式
               for (var col = 0; col < columnCount; col++) {
                 var cellRef = xlsx_minExports.utils.encode_cell({
-                  r: row,
+                  r: footerFieldsRow,
                   c: col
                 });
                 if (ws[cellRef] && ws[cellRef].v) {
@@ -4794,20 +4835,130 @@ var ConfigBasedExporter = /** @class */function () {
                   };
                 }
               }
-              break; // 只处理第一个找到的表尾字段行
             }
           }
         }
       }
+      // 验证并清理合并单元格 - 使用严格验证
+      var validMerges = this._validateAndCleanMerges(merges, range);
       // 应用合并单元格
-      if (merges.length > 0) {
-        ws['!merges'] = merges;
-        console.log("\uD83C\uDFA8 \u5E94\u7528\u4E86 ".concat(merges.length, " \u4E2A\u5408\u5E76\u5355\u5143\u683C"));
+      if (validMerges.length > 0) {
+        ws['!merges'] = validMerges;
+        console.log("\uD83C\uDFA8 \u5E94\u7528\u4E86 ".concat(validMerges.length, " \u4E2A\u6709\u6548\u5408\u5E76\u5355\u5143\u683C\uFF08\u539F\u59CB").concat(merges.length, "\u4E2A\uFF09"));
+      } else {
+        console.log("\u26A0\uFE0F \u6CA1\u6709\u6709\u6548\u7684\u5408\u5E76\u5355\u5143\u683C\u53EF\u5E94\u7528\uFF08\u539F\u59CB".concat(merges.length, "\u4E2A\u88AB\u8FC7\u6EE4\uFF09"));
       }
       console.log('🎨 基于配置的样式应用完成');
     } catch (error) {
       console.error('应用基于配置的样式失败:', error);
     }
+  };
+  /**
+   * 验证并清理合并单元格
+   */
+  ConfigBasedExporter._validateAndCleanMerges = function (merges, range) {
+    console.log("\uD83D\uDD0D \u5F00\u59CB\u9A8C\u8BC1 ".concat(merges.length, " \u4E2A\u5408\u5E76\u5355\u5143\u683C\uFF0C\u5DE5\u4F5C\u8868\u8303\u56F4: ").concat(xlsx_minExports.utils.encode_range(range)));
+    // 使用正常的验证模式（已修复重叠问题）
+    console.log("\uD83D\uDD27 \u4F7F\u7528\u6B63\u5E38\u9A8C\u8BC1\u6A21\u5F0F\uFF0C\u5DF2\u4FEE\u590D\u91CD\u53E0\u5408\u5E76\u95EE\u9898");
+    // 注释掉超安全模式，因为重叠问题已经解决
+    // const ULTRA_SAFE_MODE = false;
+    var validMerges = [];
+    var invalidReasons = [];
+    var _loop_1 = function (i) {
+      var merge = merges[i];
+      try {
+        // 基本结构检查
+        if (!merge || !merge.s || !merge.e) {
+          invalidReasons.push("\u5408\u5E76".concat(i, ": \u7F3A\u5C11\u8D77\u59CB\u6216\u7ED3\u675F\u4F4D\u7F6E"));
+          return "continue";
+        }
+        var s_1 = merge.s,
+          e_1 = merge.e;
+        // 检查坐标是否为数字
+        if (typeof s_1.r !== 'number' || typeof s_1.c !== 'number' || typeof e_1.r !== 'number' || typeof e_1.c !== 'number') {
+          invalidReasons.push("\u5408\u5E76".concat(i, ": \u5750\u6807\u4E0D\u662F\u6570\u5B57 (").concat(s_1.r, ",").concat(s_1.c, "):(").concat(e_1.r, ",").concat(e_1.c, ")"));
+          return "continue";
+        }
+        // 检查坐标范围
+        if (s_1.r < 0 || s_1.c < 0 || e_1.r < 0 || e_1.c < 0) {
+          invalidReasons.push("\u5408\u5E76".concat(i, ": \u5750\u6807\u4E3A\u8D1F\u6570 (").concat(s_1.r, ",").concat(s_1.c, "):(").concat(e_1.r, ",").concat(e_1.c, ")"));
+          return "continue";
+        }
+        // 检查是否超出工作表范围
+        if (s_1.r > range.e.r || s_1.c > range.e.c || e_1.r > range.e.r || e_1.c > range.e.c) {
+          invalidReasons.push("\u5408\u5E76".concat(i, ": \u8D85\u51FA\u5DE5\u4F5C\u8868\u8303\u56F4 (").concat(s_1.r, ",").concat(s_1.c, "):(").concat(e_1.r, ",").concat(e_1.c, ") > (").concat(range.e.r, ",").concat(range.e.c, ")"));
+          return "continue";
+        }
+        // 检查起始位置是否小于等于结束位置
+        if (s_1.r > e_1.r || s_1.c > e_1.c) {
+          invalidReasons.push("\u5408\u5E76".concat(i, ": \u8D77\u59CB\u4F4D\u7F6E\u5927\u4E8E\u7ED3\u675F\u4F4D\u7F6E (").concat(s_1.r, ",").concat(s_1.c, "):(").concat(e_1.r, ",").concat(e_1.c, ")"));
+          return "continue";
+        }
+        // 检查是否是单个单元格（不需要合并）
+        if (s_1.r === e_1.r && s_1.c === e_1.c) {
+          invalidReasons.push("\u5408\u5E76".concat(i, ": \u5355\u4E2A\u5355\u5143\u683C\u4E0D\u9700\u8981\u5408\u5E76 (").concat(s_1.r, ",").concat(s_1.c, ")"));
+          return "continue";
+        }
+        // 检查Excel限制
+        if (s_1.r >= 1048576 || s_1.c >= 16384 || e_1.r >= 1048576 || e_1.c >= 16384) {
+          invalidReasons.push("\u5408\u5E76".concat(i, ": \u8D85\u51FAExcel\u9650\u5236 (").concat(s_1.r, ",").concat(s_1.c, "):(").concat(e_1.r, ",").concat(e_1.c, ")"));
+          return "continue";
+        }
+        // 检查合并区域大小是否合理（防止过大的合并区域）
+        var mergeRows = e_1.r - s_1.r + 1;
+        var mergeCols = e_1.c - s_1.c + 1;
+        if (mergeRows > 100 || mergeCols > 50) {
+          invalidReasons.push("\u5408\u5E76".concat(i, ": \u5408\u5E76\u533A\u57DF\u8FC7\u5927 ").concat(mergeRows, "\u884Cx").concat(mergeCols, "\u5217"));
+          return "continue";
+        }
+        // 检查坐标是否为整数
+        if (!Number.isInteger(s_1.r) || !Number.isInteger(s_1.c) || !Number.isInteger(e_1.r) || !Number.isInteger(e_1.c)) {
+          invalidReasons.push("\u5408\u5E76".concat(i, ": \u5750\u6807\u4E0D\u662F\u6574\u6570 (").concat(s_1.r, ",").concat(s_1.c, "):(").concat(e_1.r, ",").concat(e_1.c, ")"));
+          return "continue";
+        }
+        // 检查是否存在重复的合并区域
+        var isDuplicate = validMerges.some(function (existing) {
+          return existing.s.r === s_1.r && existing.s.c === s_1.c && existing.e.r === e_1.r && existing.e.c === e_1.c;
+        });
+        if (isDuplicate) {
+          invalidReasons.push("\u5408\u5E76".concat(i, ": \u91CD\u590D\u7684\u5408\u5E76\u533A\u57DF (").concat(s_1.r, ",").concat(s_1.c, "):(").concat(e_1.r, ",").concat(e_1.c, ")"));
+          return "continue";
+        }
+        // 检查是否与现有合并区域重叠
+        var overlappingMerge = validMerges.find(function (existing) {
+          var existingS = existing.s;
+          var existingE = existing.e;
+          // 检查两个矩形是否重叠
+          var rowOverlap = !(e_1.r < existingS.r || s_1.r > existingE.r);
+          var colOverlap = !(e_1.c < existingS.c || s_1.c > existingE.c);
+          return rowOverlap && colOverlap;
+        });
+        if (overlappingMerge) {
+          var existingRange = "".concat(xlsx_minExports.utils.encode_cell(overlappingMerge.s), ":").concat(xlsx_minExports.utils.encode_cell(overlappingMerge.e));
+          var currentRange = "".concat(xlsx_minExports.utils.encode_cell(s_1), ":").concat(xlsx_minExports.utils.encode_cell(e_1));
+          invalidReasons.push("\u5408\u5E76".concat(i, ": \u4E0E\u73B0\u6709\u5408\u5E76\u533A\u57DF\u91CD\u53E0 ").concat(currentRange, " \u26A1 ").concat(existingRange));
+          console.warn("\uD83D\uDEAB \u8DF3\u8FC7\u91CD\u53E0\u5408\u5E76: ".concat(currentRange, " \u4E0E\u5DF2\u5B58\u5728\u7684 ").concat(existingRange, " \u91CD\u53E0"));
+          return "continue";
+        }
+        // 通过所有检查，添加到有效列表
+        validMerges.push(merge);
+        var startCell = xlsx_minExports.utils.encode_cell(s_1);
+        var endCell = xlsx_minExports.utils.encode_cell(e_1);
+        console.log("\u2705 \u6709\u6548\u5408\u5E76".concat(i, ": ").concat(startCell, ":").concat(endCell, " (").concat(mergeRows, "\u884Cx").concat(mergeCols, "\u5217)"));
+      } catch (error) {
+        var errorMsg = error instanceof Error ? error.message : String(error);
+        invalidReasons.push("\u5408\u5E76".concat(i, ": \u9A8C\u8BC1\u65F6\u51FA\u9519 - ").concat(errorMsg));
+      }
+    };
+    for (var i = 0; i < merges.length; i++) {
+      _loop_1(i);
+    }
+    // 输出验证结果摘要
+    console.log("\uD83D\uDCCA \u5408\u5E76\u5355\u5143\u683C\u9A8C\u8BC1\u5B8C\u6210: ".concat(validMerges.length, "\u4E2A\u6709\u6548, ").concat(invalidReasons.length, "\u4E2A\u65E0\u6548"));
+    if (invalidReasons.length > 0) {
+      console.log("\u274C \u65E0\u6548\u5408\u5E76\u539F\u56E0:", invalidReasons);
+    }
+    return validMerges;
   };
   /**
    * 应用基础样式（简化版，避免文件损坏）
@@ -5086,7 +5237,7 @@ var Exporter = /** @class */function () {
                 type: 'buffer',
                 cellStyles: true,
                 sheetStubs: false,
-                compression: true
+                compression: false // 关闭压缩以避免兼容性问题
               };
               excelBuffer = xlsx_minExports.write(wb, writeOptions);
               blob = new Blob([excelBuffer], {
@@ -5103,10 +5254,10 @@ var Exporter = /** @class */function () {
               console.log('Excel导出完成（Blob方式，支持样式）');
             } catch (blobError) {
               console.warn('Blob导出失败，尝试直接导出:', blobError);
-              // 方式2：直接使用writeFile（可能样式支持更好）
+              // 方式2：直接使用writeFile（可能样式支持更好） - 关闭压缩
               xlsx_minExports.writeFile(wb, "".concat(fileName, ".xlsx"), {
                 cellStyles: true,
-                compression: true
+                compression: false // 关闭压缩以避免兼容性问题
               });
               console.log('Excel导出完成（直接导出方式）');
             }
@@ -5423,9 +5574,9 @@ var Exporter = /** @class */function () {
       }
       // 添加标题行和元数据行的合并单元格
       var merges_1 = []; // 存储合并单元格信息
-      // 标题行合并（第1行，A1:I1）
-      if (hasTitle && tableColumnCount_1 > 1) {
-        merges_1.push({
+      // 标题行合并（第1行，A1:I1） - 添加安全检查
+      if (hasTitle && tableColumnCount_1 > 1 && tableColumnCount_1 <= 256) {
+        var mergeRange = {
           s: {
             r: 0,
             c: 0
@@ -5434,8 +5585,12 @@ var Exporter = /** @class */function () {
             r: 0,
             c: tableColumnCount_1 - 1
           }
-        });
-        console.log("\uD83D\uDCCB \u6DFB\u52A0\u6807\u9898\u884C\u5408\u5E76: A1:".concat(String.fromCharCode(65 + tableColumnCount_1 - 1), "1"));
+        };
+        // 验证合并范围的有效性
+        if (mergeRange.s.r <= mergeRange.e.r && mergeRange.s.c <= mergeRange.e.c) {
+          merges_1.push(mergeRange);
+          console.log("\uD83D\uDCCB \u6DFB\u52A0\u6807\u9898\u884C\u5408\u5E76: A1:".concat(String.fromCharCode(65 + tableColumnCount_1 - 1), "1"));
+        }
       }
       // 元数据行合并（第3行，A3:I3）
       if (hasMetadata && tableColumnCount_1 > 1) {
@@ -5517,10 +5672,14 @@ var Exporter = /** @class */function () {
           isFirstRow_1 = false;
         }
       });
+      // 验证并清理合并单元格
+      var validMerges = this._validateMerges(merges_1, ws);
       // 应用合并单元格
-      if (merges_1.length > 0) {
-        ws['!merges'] = merges_1;
-        console.log("\u2705 \u5E94\u7528\u4E86 ".concat(merges_1.length, " \u4E2A\u5408\u5E76\u5355\u5143\u683C"));
+      if (validMerges.length > 0) {
+        ws['!merges'] = validMerges;
+        console.log("\u2705 \u5E94\u7528\u4E86 ".concat(validMerges.length, " \u4E2A\u6709\u6548\u5408\u5E76\u5355\u5143\u683C\uFF08\u539F\u59CB").concat(merges_1.length, "\u4E2A\uFF09"));
+      } else {
+        console.log("\u26A0\uFE0F \u6CA1\u6709\u6709\u6548\u7684\u5408\u5E76\u5355\u5143\u683C\u53EF\u5E94\u7528");
       }
       // 设置自适应列宽
       this._setAutoColumnWidths(ws, data, element);
@@ -5895,6 +6054,65 @@ var Exporter = /** @class */function () {
     });
   };
   /**
+   * 验证合并单元格的有效性
+   */
+  Exporter._validateMerges = function (merges, ws) {
+    var validMerges = [];
+    if (!ws['!ref']) {
+      console.warn('工作表没有有效范围，跳过合并单元格验证');
+      return validMerges;
+    }
+    var range = xlsx_minExports.utils.decode_range(ws['!ref']);
+    for (var _i = 0, merges_2 = merges; _i < merges_2.length; _i++) {
+      var merge = merges_2[_i];
+      try {
+        // 基本结构检查
+        if (!merge || !merge.s || !merge.e) {
+          console.warn('跳过无效合并单元格：缺少起始或结束位置', merge);
+          continue;
+        }
+        var s = merge.s,
+          e = merge.e;
+        // 检查坐标类型
+        if (typeof s.r !== 'number' || typeof s.c !== 'number' || typeof e.r !== 'number' || typeof e.c !== 'number') {
+          console.warn('跳过无效合并单元格：坐标不是数字', merge);
+          continue;
+        }
+        // 检查坐标范围
+        if (s.r < 0 || s.c < 0 || e.r < 0 || e.c < 0) {
+          console.warn('跳过无效合并单元格：坐标为负数', merge);
+          continue;
+        }
+        // 检查是否超出工作表范围
+        if (s.r > range.e.r || s.c > range.e.c || e.r > range.e.r || e.c > range.e.c) {
+          console.warn('跳过无效合并单元格：超出工作表范围', merge);
+          continue;
+        }
+        // 检查起始位置是否小于等于结束位置
+        if (s.r > e.r || s.c > e.c) {
+          console.warn('跳过无效合并单元格：起始位置大于结束位置', merge);
+          continue;
+        }
+        // 检查是否是单个单元格
+        if (s.r === e.r && s.c === e.c) {
+          console.warn('跳过单个单元格合并：', merge);
+          continue;
+        }
+        // 检查Excel限制
+        if (s.r >= 1048576 || s.c >= 16384 || e.r >= 1048576 || e.c >= 16384) {
+          console.warn('跳过超出Excel限制的合并单元格：', merge);
+          continue;
+        }
+        // 通过所有检查
+        validMerges.push(merge);
+        console.log("\u2705 \u6709\u6548\u5408\u5E76\u5355\u5143\u683C\uFF1A".concat(xlsx_minExports.utils.encode_cell(s), ":").concat(xlsx_minExports.utils.encode_cell(e)));
+      } catch (error) {
+        console.warn('验证合并单元格时出错：', error, merge);
+      }
+    }
+    return validMerges;
+  };
+  /**
    * 颜色转十六进制（支持多种格式）
    */
   Exporter._rgbToHex = function (color) {
@@ -6200,18 +6418,18 @@ var Exporter = /** @class */function () {
    * @param options 导出选项
    */
   Exporter.toPDF = function (element, config, options) {
-    var _a, _b, _c, _d, _e, _f, _g, _h;
+    var _a, _b, _c, _d, _e, _f, _g, _h, _j;
     if (options === void 0) {
       options = {};
     }
     return __awaiter(this, void 0, void 0, function () {
-      var _j, fileName, watermark, _k, pdfOptions, configPdfSettings, mergedPdfOptions, finalWatermark, pageSize, orientation_1, quality, multiPage, relayout, margins, originalScrollTop, tempContainer, pdfWidth, contentWidthMm, dpiRatio, contentWidthPx, tableElements, headerElement, footerElement, tableContainer, tableElement, cells, pdf, pageWidth, pageHeight, contentHeight, contentWidth, headerHeight, headerCanvas, headerRect, e_1, footerHeight, footerCanvas, footerRect, e_2, tableElement, tableRect, tableCanvas, tableWidth, tableHeight, rows, totalRows, headerRowCount, i, dataRowCount, actualHeaderHeightMM, actualFooterHeightMM, dataRowHeightMM, avgRowHeightCanvas, configRowHeightPx, configRowHeightMM, pageNumberReserve, contentGap, safetyMargin, baseAvailableHeight, firstPageDataHeight, middlePageDataHeight, lastPageDataHeight, firstPageMaxRows, middlePageMaxRows, lastPageMaxRows, pageBreakPoints, processedRows, pageIndex, maxRowsThisPage, remainingRows, rowsThisPage, headerHeightRatio, dataAreaHeightRatio, processedRowsRatio, breakYPercent, pagesNeeded, headerImgData, footerImgData, lastPageRows, lastPageDataHeightUsed, lastPageRemainingHeight, page, yOffset, repeatTableHeader, headerOnlyCanvas, headerHeightInCanvas, headerCtx, headerHeightInPDF, headerImgData_1, tableStartPercent, tableEndPercent, endRow, startRow, endRow, sourceY, sourceHeight, tablePartHeight, endRow, headerRowHeightCanvas, dataRowHeightCanvas, endRowHeightCanvas, startRow, endRow, rowsThisPage, headerRowHeightCanvas, dataRowHeightCanvas, startRowHeightCanvas, endRowHeightCanvas, endY, maxAllowedHeight, overflow, pageTableCanvas, pageTableCtx, pageTableImgData, contentBottom, minPageNumberY, maxPageNumberY, pageNumberY, minFooterY, maxFooterY, footerY, newPageNumber, pageNumberY, watermarkCanvas, ctx, watermarkImgData, watermarkCanvas, scale, ctx, textLength, fontSize, textMetrics, textWidth, textHeight, spacingX, spacingY, cols, rows_1, row, col, x, y, watermarkImgData, centerX, centerY, e_3, canvas, imgData, canvasAspectRatio, pageAspectRatio, imgWidth, imgHeight, error_1;
-      return __generator(this, function (_l) {
-        switch (_l.label) {
+      var _k, fileName, watermark, _l, pdfOptions, configPdfSettings, mergedPdfOptions, finalWatermark, pageSize, orientation_1, quality, multiPage, relayout, margins, originalScrollTop, tempContainer, pdfWidth, contentWidthMm, dpiRatio, contentWidthPx, tableElements, headerElement, footerElement, tableContainer, tableElement, cells, pdf, pageWidth, pageHeight, contentHeight, contentWidth, headerHeight, headerCanvas, headerRect, configHeaderHeightPx, e_1, footerHeight, footerCanvas, footerRect, e_2, tableElement, tableRect, tableCanvas, tableWidth, tableHeight, rows, totalRows, headerRowCount, i, dataRowCount, actualHeaderHeightMM, actualFooterHeightMM, dataRowHeightMM, avgRowHeightCanvas, configRowHeightPx, configRowHeightMM, pageNumberReserve, contentGap, safetyMargin, baseAvailableHeight, firstPageDataHeight, middlePageDataHeight, lastPageDataHeight, firstPageMaxRows, middlePageMaxRows, lastPageMaxRows, pageBreakPoints, processedRows, pageIndex, maxRowsThisPage, remainingRows, rowsThisPage, headerHeightRatio, dataAreaHeightRatio, processedRowsRatio, breakYPercent, pagesNeeded, headerImgData, footerImgData, lastPageRows, lastPageDataHeightUsed, lastPageRemainingHeight, page, yOffset, repeatTableHeader, headerOnlyCanvas, headerHeightInCanvas, headerCtx, headerHeightInPDF, headerImgData_1, tableStartPercent, tableEndPercent, endRow, startRow, endRow, sourceY, sourceHeight, tablePartHeight, endRow, headerRowHeightCanvas, dataRowHeightCanvas, endRowHeightCanvas, startRow, endRow, rowsThisPage, headerRowHeightCanvas, dataRowHeightCanvas, startRowHeightCanvas, endRowHeightCanvas, endY, maxAllowedHeight, overflow, pageTableCanvas, pageTableCtx, pageTableImgData, contentBottom, minPageNumberY, maxPageNumberY, pageNumberY, minFooterY, maxFooterY, footerY, newPageNumber, pageNumberY, watermarkCanvas, ctx, watermarkImgData, watermarkCanvas, scale, ctx, textLength, fontSize, textMetrics, textWidth, textHeight, spacingX, spacingY, cols, rows_1, row, col, x, y, watermarkImgData, centerX, centerY, e_3, canvas, imgData, canvasAspectRatio, pageAspectRatio, imgWidth, imgHeight, error_1;
+      return __generator(this, function (_m) {
+        switch (_m.label) {
           case 0:
-            _l.trys.push([0, 14,, 15]);
+            _m.trys.push([0, 14,, 15]);
             console.log('PDF导出开始，使用内置jsPDF库');
-            _j = options.fileName, fileName = _j === void 0 ? '报表' : _j, watermark = options.watermark, _k = options.pdf, pdfOptions = _k === void 0 ? {} : _k;
+            _k = options.fileName, fileName = _k === void 0 ? '报表' : _k, watermark = options.watermark, _l = options.pdf, pdfOptions = _l === void 0 ? {} : _l;
             configPdfSettings = ((_a = config === null || config === void 0 ? void 0 : config.features) === null || _a === void 0 ? void 0 : _a.pdfConfig) || {};
             mergedPdfOptions = __assign(__assign({}, configPdfSettings), pdfOptions);
             finalWatermark = watermark !== undefined ? watermark : ((_b = config === null || config === void 0 ? void 0 : config.features) === null || _b === void 0 ? void 0 : _b.watermark) || '';
@@ -6324,9 +6542,9 @@ var Exporter = /** @class */function () {
             headerHeight = 0;
             headerCanvas = void 0;
             if (!headerElement) return [3 /*break*/, 4];
-            _l.label = 1;
+            _m.label = 1;
           case 1:
-            _l.trys.push([1, 3,, 4]);
+            _m.trys.push([1, 3,, 4]);
             headerRect = headerElement.getBoundingClientRect();
             console.log("\uD83D\uDCCF \u62A5\u8868\u5934DOM\u5C3A\u5BF8\uFF1A".concat(Math.round(headerRect.width), "px \u00D7 ").concat(Math.round(headerRect.height), "px"));
             return [4 /*yield*/, html2canvas(headerElement, {
@@ -6337,24 +6555,31 @@ var Exporter = /** @class */function () {
               backgroundColor: '#FFFFFF' // 确保背景色一致
             })];
           case 2:
-            headerCanvas = _l.sent();
-            // 基于Canvas和DOM的比例关系计算PDF中的实际高度
-            // 这样可以避免DPI假设的问题
-            headerHeight = headerCanvas.height / headerCanvas.width * contentWidth;
+            headerCanvas = _m.sent();
+            // 优先使用layout.headerHeight配置
+            if ((_h = config === null || config === void 0 ? void 0 : config.layout) === null || _h === void 0 ? void 0 : _h.headerHeight) {
+              configHeaderHeightPx = typeof config.layout.headerHeight === 'number' ? config.layout.headerHeight : parseInt(config.layout.headerHeight);
+              headerHeight = configHeaderHeightPx * 25.4 / 96; // 像素转毫米
+              console.log("\uD83D\uDCCF \u4F7F\u7528\u914D\u7F6E\u8868\u5934\u9AD8\u5EA6\uFF1A".concat(configHeaderHeightPx, "px \u2192 ").concat(Math.round(headerHeight * 100) / 100, "mm"));
+            } else {
+              // 回退到基于Canvas和DOM的比例关系计算PDF中的实际高度
+              headerHeight = headerCanvas.height / headerCanvas.width * contentWidth;
+              console.log("\uD83D\uDCCF \u4F7F\u7528\u81EA\u52A8\u8BA1\u7B97\u8868\u5934\u9AD8\u5EA6\uFF1A".concat(Math.round(headerHeight * 100) / 100, "mm"));
+            }
             console.log("\uD83D\uDCCF \u62A5\u8868\u5934Canvas\u5C3A\u5BF8\uFF1A".concat(headerCanvas.width, "px \u00D7 ").concat(headerCanvas.height, "px"));
-            console.log("\uD83D\uDCCF \u62A5\u8868\u5934\u5B9E\u9645\u9AD8\u5EA6\uFF1A".concat(Math.round(headerHeight * 100) / 100, "mm"));
+            console.log("\uD83D\uDCCF \u62A5\u8868\u5934\u6700\u7EC8\u9AD8\u5EA6\uFF1A".concat(Math.round(headerHeight * 100) / 100, "mm"));
             return [3 /*break*/, 4];
           case 3:
-            e_1 = _l.sent();
+            e_1 = _m.sent();
             console.warn('渲染表头时出错:', e_1);
             return [3 /*break*/, 4];
           case 4:
             footerHeight = 0;
             footerCanvas = void 0;
             if (!footerElement) return [3 /*break*/, 8];
-            _l.label = 5;
+            _m.label = 5;
           case 5:
-            _l.trys.push([5, 7,, 8]);
+            _m.trys.push([5, 7,, 8]);
             footerRect = footerElement.getBoundingClientRect();
             console.log("\uD83D\uDCCF \u62A5\u8868\u5C3EDOM\u5C3A\u5BF8\uFF1A".concat(Math.round(footerRect.width), "px \u00D7 ").concat(Math.round(footerRect.height), "px"));
             return [4 /*yield*/, html2canvas(footerElement, {
@@ -6365,7 +6590,7 @@ var Exporter = /** @class */function () {
               backgroundColor: '#FFFFFF' // 确保背景色一致
             })];
           case 6:
-            footerCanvas = _l.sent();
+            footerCanvas = _m.sent();
             // 基于Canvas和DOM的比例关系计算PDF中的实际高度
             // 这样可以避免DPI假设的问题
             footerHeight = footerCanvas.height / footerCanvas.width * contentWidth;
@@ -6373,7 +6598,7 @@ var Exporter = /** @class */function () {
             console.log("\uD83D\uDCCF \u62A5\u8868\u5C3E\u5B9E\u9645\u9AD8\u5EA6\uFF1A".concat(Math.round(footerHeight * 100) / 100, "mm"));
             return [3 /*break*/, 8];
           case 7:
-            e_2 = _l.sent();
+            e_2 = _m.sent();
             console.warn('渲染表尾时出错:', e_2);
             return [3 /*break*/, 8];
           case 8:
@@ -6386,9 +6611,9 @@ var Exporter = /** @class */function () {
             tableCanvas = void 0;
             tableWidth = void 0;
             tableHeight = void 0;
-            _l.label = 9;
+            _m.label = 9;
           case 9:
-            _l.trys.push([9, 11,, 13]);
+            _m.trys.push([9, 11,, 13]);
             return [4 /*yield*/, html2canvas(tableElement, {
               scale: 2.0,
               useCORS: true,
@@ -6397,7 +6622,7 @@ var Exporter = /** @class */function () {
               backgroundColor: '#FFFFFF' // 确保背景色一致
             })];
           case 10:
-            tableCanvas = _l.sent();
+            tableCanvas = _m.sent();
             // 基于Canvas和DOM的比例关系计算PDF中的实际尺寸
             tableWidth = contentWidth; // PDF内容区域宽度
             tableHeight = tableCanvas.height / tableCanvas.width * tableWidth; // 基于Canvas比例计算
@@ -6433,7 +6658,7 @@ var Exporter = /** @class */function () {
             console.log("\uD83D\uDCCF Canvas\u884C\u9AD8\u8BA1\u7B97\uFF1A\u603B\u9AD8\u5EA6".concat(tableCanvas.height, "px \u00F7 ").concat(totalRows, "\u884C = ").concat(Math.round(avgRowHeightCanvas * 100) / 100, "px/\u884C"));
             console.log("\uD83D\uDCCF PDF\u884C\u9AD8\uFF1A".concat(Math.round(dataRowHeightMM * 100) / 100, "mm/\u884C"));
             // 如果有配置的行高，进行对比但不直接使用（避免溢出）
-            if ((_h = config === null || config === void 0 ? void 0 : config.layout) === null || _h === void 0 ? void 0 : _h.rowHeight) {
+            if ((_j = config === null || config === void 0 ? void 0 : config.layout) === null || _j === void 0 ? void 0 : _j.rowHeight) {
               configRowHeightPx = typeof config.layout.rowHeight === 'number' ? config.layout.rowHeight : parseInt(config.layout.rowHeight);
               configRowHeightMM = configRowHeightPx * 25.4 / 96;
               console.log("\uD83D\uDCCF \u914D\u7F6E\u884C\u9AD8\uFF1A".concat(configRowHeightPx, "px \u2192 ").concat(Math.round(configRowHeightMM * 100) / 100, "mm"));
@@ -6813,7 +7038,7 @@ var Exporter = /** @class */function () {
             }
             return [3 /*break*/, 13];
           case 11:
-            e_3 = _l.sent();
+            e_3 = _m.sent();
             console.warn('处理表格时出错:', e_3);
             return [4 /*yield*/, html2canvas(tempContainer, {
               scale: 1.5,
@@ -6823,7 +7048,7 @@ var Exporter = /** @class */function () {
               backgroundColor: '#FFFFFF'
             })];
           case 12:
-            canvas = _l.sent();
+            canvas = _m.sent();
             imgData = canvas.toDataURL('image/jpeg', quality);
             canvasAspectRatio = canvas.width / canvas.height;
             pageAspectRatio = contentWidth / contentHeight;
@@ -6866,7 +7091,7 @@ var Exporter = /** @class */function () {
             pdf.save("".concat(fileName, ".pdf"));
             return [2 /*return*/, Promise.resolve()];
           case 14:
-            error_1 = _l.sent();
+            error_1 = _m.sent();
             console.error('PDF导出失败:', error_1);
             return [2 /*return*/, Promise.reject(error_1)];
           case 15:

@@ -236,11 +236,39 @@
   border-right: none;
 }
 
+/* 修复bordered模式下最后一列的边框 */
+.ddr-bordered .ddr-table-cell:last-child {
+  border-right: 1px solid var(--ddr-border-color) !important;
+}
+
+.ddr-bordered .ddr-table-header-cell:last-child {
+  border-right: 1px solid var(--ddr-border-color) !important;
+}
+
 /* 表格行 */
-.ddr-table-row {
+.ddr-table-row, .ddr-body-row, .ddr-header-row {
   transition: background-color 0.2s ease;
 }
 
+/* 斑马线效果 - 只在启用stripe时生效 */
+.ddr-table-stripe .ddr-body-row:nth-child(even) {
+  background-color: var(--ddr-table-even-row);
+}
+
+.ddr-table-stripe .ddr-body-row:nth-child(odd) {
+  background-color: var(--ddr-table-odd-row);
+}
+
+/* 鼠标悬停效果 - 只在启用hover时生效 */
+.ddr-table-hover .ddr-body-row:hover {
+  background-color: var(--ddr-hover-bg);
+}
+
+.ddr-table-hover .ddr-header-row:hover {
+  background-color: var(--ddr-hover-bg);
+}
+
+/* 兼容旧的类名 */
 .ddr-table-row:nth-child(even) {
   background-color: var(--ddr-table-even-row);
 }
@@ -275,12 +303,22 @@
   border: 1px solid var(--ddr-border-color);
 }
 
-.ddr-bordered .ddr-table-cell {
-  border: 1px solid var(--ddr-border-color);
+/* 主渲染系统使用的类名 - 这是实际在使用的 */
+.ddr-bordered .ddr-body-cell {
+  border: 1px solid var(--ddr-border-color) !important;
 }
 
-.ddr-bordered .ddr-table-header-cell {
-  border: 1px solid var(--ddr-border-color);
+.ddr-bordered .ddr-header-cell {
+  border: 1px solid var(--ddr-border-color) !important;
+}
+
+/* 修复bordered模式下最后一列的边框 */
+.ddr-bordered .ddr-body-cell:last-child {
+  border-right: 1px solid var(--ddr-border-color) !important;
+}
+
+.ddr-bordered .ddr-header-cell:last-child {
+  border-right: 1px solid var(--ddr-border-color) !important;
 }
 
 /* 固定列 */

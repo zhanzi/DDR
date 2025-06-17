@@ -303,6 +303,7 @@
               formatter: 'number'
             }
           ],
+          summaryAlign: "right",//"left" | "center" | "right";
           signatures: [
             {
               label: '制表人',
@@ -353,8 +354,8 @@
         },
         layout: {
           height: '100%',
-          headerHeight: 25,
-          rowHeight: 40,
+          //headerHeight: 100,//用来设置报表头的高度
+          rowHeight: 25,
           stripe: true,
           bordered: true,
           hover: true
@@ -411,9 +412,8 @@
 
       document.getElementById('themeSwitch').addEventListener('click', () => {
         currentTheme = currentTheme === 'default' ? 'dark' : 'default';
-        document.getElementById('report').className = `report ddr-theme-${currentTheme}`;
-        // 重新加载报表
-        report.reload();
+        // 不要直接覆盖className，而是通过DDR的主题切换功能
+        report.setTheme(currentTheme);
       });
     });
   </script>

@@ -437,6 +437,25 @@ class DDR implements DDRInstance {
   }
 
   /**
+   * 设置主题
+   * @param theme 主题名称
+   */
+  setTheme(theme: string): void {
+    // 移除所有主题类名
+    this.container.classList.forEach(className => {
+      if (className.startsWith('ddr-theme-')) {
+        this.container.classList.remove(className);
+      }
+    });
+
+    // 添加新主题类名
+    this.container.classList.add(`ddr-theme-${theme}`);
+
+    // 更新选项中的主题
+    this.options.theme = theme;
+  }
+
+  /**
    * 从元数据中根据路径获取值
    * @param path 路径，例如："company.name"
    * @returns 找到的值或undefined
@@ -781,8 +800,17 @@ class DDR implements DDRInstance {
 
     const headerElement = document.createElement('div');
     headerElement.className = 'ddr-report-header';
-    // 不再设置固定高度，改为最小高度，让其自动适应内容
-    headerElement.style.minHeight = `${headerConfig.height || 80}px`;
+
+    // 优先使用layout.headerHeight，其次使用header.height，最后使用默认值
+    const headerHeight = this.config.layout?.headerHeight || headerConfig.height || 80;
+
+    // 如果配置了具体的headerHeight，使用固定高度；否则使用最小高度让其自适应
+    if (this.config.layout?.headerHeight) {
+      headerElement.style.setProperty('height', `${headerHeight}px`, 'important');
+      console.log(`📏 应用layout.headerHeight配置: ${headerHeight}px (使用!important)`);
+    } else {
+      headerElement.style.minHeight = `${headerHeight}px`;
+    }
 
     // 创建顶部区域容器（Logo + 标题）
     const topContainer = document.createElement('div');
@@ -947,6 +975,11 @@ class DDR implements DDRInstance {
     if (footerConfig.summary && footerConfig.summary.length > 0) {
       const summaryElement = document.createElement('div');
       summaryElement.className = 'ddr-footer-summary';
+
+      // 应用汇总行对齐方式配置
+      const summaryAlign = footerConfig.summaryAlign || 'right'; // 默认右对齐，保持向后兼容
+      summaryElement.style.justifyContent = summaryAlign === 'left' ? 'flex-start' :
+                                           summaryAlign === 'center' ? 'center' : 'flex-end';
 
       footerConfig.summary.forEach(summaryConfig => {
         const summaryItem = document.createElement('div');
@@ -1519,8 +1552,14 @@ class DDR implements DDRInstance {
     // 填充表头单元格
     this._fillHeaderCells(columns, rows, 0, 0);
 
-    // 将行添加到表头
+    // 将行添加到表头，并应用配置的行高
     rows.forEach(row => {
+      // 应用配置的行高到表头行
+      if (this.config.layout?.rowHeight) {
+        row.style.height = typeof this.config.layout.rowHeight === 'number'
+          ? `${this.config.layout.rowHeight}px`
+          : this.config.layout.rowHeight;
+      }
       thead.appendChild(row);
     });
 

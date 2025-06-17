@@ -200,13 +200,13 @@ export class Exporter {
 
         // 尝试多种导出方式以确保样式生效
         try {
-          // 方式1：使用支持样式的导出选项
+          // 方式1：使用支持样式的导出选项 - 关闭压缩避免兼容性问题
           const writeOptions = {
             bookType: 'xlsx' as const,
             type: 'buffer' as const,
             cellStyles: true, // 启用样式支持
             sheetStubs: false,
-            compression: true
+            compression: false // 关闭压缩以避免兼容性问题
           };
 
           // 生成文件数据 - 使用支持样式的库
@@ -230,10 +230,10 @@ export class Exporter {
         } catch (blobError) {
           console.warn('Blob导出失败，尝试直接导出:', blobError);
 
-          // 方式2：直接使用writeFile（可能样式支持更好）
+          // 方式2：直接使用writeFile（可能样式支持更好） - 关闭压缩
           XLSXStyle.writeFile(wb, `${fileName}.xlsx`, {
             cellStyles: true,
-            compression: true
+            compression: false // 关闭压缩以避免兼容性问题
           });
           console.log('Excel导出完成（直接导出方式）');
         }
@@ -530,13 +530,18 @@ export class Exporter {
       // 添加标题行和元数据行的合并单元格
       const merges: any[] = []; // 存储合并单元格信息
 
-      // 标题行合并（第1行，A1:I1）
-      if (hasTitle && tableColumnCount > 1) {
-        merges.push({
+      // 标题行合并（第1行，A1:I1） - 添加安全检查
+      if (hasTitle && tableColumnCount > 1 && tableColumnCount <= 256) {
+        const mergeRange = {
           s: { r: 0, c: 0 },
           e: { r: 0, c: tableColumnCount - 1 }
-        });
-        console.log(`📋 添加标题行合并: A1:${String.fromCharCode(65 + tableColumnCount - 1)}1`);
+        };
+
+        // 验证合并范围的有效性
+        if (mergeRange.s.r <= mergeRange.e.r && mergeRange.s.c <= mergeRange.e.c) {
+          merges.push(mergeRange);
+          console.log(`📋 添加标题行合并: A1:${String.fromCharCode(65 + tableColumnCount - 1)}1`);
+        }
       }
 
       // 元数据行合并（第3行，A3:I3）
@@ -614,10 +619,15 @@ export class Exporter {
         }
       });
 
+      // 验证并清理合并单元格
+      const validMerges = this._validateMerges(merges, ws);
+
       // 应用合并单元格
-      if (merges.length > 0) {
-        ws['!merges'] = merges;
-        console.log(`✅ 应用了 ${merges.length} 个合并单元格`);
+      if (validMerges.length > 0) {
+        ws['!merges'] = validMerges;
+        console.log(`✅ 应用了 ${validMerges.length} 个有效合并单元格（原始${merges.length}个）`);
+      } else {
+        console.log(`⚠️ 没有有效的合并单元格可应用`);
       }
 
       // 设置自适应列宽
@@ -852,6 +862,78 @@ export class Exporter {
              col >= merge.s.c && col <= merge.e.c &&
              !(row === merge.s.r && col === merge.s.c); // 排除合并的起始单元格
     });
+  }
+
+  /**
+   * 验证合并单元格的有效性
+   */
+  static _validateMerges(merges: any[], ws: any): any[] {
+    const validMerges: any[] = [];
+
+    if (!ws['!ref']) {
+      console.warn('工作表没有有效范围，跳过合并单元格验证');
+      return validMerges;
+    }
+
+    const range = XLSXStyle.utils.decode_range(ws['!ref']);
+
+    for (const merge of merges) {
+      try {
+        // 基本结构检查
+        if (!merge || !merge.s || !merge.e) {
+          console.warn('跳过无效合并单元格：缺少起始或结束位置', merge);
+          continue;
+        }
+
+        const { s, e } = merge;
+
+        // 检查坐标类型
+        if (typeof s.r !== 'number' || typeof s.c !== 'number' ||
+            typeof e.r !== 'number' || typeof e.c !== 'number') {
+          console.warn('跳过无效合并单元格：坐标不是数字', merge);
+          continue;
+        }
+
+        // 检查坐标范围
+        if (s.r < 0 || s.c < 0 || e.r < 0 || e.c < 0) {
+          console.warn('跳过无效合并单元格：坐标为负数', merge);
+          continue;
+        }
+
+        // 检查是否超出工作表范围
+        if (s.r > range.e.r || s.c > range.e.c || e.r > range.e.r || e.c > range.e.c) {
+          console.warn('跳过无效合并单元格：超出工作表范围', merge);
+          continue;
+        }
+
+        // 检查起始位置是否小于等于结束位置
+        if (s.r > e.r || s.c > e.c) {
+          console.warn('跳过无效合并单元格：起始位置大于结束位置', merge);
+          continue;
+        }
+
+        // 检查是否是单个单元格
+        if (s.r === e.r && s.c === e.c) {
+          console.warn('跳过单个单元格合并：', merge);
+          continue;
+        }
+
+        // 检查Excel限制
+        if (s.r >= 1048576 || s.c >= 16384 || e.r >= 1048576 || e.c >= 16384) {
+          console.warn('跳过超出Excel限制的合并单元格：', merge);
+          continue;
+        }
+
+        // 通过所有检查
+        validMerges.push(merge);
+        console.log(`✅ 有效合并单元格：${XLSXStyle.utils.encode_cell(s)}:${XLSXStyle.utils.encode_cell(e)}`);
+
+      } catch (error) {
+        console.warn('验证合并单元格时出错：', error, merge);
+      }
+    }
+
+    return validMerges;
   }
 
   /**
@@ -1230,7 +1312,7 @@ export class Exporter {
       if (multiPage) {
         // -------------- 多页处理 --------------
 
-        // 表头高度(如果有) - 精确测量实际高度
+        // 表头高度(如果有) - 优先使用配置，其次精确测量实际高度
         let headerHeight = 0;
         let headerCanvas;
         if (headerElement) {
@@ -1247,12 +1329,21 @@ export class Exporter {
               backgroundColor: '#FFFFFF' // 确保背景色一致
             });
 
-            // 基于Canvas和DOM的比例关系计算PDF中的实际高度
-            // 这样可以避免DPI假设的问题
-            headerHeight = (headerCanvas.height / headerCanvas.width) * contentWidth;
+            // 优先使用layout.headerHeight配置
+            if (config?.layout?.headerHeight) {
+              const configHeaderHeightPx = typeof config.layout.headerHeight === 'number'
+                ? config.layout.headerHeight
+                : parseInt(config.layout.headerHeight);
+              headerHeight = (configHeaderHeightPx * 25.4) / 96; // 像素转毫米
+              console.log(`📏 使用配置表头高度：${configHeaderHeightPx}px → ${Math.round(headerHeight * 100) / 100}mm`);
+            } else {
+              // 回退到基于Canvas和DOM的比例关系计算PDF中的实际高度
+              headerHeight = (headerCanvas.height / headerCanvas.width) * contentWidth;
+              console.log(`📏 使用自动计算表头高度：${Math.round(headerHeight * 100) / 100}mm`);
+            }
 
             console.log(`📏 报表头Canvas尺寸：${headerCanvas.width}px × ${headerCanvas.height}px`);
-            console.log(`📏 报表头实际高度：${Math.round(headerHeight * 100) / 100}mm`);
+            console.log(`📏 报表头最终高度：${Math.round(headerHeight * 100) / 100}mm`);
           } catch (e) {
             console.warn('渲染表头时出错:', e);
           }
