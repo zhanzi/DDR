@@ -47,7 +47,8 @@ const MerchantAutocomplete = ({
     const loadMerchants = async () => {
       try {
         setLoading(true);
-        const response = await merchantAPI.getMerchants();
+        // 获取足够多的商户数据，避免分页限制
+        const response = await merchantAPI.getMerchants({ pageSize: 100 });
         setMerchants(response.items || []);
       } catch (error) {
         console.error('Error loading merchants:', error);
@@ -90,6 +91,12 @@ const MerchantAutocomplete = ({
       isOptionEqualToValue={(option, value) => {
         if (!option || !value) return false;
         return option.merchantID === value.merchantID;
+      }}
+      ListboxProps={{
+        style: {
+          maxHeight: 300, // 设置下拉选项列表最大高度
+          overflowY: 'auto', // 启用垂直滚动条
+        },
       }}
       renderInput={(params) => (
         <TextField

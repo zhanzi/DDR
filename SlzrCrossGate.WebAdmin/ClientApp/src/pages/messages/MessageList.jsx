@@ -21,7 +21,9 @@ import {
   FormControl,
   InputLabel,
   Select,
-  Stack
+  Stack,
+  FormControlLabel,
+  Switch
 } from '@mui/material';
 import ResponsiveTable, {
   ResponsiveTableHead,
@@ -41,17 +43,20 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { formatDateTime, formatDateForAPI } from '../../utils/dateUtils';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
-import { messageAPI, merchantAPI,terminalAPI } from '../../services/api';
+import { zhCN } from '@mui/x-date-pickers/locales';
+import { zhCN as dateFnsZhCN } from 'date-fns/locale';
+import { messageAPI, merchantAPI } from '../../services/api';
 import MerchantAutocomplete from '../../components/MerchantAutocomplete';
 
 const MessageList = () => {
   const navigate = useNavigate();
   const [messages, setMessages] = useState([]);
   const [messageTypes, setMessageTypes] = useState([]);
-  const [terminals, setTerminals] = useState([]);
   const [stats, setStats] = useState({ totalCount: 0, readCount: 0, unreadCount: 0, dailyStats: [] });
+  const [usePreciseTime, setUsePreciseTime] = useState(false); // 是否使用精确时间选择
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
@@ -61,7 +66,8 @@ const MessageList = () => {
   const [filters, setFilters] = useState({
     merchantId: '',
     msgTypeId: '',
-    terminalId: '',
+    machineId: '', // 出厂序列号
+    deviceNo: '', // 设备编号
     isRead: '',
     startDate: null,
     endDate: null
@@ -123,15 +129,7 @@ const MessageList = () => {
     }
   };
 
-  // 加载终端列表
-  const loadTerminals = async () => {
-    try {
-      const response = await terminalAPI.getTerminals({ pageSize: 100 });
-      setTerminals(response.items);
-    } catch (error) {
-      console.error('Error loading terminals:', error);
-    }
-  };
+
 
   // 加载消息统计
   const loadMessageStats = async () => {
@@ -146,7 +144,6 @@ const MessageList = () => {
   useEffect(() => {
     loadMessages();
     // 初始不加载消息类型，等待用户选择商户后再加载
-    loadTerminals();
     loadMessageStats();
   }, [page, rowsPerPage]);
 
@@ -172,7 +169,8 @@ const MessageList = () => {
     setFilters({
       merchantId: '',
       msgTypeId: '',
-      terminalId: '',
+      machineId: '', // 出厂序列号
+      deviceNo: '', // 设备编号
       isRead: '',
       startDate: null,
       endDate: null
@@ -289,22 +287,26 @@ const MessageList = () => {
             </FormControl>
           </Grid>
           <Grid item xs={12} sm={6} md={2}>
-            <FormControl fullWidth size="small">
-              <InputLabel>终端</InputLabel>
-              <Select
-                name="terminalId"
-                value={filters.terminalId}
-                onChange={handleFilterChange}
-                label="终端"
-              >
-                <MenuItem value="">全部</MenuItem>
-                {terminals.map((terminal) => (
-                  <MenuItem key={terminal.id} value={terminal.id}>
-                    {terminal.deviceNO} ({terminal.lineNO})
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
+            <TextField
+              fullWidth
+              label="出厂序列号"
+              name="machineId"
+              value={filters.machineId}
+              onChange={handleFilterChange}
+              size="small"
+              placeholder="请输入出厂序列号"
+            />
+          </Grid>
+          <Grid item xs={12} sm={6} md={2}>
+            <TextField
+              fullWidth
+              label="设备编号"
+              name="deviceNo"
+              value={filters.deviceNo}
+              onChange={handleFilterChange}
+              size="small"
+              placeholder="请输入设备编号"
+            />
           </Grid>
           <Grid item xs={12} sm={6} md={2}>
             <FormControl fullWidth size="small">
@@ -321,24 +323,90 @@ const MessageList = () => {
               </Select>
             </FormControl>
           </Grid>
+          {/* 精确时间切换开关 */}
+          <Grid item xs={12}>
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={usePreciseTime}
+                  onChange={(e) => setUsePreciseTime(e.target.checked)}
+                  size="small"
+                />
+              }
+              label="精确时间选择（包含小时分钟）"
+            />
+          </Grid>
+
           <Grid item xs={12} sm={6} md={2}>
-            <LocalizationProvider dateAdapter={AdapterDateFns}>
-              <DatePicker
-                label="开始日期"
-                value={filters.startDate}
-                onChange={(date) => handleDateChange('startDate', date)}
-                renderInput={(params) => <TextField {...params} fullWidth size="small" />}
-              />
+            <LocalizationProvider
+              dateAdapter={AdapterDateFns}
+              adapterLocale={dateFnsZhCN}
+              localeText={zhCN.components.MuiLocalizationProvider.defaultProps.localeText}
+            >
+              {usePreciseTime ? (
+                <DateTimePicker
+                  label="开始时间"
+                  value={filters.startDate}
+                  onChange={(date) => handleDateChange('startDate', date)}
+                  format="yyyy/MM/dd HH:mm"
+                  ampm={false} // 使用24小时制
+                  slotProps={{
+                    textField: {
+                      fullWidth: true,
+                      size: 'small'
+                    }
+                  }}
+                />
+              ) : (
+                <DatePicker
+                  label="开始日期"
+                  value={filters.startDate}
+                  onChange={(date) => handleDateChange('startDate', date)}
+                  format="yyyy/MM/dd"
+                  slotProps={{
+                    textField: {
+                      fullWidth: true,
+                      size: 'small'
+                    }
+                  }}
+                />
+              )}
             </LocalizationProvider>
           </Grid>
           <Grid item xs={12} sm={6} md={2}>
-            <LocalizationProvider dateAdapter={AdapterDateFns}>
-              <DatePicker
-                label="结束日期"
-                value={filters.endDate}
-                onChange={(date) => handleDateChange('endDate', date)}
-                renderInput={(params) => <TextField {...params} fullWidth size="small" />}
-              />
+            <LocalizationProvider
+              dateAdapter={AdapterDateFns}
+              adapterLocale={dateFnsZhCN}
+              localeText={zhCN.components.MuiLocalizationProvider.defaultProps.localeText}
+            >
+              {usePreciseTime ? (
+                <DateTimePicker
+                  label="结束时间"
+                  value={filters.endDate}
+                  onChange={(date) => handleDateChange('endDate', date)}
+                  format="yyyy/MM/dd HH:mm"
+                  ampm={false} // 使用24小时制
+                  slotProps={{
+                    textField: {
+                      fullWidth: true,
+                      size: 'small'
+                    }
+                  }}
+                />
+              ) : (
+                <DatePicker
+                  label="结束日期"
+                  value={filters.endDate}
+                  onChange={(date) => handleDateChange('endDate', date)}
+                  format="yyyy/MM/dd"
+                  slotProps={{
+                    textField: {
+                      fullWidth: true,
+                      size: 'small'
+                    }
+                  }}
+                />
+              )}
             </LocalizationProvider>
           </Grid>
           <Grid item xs={12} sm={6} md={1}>
@@ -410,7 +478,7 @@ const MessageList = () => {
               <ResponsiveTableCell>ID</ResponsiveTableCell>
               <ResponsiveTableCell hideOn={['xs']}>商户</ResponsiveTableCell>
               <ResponsiveTableCell hideOn={['xs', 'sm']}>终端ID</ResponsiveTableCell>
-              <ResponsiveTableCell hideOn={['xs', 'sm']}>终端设备号</ResponsiveTableCell>
+              <ResponsiveTableCell hideOn={['xs', 'sm']}>设备编号</ResponsiveTableCell>
               <ResponsiveTableCell>消息类型</ResponsiveTableCell>
               <ResponsiveTableCell>内容</ResponsiveTableCell>
               <ResponsiveTableCell>状态</ResponsiveTableCell>
@@ -448,7 +516,7 @@ const MessageList = () => {
                   </ResponsiveTableCell>
                   <ResponsiveTableCell hideOn={['xs']}>
                     <Tooltip title={message.merchantID || ''}>
-                      <span>{message.merchantName}</span>
+                      <span>{message.merchantName || message.merchantID}</span>
                     </Tooltip>
                   </ResponsiveTableCell>
                   <ResponsiveTableCell hideOn={['xs', 'sm']}>{message.terminalID}</ResponsiveTableCell>

@@ -408,7 +408,7 @@ const FileVersionList = () => {
       {/* 筛选条件 */}
       <Paper sx={{ p: 2, mb: 3 }}>
         <Grid container spacing={2} alignItems="center">
-          <Grid item xs={12} sm={6} md={3}>
+          <Grid item xs={12} sm={6} md={2}>
             <MerchantAutocomplete
               value={selectedMerchant}
               onChange={(event, newValue) => {
@@ -424,7 +424,7 @@ const FileVersionList = () => {
               size="small"
             />
           </Grid>
-          <Grid item xs={12} sm={6} md={3}>
+          <Grid item xs={12} sm={6} md={2}>
             <TextField
               fullWidth
               label="文件类型"
@@ -434,6 +434,16 @@ const FileVersionList = () => {
               size="small"
               select
               disabled={!selectedMerchant} // 未选择商户时禁用
+              SelectProps={{
+                MenuProps: {
+                  PaperProps: {
+                    style: {
+                      maxHeight: 300, // 设置下拉菜单最大高度
+                      overflowY: 'auto', // 启用垂直滚动条
+                    },
+                  },
+                },
+              }}
             >
               <MenuItem value="">全部</MenuItem>
               {fileTypes
@@ -549,7 +559,7 @@ const FileVersionList = () => {
             ) : (
               fileVersions.map((fileVersion) => (
                 <ResponsiveTableRow key={fileVersion.id}>
- 
+
                   <ResponsiveTableCell hideOn={['xs']}>
                     <Tooltip title={fileVersion.merchantID || ''}>
                       <span>{fileVersion.merchantName}</span>
@@ -714,6 +724,14 @@ const FileVersionList = () => {
                     onChange={handleUploadFormChange}
                     label="文件类型"
                     disabled={!selectedUploadMerchant} // 未选择商户时禁用
+                    MenuProps={{
+                      PaperProps: {
+                        style: {
+                          maxHeight: 300, // 设置下拉菜单最大高度
+                          overflowY: 'auto', // 启用垂直滚动条
+                        },
+                      },
+                    }}
                   >
                     {fileTypes
                       // 只显示选中商户的文件类型，使用正确的selectedUploadMerchant变量
@@ -774,7 +792,7 @@ const FileVersionList = () => {
                   }}
                 />
               </Grid>
-              
+
             </Grid>
             {uploadError && (
               <Typography color="error" sx={{ mt: 2 }}>

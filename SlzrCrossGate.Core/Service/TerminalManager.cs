@@ -213,11 +213,35 @@ namespace SlzrCrossGate.Core.Service
                 terminal.StatusUpdateTime = now;
                 if (activeStatusChanged)
                 {
-                    //立即更新
-                    using var scope = _scopeFactory.CreateScope();
-                    var dbContext = scope.ServiceProvider.GetRequiredService<TcpDbContext>();
-                    dbContext.Terminals.Add(terminal);
-                    dbContext.SaveChanges();
+                    try
+                    {
+                        //立即更新状态到数据库
+                        using var scope = _scopeFactory.CreateScope();
+                        var dbContext = scope.ServiceProvider.GetRequiredService<TcpDbContext>();
+
+                        // 只更新TerminalStatus，避免Terminal的级联操作导致主键冲突
+                        if (terminal.Status != null)
+                        {
+                            var existingStatus = dbContext.TerminalStatuses.Find(terminal.Status.ID);
+                            if (existingStatus != null)
+                            {
+                                existingStatus.ActiveStatus = DeviceActiveStatus.Active;
+                                existingStatus.LastActiveTime = now;
+                                dbContext.SaveChanges();
+                            }
+                            else
+                            {
+                                // 如果TerminalStatus不存在，创建新的
+                                dbContext.TerminalStatuses.Add(terminal.Status);
+                                dbContext.SaveChanges();
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "更新终端活跃状态失败: {TerminalId}", terminalId);
+                        // 继续执行，不影响内存状态更新
+                    }
                 }
                 else
                 {
@@ -244,11 +268,34 @@ namespace SlzrCrossGate.Core.Service
                 terminal.StatusUpdateTime = now;
                 if (activeStatusChanged)
                 {
-                    //立即更新
-                    using var scope = _scopeFactory.CreateScope();
-                    var dbContext = scope.ServiceProvider.GetRequiredService<TcpDbContext>();
-                    dbContext.Terminals.Add(terminal);
-                    dbContext.SaveChanges();
+                    try
+                    {
+                        //立即更新状态到数据库
+                        using var scope = _scopeFactory.CreateScope();
+                        var dbContext = scope.ServiceProvider.GetRequiredService<TcpDbContext>();
+
+                        // 只更新TerminalStatus，避免Terminal的级联操作导致主键冲突
+                        if (terminal.Status != null)
+                        {
+                            var existingStatus = dbContext.TerminalStatuses.Find(terminal.Status.ID);
+                            if (existingStatus != null)
+                            {
+                                existingStatus.ActiveStatus = DeviceActiveStatus.Inactive;
+                                dbContext.SaveChanges();
+                            }
+                            else
+                            {
+                                // 如果TerminalStatus不存在，创建新的
+                                dbContext.TerminalStatuses.Add(terminal.Status);
+                                dbContext.SaveChanges();
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "更新终端非活跃状态失败: {TerminalId}", terminalId);
+                        // 继续执行，不影响内存状态更新
+                    }
                 }
                 return true;
             }
@@ -898,17 +945,17 @@ namespace SlzrCrossGate.Core.Service
         {
             var terminalIds = updates.Keys.ToList();
 
-            // 方案1: 使用EF Core 8.0的原生批量更新 (最高性能)
+            // 方案1: 尝试EFCore.BulkExtensions (优化配置后重新尝试)
             try
             {
                 return await BatchUpdateWithExecuteUpdate(dbContext, updates);
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "EF Core原生批量更新失败，尝试原生SQL方案");
+                _logger.LogWarning(ex, "EFCore.BulkExtensions批量更新失败，回退到原生SQL方案");
             }
 
-            // 方案2: 使用原生SQL的CASE WHEN批量更新 (高性能)
+            // 方案2: 使用原生SQL方案，这是最稳定和高性能的方案
             try
             {
                 return await BatchUpdateWithRawSql(dbContext, updates);
@@ -939,25 +986,41 @@ namespace SlzrCrossGate.Core.Service
 
             try
             {
+                _logger.LogDebug("开始EFCore.BulkExtensions批量更新，数据量: {Count}", terminalStatusesToUpdate.Count);
+
+                // 尝试不使用事务，避免事务中SQL语句拼接问题
                 // 使用EFCore.BulkExtensions进行真正的高性能批量更新
                 // 只更新LastActiveTime字段，避免影响其他字段
                 await dbContext.BulkUpdateAsync(terminalStatusesToUpdate, options =>
                 {
                     options.PropertiesToInclude = new List<string> { nameof(TerminalStatus.LastActiveTime) };
                     options.SetOutputIdentity = false; // 不需要返回标识
-                    options.BatchSize = 1000; // 设置批次大小
-                    options.UseTempDB = true; // 使用临时表提高性能
+                    options.BatchSize = 20; // 进一步减小批次大小，提高MySQL兼容性
+                    options.UseTempDB = false; // 禁用临时表，避免MySQL语法问题
+                    options.BulkCopyTimeout = 30; // 设置超时时间
+                    // 尝试禁用一些可能导致MySQL语法问题的特性
+                    options.IncludeGraph = false; // 禁用图形包含
+                    options.EnableShadowProperties = false; // 禁用影子属性
+                    options.TrackingEntities = false; // 禁用实体跟踪，提高性能
                 });
 
+                _logger.LogDebug("EFCore.BulkExtensions批量更新成功，更新数量: {Count}", terminalStatusesToUpdate.Count);
                 return terminalStatusesToUpdate.Count;
             }
             catch (Exception ex) when (
                 ex.Message.Contains("Loading local data is disabled") ||
                 ex.Message.Contains("AllowLoadLocalInfile") ||
-                ex.Message.Contains("doesn't have a default value"))
+                ex.Message.Contains("doesn't have a default value") ||
+                ex.Message.Contains("UseTempDB") ||
+                ex.Message.Contains("Transaction") ||
+                ex.Message.Contains("SQL syntax") ||
+                ex.Message.Contains("sql_select_limit") ||
+                ex.Message.Contains("SET sql_select_limit") ||
+                ex.Message.Contains("MySqlException") ||
+                ex.Message.Contains("MySqlConnector.MySqlException"))
             {
                 // 如果BulkExtensions不可用，回退到原生SQL方案
-                _logger.LogWarning(ex, "EFCore.BulkExtensions批量更新失败，回退到原生SQL方案");
+                _logger.LogWarning(ex, "EFCore.BulkExtensions批量更新失败（MySQL兼容性问题），回退到原生SQL方案");
                 return await BatchUpdateWithRawSql(dbContext, updates);
             }
         }

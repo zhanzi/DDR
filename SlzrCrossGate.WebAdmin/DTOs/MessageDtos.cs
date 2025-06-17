@@ -44,8 +44,9 @@ namespace SlzrCrossGate.WebAdmin.DTOs
         public DateTime CreateTime { get; set; }
         public bool IsRead { get; set; }
         public DateTime? ReadTime { get; set; }
-        
+
         // 关联信息
+        public string? MerchantName { get; set; }
         public string? TerminalDeviceNO { get; set; }
         public string? TerminalLineNO { get; set; }
         public string? MsgTypeID { get; set; }

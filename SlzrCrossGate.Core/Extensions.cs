@@ -71,7 +71,9 @@ namespace SlzrCrossGate.Core
             // 配置数据库服务
             builder.Services.AddConfiguredDbContext(builder.Configuration);
 
-
+            // 注册数据库迁移服务
+            builder.Services.AddScoped<DatabaseMigrationService>();
+            builder.Services.AddScoped<IndexRecoveryService>();
 
             return builder;
         }
@@ -124,7 +126,8 @@ namespace SlzrCrossGate.Core
             // 配置数据库服务
             builder.Services.AddConfiguredDbContext(builder.Configuration);
 
-
+            // 注册数据库迁移服务
+            builder.Services.AddScoped<DatabaseMigrationService>();
 
             return builder;
         }

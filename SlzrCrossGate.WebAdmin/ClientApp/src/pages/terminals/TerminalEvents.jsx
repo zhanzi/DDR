@@ -36,6 +36,8 @@ import { parseErrorMessage } from '../../utils/errorHandler';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
+import { zhCN } from '@mui/x-date-pickers/locales';
+import { zhCN as dateFnsZhCN } from 'date-fns/locale';
 
 const TerminalEvents = () => {
   const { id } = useParams();
@@ -310,22 +312,42 @@ Created = 0,
             </FormControl>
           </Grid>
           <Grid item xs={12} sm={6} md={3}>
-            <LocalizationProvider dateAdapter={AdapterDateFns}>
+            <LocalizationProvider
+              dateAdapter={AdapterDateFns}
+              adapterLocale={dateFnsZhCN}
+              localeText={zhCN.components.MuiLocalizationProvider.defaultProps.localeText}
+            >
               <DatePicker
                 label="开始日期"
                 value={filters.startDate}
                 onChange={(date) => handleDateChange('startDate', date)}
-                renderInput={(params) => <TextField {...params} fullWidth size="small" />}
+                format="yyyy/MM/dd"
+                slotProps={{
+                  textField: {
+                    fullWidth: true,
+                    size: 'small'
+                  }
+                }}
               />
             </LocalizationProvider>
           </Grid>
           <Grid item xs={12} sm={6} md={3}>
-            <LocalizationProvider dateAdapter={AdapterDateFns}>
+            <LocalizationProvider
+              dateAdapter={AdapterDateFns}
+              adapterLocale={dateFnsZhCN}
+              localeText={zhCN.components.MuiLocalizationProvider.defaultProps.localeText}
+            >
               <DatePicker
                 label="结束日期"
                 value={filters.endDate}
                 onChange={(date) => handleDateChange('endDate', date)}
-                renderInput={(params) => <TextField {...params} fullWidth size="small" />}
+                format="yyyy/MM/dd"
+                slotProps={{
+                  textField: {
+                    fullWidth: true,
+                    size: 'small'
+                  }
+                }}
               />
             </LocalizationProvider>
           </Grid>

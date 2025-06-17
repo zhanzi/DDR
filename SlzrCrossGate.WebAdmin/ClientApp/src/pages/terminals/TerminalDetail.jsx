@@ -269,7 +269,7 @@ const TerminalDetail = () => {
         </Paper>
       )}
 
-      {/* 操作按钮 */}
+      {/* 操作按钮  
       <Paper sx={{ p: 3 }}>
         <Typography variant="h6" gutterBottom>
           操作
@@ -301,6 +301,7 @@ const TerminalDetail = () => {
           </Button>
         </Box>
       </Paper>
+      */}
     </Box>
   );
 };

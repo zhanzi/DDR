@@ -6,6 +6,7 @@ using System.Text.Json;
 using SlzrCrossGate.Core.Models;
 using SlzrCrossGate.Core.Database;
 using SlzrCrossGate.Core;
+using SlzrCrossGate.Core.Services;
 using SlzrCrossGate.WebAdmin.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.DataProtection;
@@ -253,7 +254,123 @@ using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
     var dbContext = services.GetRequiredService<TcpDbContext>();
-    dbContext.Database.Migrate();
+    var logger = services.GetRequiredService<ILogger<Program>>();
+
+    // 检查是否启用迁移（默认启用）
+    var enableMigration = builder.Configuration.GetValue<bool>("EnableMigration", true);
+
+    if (enableMigration)
+    {
+        var migrationService = services.GetRequiredService<DatabaseMigrationService>();
+
+        try
+        {
+            logger.LogInformation("[WebAdmin] 开始执行数据库迁移...");
+
+            // 使用专业的迁移服务执行安全迁移
+            var migrationOptions = new MigrationOptions
+            {
+                CommandTimeout = 600 // 10分钟超时
+            };
+
+            var result = await migrationService.MigrateAsync(dbContext, "WebAdmin", migrationOptions);
+
+            if (result.Success)
+            {
+                logger.LogInformation("[WebAdmin] 数据库迁移成功: {Message}, 耗时: {Duration}",
+                    result.Message, result.Duration);
+            }
+            else
+            {
+                logger.LogError("[WebAdmin] 数据库迁移失败: {Message}", result.Message);
+                throw new InvalidOperationException($"数据库迁移失败: {result.Message}", result.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "[WebAdmin] 数据库迁移失败，开始索引恢复检查...");
+
+            try
+            {
+                // 获取索引恢复服务
+                var indexRecoveryService = services.GetRequiredService<IndexRecoveryService>();
+
+                // 从 EF Core 模型中提取期望的索引
+                var expectedIndexes = indexRecoveryService.ExtractExpectedIndexesFromModel(dbContext);
+                logger.LogInformation("[WebAdmin] 提取到 {Count} 个期望的索引定义", expectedIndexes.Count);
+
+                // 检查并尝试恢复丢失的索引
+                var recoveryResult = await indexRecoveryService.CheckAndRecoverIndexes(dbContext, expectedIndexes);
+
+                if (recoveryResult.Success)
+                {
+                    logger.LogInformation("[WebAdmin] 索引恢复成功，应用可以继续启动");
+                    logger.LogInformation("[WebAdmin] 恢复统计: 期望 {Expected} 个，当前 {Current} 个，恢复 {Recovered} 个",
+                        recoveryResult.TotalExpected, recoveryResult.TotalCurrent, recoveryResult.RecoveredCount);
+                }
+                else
+                {
+                    logger.LogError("[WebAdmin] 索引恢复失败，有 {FailedCount} 个索引无法自动恢复",
+                        recoveryResult.FailedIndexes.Count);
+
+                    // 生成手动恢复脚本
+                    var script = indexRecoveryService.GenerateRecoveryScript(recoveryResult.FailedIndexes);
+                    logger.LogError("[WebAdmin] 手动恢复脚本:\n{Script}", script);
+
+                    // 记录详细的失败信息
+                    foreach (var failedIndex in recoveryResult.FailedIndexes)
+                    {
+                        logger.LogError("[WebAdmin] 无法恢复索引: {TableName}.{IndexName}",
+                            failedIndex.TableName, failedIndex.IndexName);
+                    }
+
+                    throw new InvalidOperationException($"数据库迁移失败且索引恢复不完整，有 {recoveryResult.FailedIndexes.Count} 个索引需要手动处理", ex);
+                }
+            }
+            catch (Exception recoveryEx)
+            {
+                logger.LogCritical(recoveryEx, "[WebAdmin] 索引恢复过程中发生错误");
+                logger.LogCritical(ex, "[WebAdmin] 原始迁移错误");
+                throw new InvalidOperationException("数据库迁移失败且索引恢复也失败，应用程序无法启动", ex);
+            }
+        }
+    }
+    else
+    {
+        logger.LogInformation("[WebAdmin] 数据库迁移已禁用，跳过迁移步骤");
+
+        // 等待数据库就绪
+        var maxRetries = 30;
+        var retryCount = 0;
+
+        while (retryCount < maxRetries)
+        {
+            try
+            {
+                var canConnect = await dbContext.Database.CanConnectAsync();
+                if (canConnect)
+                {
+                    logger.LogInformation("[WebAdmin] 数据库连接就绪");
+                    break;
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning(ex, "[WebAdmin] 数据库连接尝试 {Retry}/{MaxRetries} 失败", retryCount + 1, maxRetries);
+            }
+
+            retryCount++;
+            if (retryCount < maxRetries)
+            {
+                await Task.Delay(2000);
+            }
+        }
+
+        if (retryCount >= maxRetries)
+        {
+            throw new InvalidOperationException("等待数据库就绪超时");
+        }
+    }
 
     await SeedData.InitializeUser(services);
 }

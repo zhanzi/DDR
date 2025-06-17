@@ -39,6 +39,7 @@ import { useSnackbar } from 'notistack';
 import { fileAPI } from '../../services/api';
 import { formatDateTime } from '../../utils/dateUtils';
 import { parseErrorMessage } from '../../utils/errorHandler';
+import MerchantAutocomplete from '../../components/MerchantAutocomplete';
 
 const FilePublishList = () => {
   const navigate = useNavigate();
@@ -59,6 +60,9 @@ const FilePublishList = () => {
     publishType: '',
     publishTarget: ''
   });
+
+  // 商户选择状态
+  const [selectedMerchant, setSelectedMerchant] = useState(null);
 
   // 删除确认对话框
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
@@ -103,8 +107,9 @@ const FilePublishList = () => {
   // 加载文件类型列表
   const loadFileTypes = async () => {
     try {
-      const response = await fileAPI.getFileTypes();
-      setFileTypes(response.items);
+      // 使用不分页API获取所有文件类型，确保下拉框中包含所有数据
+      const response = await fileAPI.getAllFileTypes();
+      setFileTypes(response.items || []);
     } catch (error) {
       console.error('Error loading file types:', error);
     }
@@ -121,6 +126,18 @@ const FilePublishList = () => {
     setFilters(prev => ({ ...prev, [name]: value }));
   };
 
+  // 处理商户选择变更
+  const handleMerchantChange = (event, newValue) => {
+    setSelectedMerchant(newValue);
+    const merchantId = newValue ? newValue.merchantID : '';
+    // 商户变更时，清空文件类型选择
+    setFilters(prev => ({
+      ...prev,
+      merchantId,
+      fileTypeId: '' // 清空文件类型选择
+    }));
+  };
+
   // 应用筛选
   const applyFilters = () => {
     setPage(0);
@@ -129,6 +146,7 @@ const FilePublishList = () => {
 
   // 清除筛选
   const clearFilters = () => {
+    setSelectedMerchant(null);
     setFilters({
       merchantId: '',
       fileTypeId: '',
@@ -290,12 +308,11 @@ const FilePublishList = () => {
       <Paper sx={{ p: 2, mb: 3 }}>
         <Grid container spacing={2} alignItems="center">
           <Grid item xs={12} sm={6} md={2}>
-            <TextField
-              fullWidth
-              label="商户ID"
-              name="merchantId"
-              value={filters.merchantId}
-              onChange={handleFilterChange}
+            <MerchantAutocomplete
+              value={selectedMerchant}
+              onChange={handleMerchantChange}
+              label="商户"
+              placeholder="选择商户"
               size="small"
             />
           </Grid>
@@ -308,13 +325,30 @@ const FilePublishList = () => {
               onChange={handleFilterChange}
               size="small"
               select
+              disabled={!selectedMerchant} // 未选择商户时禁用
+              SelectProps={{
+                MenuProps: {
+                  PaperProps: {
+                    style: {
+                      maxHeight: 300, // 设置下拉菜单最大高度
+                      overflowY: 'auto', // 启用垂直滚动条
+                    },
+                  },
+                },
+              }}
             >
               <MenuItem value="">全部</MenuItem>
-              {fileTypes.map((type) => (
-                <MenuItem key={`${type.code}-${type.merchantId}`} value={type.code}>
-                  {type.code} - {type.name || '未命名'}
-                </MenuItem>
-              ))}
+              {fileTypes
+                // 只显示选中商户的文件类型
+                .filter(type => {
+                  if (!selectedMerchant) return false;
+                  return type.merchantID && type.merchantID === selectedMerchant.merchantID;
+                })
+                .map((type) => (
+                  <MenuItem key={`${type.code}-${type.merchantID}`} value={type.code}>
+                    {type.code} - {type.name || '未命名'}
+                  </MenuItem>
+                ))}
             </TextField>
           </Grid>
           <Grid item xs={12} sm={6} md={2}>

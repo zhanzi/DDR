@@ -129,9 +129,13 @@ const FilePublish = () => {
         )
       };
 
+      console.log('Loading terminals with params:', params);
       const response = await terminalAPI.getTerminals(params);
-      setTerminals(response.items);
-      setTerminalTotalCount(response.totalCount);
+      console.log('Terminal response:', response);
+      console.log('Terminals loaded:', response.items?.length, 'Total count:', response.totalCount);
+
+      setTerminals(response.items || []);
+      setTerminalTotalCount(response.totalCount || 0);
     } catch (error) {
       console.error('Error loading terminals:', error);
       // 可以添加错误提示，但不影响主要功能
@@ -539,24 +543,46 @@ const FilePublish = () => {
         fullWidth
         PaperProps={{
           sx: {
-            height: '80vh',
-            maxHeight: '600px',
+            height: 'auto',
+            minHeight: '400px',
+            maxHeight: 'min(85vh, 700px)',
             display: 'flex',
-            flexDirection: 'column'
+            flexDirection: 'column',
+            margin: '16px'
           }
         }}
       >
-        <DialogTitle>选择线路</DialogTitle>
-        <DialogContent sx={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-          <Box sx={{ mt: 2, flex: 1, display: 'flex', flexDirection: 'column' }}>
-            <Typography variant="subtitle2" gutterBottom>
+        <DialogTitle sx={{ flexShrink: 0 }}>选择线路</DialogTitle>
+        <DialogContent sx={{
+          flex: 1,
+          overflow: 'hidden',
+          display: 'flex',
+          flexDirection: 'column',
+          p: 0
+        }}>
+          <Box sx={{
+            p: 2,
+            flex: 1,
+            display: 'flex',
+            flexDirection: 'column',
+            minHeight: 0
+          }}>
+            <Typography variant="subtitle2" gutterBottom sx={{ flexShrink: 0 }}>
               商户: {fileVersion?.merchantName}({fileVersion?.merchantID})
             </Typography>
 
-            <Paper sx={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+            <Paper sx={{
+              flex: 1,
+              display: 'flex',
+              flexDirection: 'column',
+              minHeight: 0,
+              overflow: 'hidden'
+            }}>
               <TableContainer sx={{
                 flex: 1,
                 overflow: 'auto',
+                minHeight: '200px',
+                maxHeight: 'calc(min(85vh, 700px) - 200px)',
                 '&::-webkit-scrollbar': {
                   width: '8px',
                 },
@@ -572,7 +598,7 @@ const FilePublish = () => {
                   },
                 },
               }}>
-                <Table stickyHeader>
+                <Table stickyHeader size="small">
                   <TableHead>
                     <TableRow>
                       <TableCell>线路编号</TableCell>
@@ -637,21 +663,23 @@ const FilePublish = () => {
                   </TableBody>
                 </Table>
               </TableContainer>
-              <TablePagination
-                rowsPerPageOptions={[5, 10, 25]}
-                component="div"
-                count={lineTotalCount}
-                rowsPerPage={lineRowsPerPage}
-                page={linePage}
-                onPageChange={handleLinePageChange}
-                onRowsPerPageChange={handleLineRowsPerPageChange}
-                labelRowsPerPage="每页行数:"
-                labelDisplayedRows={({ from, to, count }) => `${from}-${to} 共 ${count}`}
-              />
+              <Box sx={{ flexShrink: 0, borderTop: '1px solid #e0e0e0' }}>
+                <TablePagination
+                  rowsPerPageOptions={[10, 25, 50]}
+                  component="div"
+                  count={lineTotalCount}
+                  rowsPerPage={lineRowsPerPage}
+                  page={linePage}
+                  onPageChange={handleLinePageChange}
+                  onRowsPerPageChange={handleLineRowsPerPageChange}
+                  labelRowsPerPage="每页行数:"
+                  labelDisplayedRows={({ from, to, count }) => `${from}-${to} 共 ${count}`}
+                />
+              </Box>
             </Paper>
           </Box>
         </DialogContent>
-        <DialogActions>
+        <DialogActions sx={{ flexShrink: 0 }}>
           <Button onClick={() => setLineDialog(false)}>取消</Button>
         </DialogActions>
       </Dialog>
@@ -664,17 +692,31 @@ const FilePublish = () => {
         fullWidth
         PaperProps={{
           sx: {
-            height: '85vh',
-            maxHeight: '700px',
+            height: 'auto',
+            minHeight: '500px',
+            maxHeight: 'min(90vh, 800px)',
             display: 'flex',
-            flexDirection: 'column'
+            flexDirection: 'column',
+            margin: '16px'
           }
         }}
       >
-        <DialogTitle>选择终端</DialogTitle>
-        <DialogContent sx={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-          <Box sx={{ mt: 2, flex: 1, display: 'flex', flexDirection: 'column' }}>
-            <Typography variant="subtitle2" gutterBottom>
+        <DialogTitle sx={{ flexShrink: 0 }}>选择终端</DialogTitle>
+        <DialogContent sx={{
+          flex: 1,
+          overflow: 'hidden',
+          display: 'flex',
+          flexDirection: 'column',
+          p: 0
+        }}>
+          <Box sx={{
+            p: 2,
+            flex: 1,
+            display: 'flex',
+            flexDirection: 'column',
+            minHeight: 0
+          }}>
+            <Typography variant="subtitle2" gutterBottom sx={{ flexShrink: 0 }}>
               商户: {fileVersion?.merchantName}({fileVersion?.merchantID})
             </Typography>
 
@@ -746,10 +788,18 @@ const FilePublish = () => {
             </Paper>
 
             {/* 终端列表 */}
-            <Paper sx={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+            <Paper sx={{
+              flex: 1,
+              display: 'flex',
+              flexDirection: 'column',
+              minHeight: 0,
+              overflow: 'hidden'
+            }}>
               <TableContainer sx={{
                 flex: 1,
                 overflow: 'auto',
+                minHeight: '250px',
+                maxHeight: 'calc(min(90vh, 800px) - 350px)',
                 '&::-webkit-scrollbar': {
                   width: '8px',
                 },
@@ -765,7 +815,7 @@ const FilePublish = () => {
                   },
                 },
               }}>
-                <Table stickyHeader>
+                <Table stickyHeader size="small">
                   <TableHead>
                     <TableRow>
                       <TableCell>终端ID</TableCell>
@@ -822,21 +872,23 @@ const FilePublish = () => {
                   </TableBody>
                 </Table>
               </TableContainer>
-              <TablePagination
-                rowsPerPageOptions={[5, 10, 25]}
-                component="div"
-                count={terminalTotalCount}
-                rowsPerPage={terminalRowsPerPage}
-                page={terminalPage}
-                onPageChange={handleTerminalPageChange}
-                onRowsPerPageChange={handleTerminalRowsPerPageChange}
-                labelRowsPerPage="每页行数:"
-                labelDisplayedRows={({ from, to, count }) => `${from}-${to} 共 ${count}`}
-              />
+              <Box sx={{ flexShrink: 0, borderTop: '1px solid #e0e0e0' }}>
+                <TablePagination
+                  rowsPerPageOptions={[10, 25, 50]}
+                  component="div"
+                  count={terminalTotalCount}
+                  rowsPerPage={terminalRowsPerPage}
+                  page={terminalPage}
+                  onPageChange={handleTerminalPageChange}
+                  onRowsPerPageChange={handleTerminalRowsPerPageChange}
+                  labelRowsPerPage="每页行数:"
+                  labelDisplayedRows={({ from, to, count }) => `${from}-${to} 共 ${count}`}
+                />
+              </Box>
             </Paper>
           </Box>
         </DialogContent>
-        <DialogActions>
+        <DialogActions sx={{ flexShrink: 0 }}>
           <Button onClick={() => setTerminalDialog(false)}>取消</Button>
         </DialogActions>
       </Dialog>

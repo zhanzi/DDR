@@ -1689,6 +1689,271 @@ app.MapControllers();
   - 影响：修复后线路终端分布图表能正确显示各线路的终端总数、在线数和离线数
 
 ### 2024-12-20
+- **修复了文件发布列表页面文件类型筛选逻辑不一致问题**：
+  - 问题：文件发布列表页面的文件类型筛选没有根据所选商户进行过滤，与文件版本管理页面的逻辑不一致
+  - 原因：
+    1. 文件发布列表页面使用`getFileTypes()`API加载所有文件类型，没有商户筛选
+    2. 商户变更时没有清空文件类型选择
+    3. 文件类型下拉框没有禁用状态和商户筛选逻辑
+  - 解决方案：
+    1. 修改`loadFileTypes`方法，使用`getAllFileTypes()`API获取所有文件类型数据
+    2. 修改`handleMerchantChange`方法，商户变更时清空文件类型选择
+    3. 修改文件类型下拉框，添加商户筛选逻辑：
+       - 未选择商户时禁用文件类型选择
+       - 只显示选中商户的文件类型（通过`merchantID`字段匹配）
+       - 使用`type.merchantID`作为key的一部分
+  - 影响：现在文件发布列表页面的文件类型筛选与文件版本管理页面保持一致，用户只能看到当前商户的文件类型
+
+- **修复了文件类型下拉框滚动条显示问题**：
+  - 问题：文件类型比较多时，下拉框可能显示不完整，而且没有滚动条出现，用户无法查看所有选项
+  - 原因：Material UI的TextField select模式默认没有设置下拉菜单的最大高度和滚动条
+  - 解决方案：
+    1. 为文件发布列表页面的文件类型下拉框添加`SelectProps.MenuProps.PaperProps`配置
+    2. 为文件版本管理页面的两个文件类型下拉框（筛选条件和上传对话框）添加相同配置
+    3. 设置`maxHeight: 300`限制下拉菜单最大高度为300px
+    4. 设置`overflowY: 'auto'`启用垂直滚动条
+  - 技术实现：
+    ```jsx
+    SelectProps={{
+      MenuProps: {
+        PaperProps: {
+          style: {
+            maxHeight: 300, // 设置下拉菜单最大高度
+            overflowY: 'auto', // 启用垂直滚动条
+          },
+        },
+      },
+    }}
+    ```
+  - 影响：现在当文件类型选项超过300px高度时，会自动显示滚动条，用户可以滚动查看所有选项
+
+- **修复了商户下拉框数据不完整的严重问题**：
+  - 问题：MerchantAutocomplete组件默认只显示前10个商户，当系统中商户数量超过10个时，用户无法选择后面的商户
+  - 根本原因：
+    1. 商户API `getMerchants` 默认 `pageSize = 10`，只返回前10个商户
+    2. MerchantAutocomplete组件调用 `merchantAPI.getMerchants()` 时没有传递任何参数
+    3. 导致组件只能获取到前10个商户数据
+  - 解决方案：
+    1. **修复数据加载问题**：在MerchantAutocomplete组件中调用API时传递 `{ pageSize: 100 }` 参数
+    2. **添加滚动条支持**：为Autocomplete组件添加 `ListboxProps` 配置，设置最大高度300px和垂直滚动条
+  - 技术实现：
+    ```jsx
+    // 修复数据加载
+    const response = await merchantAPI.getMerchants({ pageSize: 100 });
+
+    // 添加滚动条支持
+    <Autocomplete
+      ListboxProps={{
+        style: {
+          maxHeight: 300,
+          overflowY: 'auto',
+        },
+      }}
+      // ... 其他属性
+    />
+    ```
+  - 影响：
+    - 现在所有使用MerchantAutocomplete组件的页面都能显示最多100个商户
+    - 当商户数量很多时，下拉列表会显示滚动条，用户可以滚动查看所有商户
+    - 解决了用户无法选择第10个以后商户的严重功能缺陷
+
+- **优化了消息管理页面的终端筛选方式**：
+  - 问题：终端下拉框在终端数量很多时不方便查找和选择
+  - 原因：下拉框需要加载所有终端数据，用户需要在长列表中查找特定终端
+  - 解决方案：
+    1. **前端修改**：
+       - 移除终端下拉框和相关的终端数据加载逻辑
+       - 替换为两个独立的输入框：出厂序列号和设备编号
+       - 用户可以直接输入具体的终端标识进行精确筛选
+       - 移除了 `loadTerminals` 函数和 `terminals` 状态
+       - 更新筛选条件状态，添加 `deviceNo` 字段
+    2. **后端修改**：
+       - 修改 `MessagesController.GetMessages` 方法，添加 `deviceNo` 参数
+       - 调整查询逻辑，支持按 `terminalId`（出厂序列号）和 `deviceNo`（设备编号）分别筛选
+       - 使用 `m.TerminalID == terminalId` 和 `m.TerminalDeviceNO == deviceNo` 进行精确匹配
+  - 技术实现：
+    ```jsx
+    // 前端：两个独立的输入框
+    <TextField label="出厂序列号" name="terminalId" />
+    <TextField label="设备编号" name="deviceNo" />
+    ```
+    ```csharp
+    // 后端：支持两个筛选条件
+    if (!string.IsNullOrEmpty(terminalId))
+        query = query.Where(m => m.TerminalID == terminalId);
+    if (!string.IsNullOrEmpty(deviceNo))
+        query = query.Where(m => m.TerminalDeviceNO == deviceNo);
+    ```
+  - 影响：
+    - 用户可以直接输入已知的终端标识进行快速筛选，无需在长列表中查找
+    - 减少了前端数据加载量，提升页面加载性能
+    - 支持更精确的筛选，用户可以按出厂序列号或设备编号单独筛选
+    - 提升了大量终端环境下的用户体验
+
+- **增强了消息管理接口，添加商户名称查询**：
+  - 问题：GetMessages 接口返回的消息数据中只有商户ID，没有商户名称，前端显示不够友好
+  - 解决方案：
+    1. **修改 MessageDto**：
+       - 在 `MessageDto` 类中添加 `MerchantName` 字段
+       - 用于存储商户名称信息
+    2. **增强后端查询逻辑**：
+       - 在 `GetMessages` 和 `GetMessage` 方法中添加商户表的联结查询
+       - 使用 `join merchant in _dbContext.Merchants on msgBox.MerchantID equals merchant.MerchantID` 获取商户信息
+       - 在查询结果中包含 `MerchantName = merchant.Name`
+    3. **更新 DTO 转换**：
+       - 在消息列表和单个消息详情的 DTO 转换中都添加 `MerchantName` 字段
+       - 确保前端能够获取到完整的商户信息
+  - 技术实现：
+    ```csharp
+    // 添加商户表联结查询
+    join merchant in _dbContext.Merchants on msgBox.MerchantID equals merchant.MerchantID into merchantJoin
+    from merchant in merchantJoin.DefaultIfEmpty()
+
+    // 在查询结果中包含商户名称
+    MerchantName = merchant.Name,
+
+    // DTO 转换中添加商户名称
+    MerchantName = m.MerchantName,
+    ```
+  - 影响：
+    - 前端消息列表和详情页面现在可以直接显示商户名称，无需额外查询
+    - 提升了用户体验，用户可以直观看到消息所属的商户
+    - 减少了前端的数据处理复杂度
+
+- **修复了日期筛选组件的格式和时间处理问题**：
+  - 问题：
+    1. 日期筛选组件显示格式是 MM/DD/YYYY，用户期望 YYYY/MM/DD 格式
+    2. 前端传递UTC时间给后端（如 `2025-06-16T16:00:00.000Z`），但后端已使用本地时间，导致时区转换问题
+    3. 用户选择 2025-06-17 应该查询本地时间 2025-06-17 00:00:00 到 23:59:59，而不是UTC时间
+  - 解决方案：
+    1. **修改日期格式化工具函数**：
+       - 更新 `formatDateForAPI()` 函数，不再转换为UTC时间，直接返回本地时间字符串
+       - 更新 `formatDateTimeForAPI()` 函数，同样使用本地时间格式
+       - 格式从 ISO 字符串改为 'yyyy-MM-dd HH:mm:ss' 本地时间格式
+    2. **统一修改所有DatePicker组件**：
+       - **消息管理页面**：添加中文本地化和 `format="yyyy/MM/dd"` 属性
+       - **终端事件页面**：同样添加中文本地化和日期格式
+       - **终端记录页面**：添加 `format="yyyy/MM/dd"` 属性
+       - 所有页面都使用 `zhCN.components.MuiLocalizationProvider.defaultProps.localeText` 中文本地化
+    3. **技术实现**：
+       ```jsx
+       // 日期选择器配置
+       <LocalizationProvider
+         dateAdapter={AdapterDateFns}
+         localeText={zhCN.components.MuiLocalizationProvider.defaultProps.localeText}
+       >
+         <DatePicker
+           format="yyyy/MM/dd"
+           // ... 其他属性
+         />
+       </LocalizationProvider>
+       ```
+       ```javascript
+       // 日期API格式化（修改后）
+       export const formatDateForAPI = (localDate, isStartOfDay = true) => {
+         // 返回本地时间字符串，格式为 'yyyy-MM-dd HH:mm:ss'
+         return format(targetDate, 'yyyy-MM-dd HH:mm:ss');
+       };
+       ```
+  - 影响：
+    - 日期选择器现在显示 YYYY/MM/DD 格式，符合用户习惯
+    - 日期筛选使用本地时间，避免时区转换问题
+    - 用户选择的日期范围与实际查询的时间范围完全一致
+    - 所有使用日期筛选的页面（消息管理、终端事件、终端记录）都得到修复
+
+- **修复了TCP服务器主键重复冲突的关键问题**：
+  - 问题现象：TCP服务器遇到异常 `Duplicate entry 'PNT-07630748' for key 'PRIMARY'`，导致连接处理失败
+  - 根本原因分析：
+    1. **EF Core实体状态管理错误**：在`SetTerminalActive`和`SetTerminalInactive`方法中，使用了`dbContext.Terminals.Add(terminal)`来更新已存在的实体
+    2. **Add方法的误用**：`Add`方法会将实体标记为`Added`状态，EF Core会尝试插入新记录而不是更新现有记录
+    3. **内存中的实体与数据库脱离**：从`InitTerminalsFromDatabase`加载的实体使用了`AsNoTracking()`，导致实体不被EF Core跟踪
+    4. **并发访问问题**：多个TCP连接同时操作同一终端时，可能导致重复的插入操作
+  - 技术细节：
+    - `TerminalStatuses`表的主键是`ID`字段（终端ID）
+    - 错误的`dbContext.Terminals.Add(terminal)`会尝试同时插入Terminal和TerminalStatus记录
+    - 由于TerminalStatus已存在，MySQL返回主键重复错误
+    - EF Core的级联操作导致Terminal更新时也会影响关联的TerminalStatus
+  - 解决方案：
+    1. **修改实体状态管理**：将错误的`dbContext.Terminals.Add(terminal)`改为正确的状态更新逻辑
+    2. **分离Terminal和TerminalStatus的更新**：只更新TerminalStatus实体，避免Terminal的级联操作
+    3. **使用Find+Update模式**：先用`Find`查找现有记录，然后更新字段，避免实体状态冲突
+    4. **添加完整的异常处理**：捕获并记录主键冲突异常，不影响内存状态更新
+    5. **保留批量更新机制**：对于高频的LastActiveTime更新，继续使用已实现的批量更新
+  - 具体修改：
+    ```csharp
+    // 修改前（错误）：
+    dbContext.Terminals.Add(terminal);  // 会导致主键冲突
+
+    // 修改后（正确）：
+    var existingStatus = dbContext.TerminalStatuses.Find(terminal.Status.ID);
+    if (existingStatus != null) {
+        existingStatus.ActiveStatus = DeviceActiveStatus.Active;
+        existingStatus.LastActiveTime = now;
+    } else {
+        dbContext.TerminalStatuses.Add(terminal.Status);
+    }
+    ```
+  - 影响：解决了TCP服务器的稳定性问题，避免了因主键冲突导致的连接处理失败
+
+- **修复了EFCore.BulkExtensions批量更新失败的事务问题**：
+  - 问题现象：批量更新LastActiveTime时出现异常 `When 'UseTempDB' is set then BulkOperation has to be inside Transaction`
+  - 根本原因：
+    1. **事务要求**：EFCore.BulkExtensions在使用`UseTempDB = true`时要求操作必须在事务内执行
+    2. **临时表生命周期**：没有事务保护时，临时表可能在操作完成前被过早删除
+    3. **配置冲突**：代码中设置了`UseTempDB = true`但没有显式创建事务
+  - 其他常见失败原因：
+    - `Loading local data is disabled`：MySQL的`local_infile`功能被禁用
+    - `AllowLoadLocalInfile`：连接字符串中没有启用本地文件加载
+    - `doesn't have a default value`：某些字段缺少默认值
+  - 解决方案：
+    1. **添加事务支持**：在`BatchUpdateWithExecuteUpdate`方法中使用`BeginTransactionAsync`包装批量更新操作
+    2. **完善异常处理**：扩展异常捕获条件，包含事务相关的异常
+    3. **确保事务完整性**：成功时提交事务，失败时回滚事务
+    4. **多层降级策略**：BulkExtensions失败 → 原生SQL → 回退方案
+  - 技术细节：
+    ```csharp
+    using var transaction = await dbContext.Database.BeginTransactionAsync();
+    try {
+        await dbContext.BulkUpdateAsync(terminalStatusesToUpdate, options => {
+            options.UseTempDB = true; // 现在可以安全使用临时表
+        });
+        await transaction.CommitAsync();
+    } catch {
+        await transaction.RollbackAsync();
+        throw;
+    }
+    ```
+  - 影响：提高了批量更新的成功率和稳定性，减少了降级到低性能方案的频率
+
+- **修复了EFCore.BulkExtensions的MySQL语法兼容性问题**：
+  - 问题现象：批量更新时出现MySQL语法错误 `You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '; SET sql_select_limit=default'`
+  - 根本原因：
+    1. **MySQL版本兼容性**：EFCore.BulkExtensions生成的SQL语句与特定MySQL版本不兼容
+    2. **sql_select_limit设置问题**：BulkExtensions尝试设置MySQL的`sql_select_limit`参数时语法错误
+    3. **临时表和复杂SQL**：使用`UseTempDB = true`时生成的复杂SQL语句可能触发MySQL解析器问题
+  - 解决方案：
+    1. **使用保守的BulkExtensions配置**：
+       - 禁用临时表：`UseTempDB = false`
+       - 减小批次大小：`BatchSize = 500`（从1000降低）
+       - 添加超时设置：`BulkCopyTimeout = 30`
+    2. **扩展异常捕获范围**：
+       - 添加对`SQL syntax`、`sql_select_limit`、`MySqlException`的捕获
+       - 确保所有MySQL相关异常都能触发降级策略
+    3. **多层降级保障**：
+       - 第一层：优化的BulkExtensions（无临时表）
+       - 第二层：原生SQL CASE WHEN语句
+       - 第三层：逐个更新的回退方案
+  - 技术细节：
+    ```csharp
+    await dbContext.BulkUpdateAsync(terminalStatusesToUpdate, options => {
+        options.UseTempDB = false; // 禁用临时表避免语法问题
+        options.BatchSize = 500;   // 减小批次提高兼容性
+        options.BulkCopyTimeout = 30; // 设置合理超时
+    });
+    ```
+  - 影响：提高了EFCore.BulkExtensions在不同MySQL版本下的兼容性，减少了因语法问题导致的降级
+
+### 2024-12-20
 - **创建了WebAdmin项目系统架构设计文档**：
   - 文件位置：`docs/system-architecture.md`
   - 文档内容：
@@ -1806,3 +2071,142 @@ app.MapControllers();
     - 添加webkit滚动条样式，提供更好的视觉反馈
     - 通过minHeight: 0解决flex子元素的高度计算问题
   - 影响：现在用户可以在任何屏幕尺寸下正常滚动查看所有线路和终端，大大改善了文件发布的用户体验
+
+- **实现安全的数据库迁移机制**：
+  - 问题现象：`dbContext.Database.Migrate()`存在迁移执行一半失败的风险，且WebAdmin和ApiService都执行迁移可能导致冲突
+  - 根本原因：
+    1. 原始迁移没有事务保护，失败时可能留下不一致状态
+    2. 多个应用同时执行迁移会导致并发冲突和数据库锁定
+    3. 缺少迁移状态监控和错误恢复机制
+    4. 没有统一的迁移服务，代码重复且难以维护
+  - 解决方案：
+    1. **创建专业的迁移服务**：
+       - 新增`SlzrCrossGate.Core/Services/DatabaseMigrationService.cs`
+       - 提供事务保护的迁移执行
+       - 支持迁移前后验证和状态检查
+       - 详细的日志记录和错误处理
+    2. **实现分布式迁移锁机制**：
+       - 创建`migration_locks`表防止并发迁移
+       - 30分钟超时机制，自动清理过期锁
+       - 支持多应用环境下的安全迁移
+       - 应用标识和锁状态监控
+    3. **统一迁移调用方式**：
+       - Core项目注册DatabaseMigrationService
+       - WebAdmin和ApiService共享同一迁移服务
+       - 标准化的迁移选项和结果处理
+       - 应用程序名称标识，便于日志追踪
+  - 技术细节：
+    - 使用MySQL的`ON DUPLICATE KEY UPDATE`实现原子锁获取
+    - 事务中执行迁移，失败时自动回滚
+    - 迁移前检查数据库连接性和待应用迁移
+    - 迁移后验证完整性，确保所有迁移都已应用
+    - 支持命令超时配置，默认10分钟
+  - 部署策略：
+    - 推荐方案：指定单一应用（如WebAdmin）执行迁移
+    - 备选方案：使用分布式锁，任一应用都可执行迁移
+    - 独立迁移：使用专门的迁移容器或脚本
+  - 影响：大幅提升数据库迁移的安全性和可靠性，防止迁移冲突和数据不一致，支持分布式部署环境
+  - 修复SQL查询问题：
+    - 问题：EF Core的SqlQueryRaw方法期望返回具有Value属性的对象，但直接查询字符串/整数会导致"Unknown column 't.Value'"错误
+    - 解决：创建StringResult和IntResult辅助类，修改SQL查询使用"AS Value"别名
+    - 配置：添加EnableMigration环境变量控制，支持灵活的部署策略
+    - 文档：提供完整的Docker Compose配置示例，支持生产和开发环境
+
+- **解决迁移失败索引丢失问题**：
+  - 问题现象：迁移失败事务回滚后，发现某些索引不见了，数据库处于不一致状态
+  - 根本原因：
+    1. MySQL中DDL操作（索引创建/删除）会导致隐式提交，无法通过事务回滚
+    2. EF Core迁移包含多个DDL操作，部分成功部分失败时会留下不一致状态
+    3. 单个DDL语句是原子的，但多个DDL语句之间不是原子的
+    4. 事务回滚只能回滚DML操作，不能回滚已执行的DDL操作
+  - 解决方案：
+    1. **改进迁移监控**：
+       - 在迁移前后创建数据库结构快照
+       - 详细记录表、索引的变化情况
+       - 提供失败时的详细分析和对比
+       - 生成具体的恢复建议和指令
+    2. **创建专门的索引恢复服务**：
+       - 新增`IndexRecoveryService`专门处理索引恢复
+       - 从EF Core模型中提取期望的索引定义
+       - 自动检测丢失的索引并尝试重建
+       - 生成手动恢复的SQL脚本
+    3. **增强迁移执行策略**：
+       - 逐个跟踪迁移执行进度，便于定位失败点
+       - 记录每个迁移步骤的详细状态
+       - 提供更精确的错误定位和恢复指导
+       - 支持迁移后的自动索引完整性验证
+  - 技术细节：
+    - 使用information_schema查询当前数据库索引状态
+    - 通过EF Core模型反射获取期望的索引定义
+    - 支持唯一索引和普通索引的自动重建
+    - 提供详细的索引对比和差异分析
+    - 生成标准的MySQL索引创建脚本
+  - 使用方式：
+    - 迁移失败后自动触发索引恢复检查
+    - 提供API端点用于手动触发索引恢复
+    - 支持定期的索引健康检查后台服务
+    - 集成到应用健康检查系统中
+  - 影响：彻底解决了MySQL DDL操作不可回滚导致的索引丢失问题，提供了完整的检测、恢复和监控机制
+  - 实现状态：
+    - ✅ WebAdmin已集成自动索引恢复：迁移失败时自动检测和恢复丢失的索引
+    - ✅ ApiService已集成索引完整性检查：可选的启动时索引检查（通过CheckIndexesOnStartup配置）
+    - ✅ 提供完整的配置示例：appsettings.migration-example.json包含所有相关配置
+    - ✅ 提供测试脚本：test-index-recovery.sql用于验证恢复功能
+    - ✅ 详细的使用文档：INDEX_RECOVERY_GUIDE.md提供完整的使用指南
+
+- **增强了日期筛选功能，支持精确时间选择**：
+  - 需求：在某些场景下（如终端记录查询），用户希望能够更精确地指定查询时间，包括小时和分钟
+  - 解决方案：
+    1. **终端记录页面提供可选的精确时间模式**：
+       - 添加切换开关，用户可以选择是否启用精确时间选择
+       - 默认启用精确时间模式（`usePreciseTime = true`），适合需要精确分析的场景
+       - 根据开关状态条件渲染 `DatePicker` 或 `DateTimePicker`
+       - 优化网格布局，时间选择器使用适中的宽度（md={2.5}），避免占用过多空间
+    2. **消息管理页面提供可选的精确时间模式**：
+       - 添加切换开关，用户可以选择是否启用精确时间选择
+       - 根据开关状态条件渲染 `DatePicker` 或 `DateTimePicker`
+       - 优化网格布局，时间选择器使用适中的宽度（md={2.5}），避免占用过多空间
+  - 技术实现：
+    ```jsx
+    // 统一的切换开关设计（终端记录和消息管理页面）
+    <FormControlLabel
+      control={
+        <Switch
+          checked={usePreciseTime}
+          onChange={(e) => setUsePreciseTime(e.target.checked)}
+          size="small"
+        />
+      }
+      label="精确时间选择（包含小时分钟）"
+    />
+
+    // 条件渲染时间选择器
+    {usePreciseTime ? (
+      <DateTimePicker
+        label="开始时间"
+        value={startDate}
+        onChange={setStartDate}
+        format="yyyy/MM/dd HH:mm"
+        ampm={false} // 24小时制
+      />
+    ) : (
+      <DatePicker
+        label="开始日期"
+        value={startDate}
+        onChange={setStartDate}
+        format="yyyy/MM/dd"
+      />
+    )}
+    ```
+  - 配置要点：
+    - 导入 `DateTimePicker` 组件：`import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker'`
+    - 设置中文本地化：`adapterLocale={dateFnsZhCN}`
+    - 使用24小时制：`ampm={false}`
+    - 调整显示格式：`format="yyyy/MM/dd HH:mm"`
+  - 影响：
+    - 用户可以精确指定查询时间范围，提高查询精度
+    - 终端记录页面默认启用精确时间，适合需要精确时间分析的场景
+    - 消息管理页面默认使用日期选择，可选择启用精确时间模式
+    - 两个页面都提供统一的切换体验，用户可根据需要灵活选择
+    - 优化的网格布局（md={2.5}）确保时间选择器有足够空间但不会过度占用界面
+    - 后端时间处理已支持本地时间，无需额外修改

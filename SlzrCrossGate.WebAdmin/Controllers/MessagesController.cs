@@ -39,7 +39,8 @@ namespace SlzrCrossGate.WebAdmin.Controllers
         public async Task<ActionResult<PaginatedResult<MessageDto>>> GetMessages(
             [FromQuery] string? merchantId = null,
             [FromQuery] string? msgTypeId = null,
-            [FromQuery] string? terminalId = null,
+            [FromQuery] string? machineId = null, // 出厂序列号
+            [FromQuery] string? deviceNo = null, // 设备编号
             [FromQuery] bool? isRead = null,
             [FromQuery] DateTime? startDate = null,
             [FromQuery] DateTime? endDate = null,
@@ -70,6 +71,8 @@ namespace SlzrCrossGate.WebAdmin.Controllers
                         from msgType in msgTypeJoin.DefaultIfEmpty()
                         join terminal in _dbContext.Terminals on msgBox.TerminalID equals terminal.ID into terminalJoin
                         from terminal in terminalJoin.DefaultIfEmpty()
+                        join merchant in _dbContext.Merchants on msgBox.MerchantID equals merchant.MerchantID into merchantJoin
+                        from merchant in merchantJoin.DefaultIfEmpty()
                         select new
                         {
                             msgBox.ID,
@@ -79,6 +82,8 @@ namespace SlzrCrossGate.WebAdmin.Controllers
                             CreateTime = msgBox.SendTime,
                             IsRead = msgBox.Status == MessageStatus.Read || msgBox.Status == MessageStatus.Replied,
                             msgBox.ReadTime,
+                            MerchantName = merchant.Name,
+                            TerminalMachineID = terminal.MachineID,
                             TerminalDeviceNO = terminal.DeviceNO,
                             TerminalLineNO = terminal.LineNO,
                             MsgTypeID = msgContent.MsgTypeID,
@@ -98,9 +103,14 @@ namespace SlzrCrossGate.WebAdmin.Controllers
                 query = query.Where(m => m.MsgTypeID == msgTypeId);
             }
 
-            if (!string.IsNullOrEmpty(terminalId))
+            if (!string.IsNullOrEmpty(machineId))
             {
-                query = query.Where(m => m.TerminalID == terminalId);
+                query = query.Where(m => m.TerminalMachineID == machineId);
+            }
+
+            if (!string.IsNullOrEmpty(deviceNo))
+            {
+                query = query.Where(m => m.TerminalDeviceNO == deviceNo);
             }
 
             if (isRead.HasValue)
@@ -138,6 +148,7 @@ namespace SlzrCrossGate.WebAdmin.Controllers
                 CreateTime = m.CreateTime,
                 IsRead = m.IsRead,
                 ReadTime = m.ReadTime,
+                MerchantName = m.MerchantName,
                 TerminalDeviceNO = m.TerminalDeviceNO,
                 TerminalLineNO = m.TerminalLineNO,
                 MsgTypeID = m.MsgTypeID,
@@ -171,6 +182,8 @@ namespace SlzrCrossGate.WebAdmin.Controllers
                                from msgType in msgTypeJoin.DefaultIfEmpty()
                                join terminal in _dbContext.Terminals on msgBox.TerminalID equals terminal.ID into terminalJoin
                                from terminal in terminalJoin.DefaultIfEmpty()
+                               join merchant in _dbContext.Merchants on msgBox.MerchantID equals merchant.MerchantID into merchantJoin
+                               from merchant in merchantJoin.DefaultIfEmpty()
                                where msgBox.ID == id
                                select new
                                {
@@ -181,6 +194,7 @@ namespace SlzrCrossGate.WebAdmin.Controllers
                                    CreateTime = msgBox.SendTime,
                                    IsRead = msgBox.Status == MessageStatus.Read || msgBox.Status == MessageStatus.Replied,
                                    msgBox.ReadTime,
+                                   MerchantName = merchant.Name,
                                    TerminalDeviceNO = terminal.DeviceNO,
                                    TerminalLineNO = terminal.LineNO,
                                    MsgTypeID = msgContent.MsgTypeID,
@@ -209,6 +223,7 @@ namespace SlzrCrossGate.WebAdmin.Controllers
                 CreateTime = message.CreateTime,
                 IsRead = message.IsRead,
                 ReadTime = message.ReadTime,
+                MerchantName = message.MerchantName,
                 TerminalDeviceNO = message.TerminalDeviceNO,
                 TerminalLineNO = message.TerminalLineNO,
                 MsgTypeID = message.MsgTypeID,
@@ -289,7 +304,7 @@ namespace SlzrCrossGate.WebAdmin.Controllers
                     Remark = $"Message sent: Type={model.MsgTypeCode}, Content={model.Content}",
                     Operator = username
                 });
-                
+
             }
 
             return new MessageSendResultDto

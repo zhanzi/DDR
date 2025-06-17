@@ -1,0 +1,229 @@
+# Docker Compose 配置示例 - 数据库迁移策略
+# 这个文件展示了如何在容器化环境中安全地处理数据库迁移
+
+version: '3.8'
+
+services:
+  # MySQL 数据库服务
+  mysql:
+    image: mysql:8.0
+    container_name: slzr-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: slzrcrossgate
+      MYSQL_USER: slzruser
+      MYSQL_PASSWORD: slzrpassword
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./mysql-init:/docker-entrypoint-initdb.d
+    command: --default-authentication-plugin=mysql_native_password
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 20s
+      retries: 10
+      interval: 10s
+      start_period: 40s
+
+  # RabbitMQ 消息队列服务
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: slzr-rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: admin
+      RABBITMQ_DEFAULT_PASS: admin123
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+
+  # MinIO 对象存储服务
+  minio:
+    image: minio/minio:latest
+    container_name: slzr-minio
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin123
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio_data:/data
+    command: server /data --console-address ":9001"
+
+  # WebAdmin 服务 - 负责执行数据库迁移
+  webadmin:
+    image: slzrcrossgate/webadmin:latest
+    container_name: slzr-webadmin
+    environment:
+      # 数据库配置
+      - ConnectionStrings__DefaultConnection=Server=mysql;Database=slzrcrossgate;User=slzruser;Password=slzrpassword;AllowLoadLocalInfile=true
+      - DatabaseProvider=MySql
+      
+      # 迁移配置 - WebAdmin 负责执行迁移
+      - EnableMigration=true
+      
+      # RabbitMQ 配置
+      - RabbitMQ__HostName=rabbitmq
+      - RabbitMQ__UserName=admin
+      - RabbitMQ__Password=admin123
+      
+      # MinIO 配置
+      - FileService__DefaultStorageType=MinIO
+      - FileService__MinIO__Endpoint=minio:9000
+      - FileService__MinIO__AccessKey=minioadmin
+      - FileService__MinIO__SecretKey=minioadmin123
+      - FileService__MinIO__BucketName=slzr-files
+      
+      # JWT 配置
+      - Jwt__Key=your-super-secret-jwt-key-here-must-be-at-least-32-characters
+      - Jwt__Issuer=SlzrCrossGate
+      - Jwt__Audience=SlzrCrossGate.WebAdmin
+      
+      # 应用配置
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ASPNETCORE_URLS=https://+:443;http://+:80
+    ports:
+      - "5270:80"
+      - "7296:443"
+    volumes:
+      - ./certs:/app/certs:ro
+      - ./Keys:/app/Keys
+    depends_on:
+      mysql:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_started
+      minio:
+        condition: service_started
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # ApiService 服务 - 不执行迁移，等待 WebAdmin 完成迁移
+  apiservice:
+    image: slzrcrossgate/apiservice:latest
+    container_name: slzr-apiservice
+    environment:
+      # 数据库配置
+      - ConnectionStrings__DefaultConnection=Server=mysql;Database=slzrcrossgate;User=slzruser;Password=slzrpassword;AllowLoadLocalInfile=true
+      - DatabaseProvider=MySql
+      
+      # 迁移配置 - ApiService 不执行迁移
+      - EnableMigration=false
+      
+      # RabbitMQ 配置
+      - RabbitMQ__HostName=rabbitmq
+      - RabbitMQ__UserName=admin
+      - RabbitMQ__Password=admin123
+      
+      # MinIO 配置
+      - FileService__DefaultStorageType=MinIO
+      - FileService__MinIO__Endpoint=minio:9000
+      - FileService__MinIO__AccessKey=minioadmin
+      - FileService__MinIO__SecretKey=minioadmin123
+      - FileService__MinIO__BucketName=slzr-files
+      
+      # 端口配置
+      - HTTP_PORT=8000
+      - TCP_PORT=8001
+      
+      # 应用配置
+      - ASPNETCORE_ENVIRONMENT=Production
+    ports:
+      - "8000:8000"  # HTTP API
+      - "8001:8001"  # TCP 终端连接
+    depends_on:
+      webadmin:
+        condition: service_healthy  # 等待 WebAdmin 健康检查通过（包括迁移完成）
+      mysql:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_started
+      minio:
+        condition: service_started
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+volumes:
+  mysql_data:
+    driver: local
+  rabbitmq_data:
+    driver: local
+  minio_data:
+    driver: local
+
+# 网络配置（可选）
+networks:
+  default:
+    name: slzr-network
+    driver: bridge
+
+---
+# 备选方案：使用独立的迁移容器
+# 如果您希望使用专门的迁移容器，可以使用以下配置：
+
+# version: '3.8'
+# 
+# services:
+#   # 数据库迁移容器 - 只运行一次
+#   migration:
+#     image: slzrcrossgate/migration:latest
+#     container_name: slzr-migration
+#     environment:
+#       - ConnectionStrings__DefaultConnection=Server=mysql;Database=slzrcrossgate;User=slzruser;Password=slzrpassword;AllowLoadLocalInfile=true
+#       - DatabaseProvider=MySql
+#     depends_on:
+#       mysql:
+#         condition: service_healthy
+#     restart: "no"  # 只运行一次，不重启
+#     command: ["dotnet", "ef", "database", "update", "--project", "SlzrCrossGate.Core"]
+# 
+#   # WebAdmin 服务 - 依赖迁移完成
+#   webadmin:
+#     image: slzrcrossgate/webadmin:latest
+#     environment:
+#       - EnableMigration=false  # 不执行迁移
+#     depends_on:
+#       migration:
+#         condition: service_completed_successfully  # 等待迁移容器成功完成
+# 
+#   # ApiService 服务 - 依赖迁移完成
+#   apiservice:
+#     image: slzrcrossgate/apiservice:latest
+#     environment:
+#       - EnableMigration=false  # 不执行迁移
+#     depends_on:
+#       migration:
+#         condition: service_completed_successfully  # 等待迁移容器成功完成
+
+---
+# 开发环境配置示例
+# 在开发环境中，可以让两个服务都尝试迁移，通过分布式锁协调
+
+# version: '3.8'
+# 
+# services:
+#   webadmin:
+#     environment:
+#       - EnableMigration=true   # 开发环境允许迁移
+#       - ASPNETCORE_ENVIRONMENT=Development
+# 
+#   apiservice:
+#     environment:
+#       - EnableMigration=true   # 开发环境允许迁移，通过分布式锁协调
+#       - ASPNETCORE_ENVIRONMENT=Development
+#     depends_on:
+#       mysql:
+#         condition: service_healthy  # 不依赖 WebAdmin，直接依赖数据库

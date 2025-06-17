@@ -18,7 +18,9 @@ import {
   CircularProgress,
   IconButton,
   Tooltip,
-  Alert
+  Alert,
+  FormControlLabel,
+  Switch
 } from '@mui/material';
 import {
   Search as SearchIcon,
@@ -27,10 +29,12 @@ import {
   ContentCopy as ContentCopyIcon
 } from '@mui/icons-material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { zhCN } from '@mui/x-date-pickers/locales';
 import { format } from 'date-fns';
+import { zhCN as dateFnsZhCN } from 'date-fns/locale';
 import { useSnackbar } from 'notistack';
 import { useAuth } from '../../contexts/AuthContext';
 import { consumeDataAPI } from '../../services/api';
@@ -55,6 +59,7 @@ const TerminalRecords = () => {
   const [machineNo, setMachineNo] = useState('');
   const [startDate, setStartDate] = useState(null);
   const [endDate, setEndDate] = useState(null);
+  const [usePreciseTime, setUsePreciseTime] = useState(false); // 默认不启用精确时间选择
 
   // 检查用户权限
   const isSystemAdmin = user?.roles?.includes('SystemAdmin');
@@ -187,6 +192,7 @@ const TerminalRecords = () => {
   return (
     <LocalizationProvider
       dateAdapter={AdapterDateFns}
+      adapterLocale={dateFnsZhCN}
       localeText={zhCN.components.MuiLocalizationProvider.defaultProps.localeText}
     >
       <Container maxWidth={false}>
@@ -238,39 +244,87 @@ const TerminalRecords = () => {
                 />
               </Grid>
 
+              {/* 精确时间切换开关 */}
+              <Grid item xs={12}>
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={usePreciseTime}
+                      onChange={(e) => setUsePreciseTime(e.target.checked)}
+                      size="small"
+                    />
+                  }
+                  label="精确时间选择（包含小时分钟）"
+                />
+              </Grid>
+
               {/* 开始时间 */}
               <Grid item xs={12} sm={6} md={2}>
-                <DatePicker
-                  label="开始时间"
-                  value={startDate}
-                  onChange={setStartDate}
-                  slotProps={{
-                    textField: {
-                      size: 'small',
-                      fullWidth: true
-                    }
-                  }}
-                />
+                {usePreciseTime ? (
+                  <DateTimePicker
+                    label="开始时间"
+                    value={startDate}
+                    onChange={setStartDate}
+                    format="yyyy/MM/dd HH:mm"
+                    ampm={false} // 使用24小时制
+                    slotProps={{
+                      textField: {
+                        size: 'small',
+                        fullWidth: true
+                      }
+                    }}
+                  />
+                ) : (
+                  <DatePicker
+                    label="开始日期"
+                    value={startDate}
+                    onChange={setStartDate}
+                    format="yyyy/MM/dd"
+                    slotProps={{
+                      textField: {
+                        size: 'small',
+                        fullWidth: true
+                      }
+                    }}
+                  />
+                )}
               </Grid>
 
               {/* 结束时间 */}
               <Grid item xs={12} sm={6} md={2}>
-                <DatePicker
-                  label="结束时间"
-                  value={endDate}
-                  onChange={setEndDate}
-                  slotProps={{
-                    textField: {
-                      size: 'small',
-                      fullWidth: true
-                    }
-                  }}
-                />
+                {usePreciseTime ? (
+                  <DateTimePicker
+                    label="结束时间"
+                    value={endDate}
+                    onChange={setEndDate}
+                    format="yyyy/MM/dd HH:mm"
+                    ampm={false} // 使用24小时制
+                    slotProps={{
+                      textField: {
+                        size: 'small',
+                        fullWidth: true
+                      }
+                    }}
+                  />
+                ) : (
+                  <DatePicker
+                    label="结束日期"
+                    value={endDate}
+                    onChange={setEndDate}
+                    format="yyyy/MM/dd"
+                    slotProps={{
+                      textField: {
+                        size: 'small',
+                        fullWidth: true
+                      }
+                    }}
+                  />
+                )}
               </Grid>
 
               {/* 操作按钮 */}
-              <Grid item xs={12} sm={6} md={2}>
-                <Box sx={{ display: 'flex', gap: 1 }}>
+              <Grid item xs={12} sm={6} md={2.5}>
+                <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-start' }}>
                   <Button
                     variant="contained"
                     startIcon={<SearchIcon />}
@@ -369,7 +423,7 @@ const TerminalRecords = () => {
                                   fontFamily: 'monospace',
                                   fontSize: '0.75rem',
                                   color: 'text.secondary',
-                                  backgroundColor: (theme) => 
+                                  backgroundColor: (theme) =>
                                     theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.05)' : 'grey.50',
                                   padding: '4px 8px',
                                   borderRadius: 1,

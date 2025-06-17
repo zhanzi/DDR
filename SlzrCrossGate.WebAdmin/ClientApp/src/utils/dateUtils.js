@@ -147,10 +147,11 @@ export const isWithinMinutes = (dateInput, minutes = 5) => {
 };
 
 /**
- * 将本地日期转换为UTC日期字符串（用于API查询）
+ * 将本地日期转换为本地日期时间字符串（用于API查询）
+ * 注意：后端已使用本地时间，不再需要UTC转换
  * @param {Date} localDate - 本地日期对象
  * @param {boolean} isStartOfDay - 是否为一天的开始（00:00:00），默认true
- * @returns {string} UTC日期字符串，格式为 'yyyy-MM-dd' 或 'yyyy-MM-ddTHH:mm:ss.sssZ'
+ * @returns {string} 本地日期时间字符串，格式为 'yyyy-MM-dd HH:mm:ss'
  */
 export const formatDateForAPI = (localDate, isStartOfDay = true) => {
   if (!localDate) return undefined;
@@ -180,8 +181,8 @@ export const formatDateForAPI = (localDate, isStartOfDay = true) => {
       targetDate.setHours(23, 59, 59, 999);
     }
 
-    // 返回ISO字符串，这会自动转换为UTC时间
-    return targetDate.toISOString();
+    // 返回本地时间字符串，格式为 'yyyy-MM-dd HH:mm:ss'
+    return format(targetDate, 'yyyy-MM-dd HH:mm:ss');
   } catch (error) {
     console.error('Error formatting date for API:', error, localDate);
     return undefined;
@@ -189,9 +190,10 @@ export const formatDateForAPI = (localDate, isStartOfDay = true) => {
 };
 
 /**
- * 将本地日期时间转换为UTC日期时间字符串（用于API查询）
+ * 将本地日期时间转换为本地日期时间字符串（用于API查询）
+ * 注意：后端已使用本地时间，不再需要UTC转换
  * @param {Date|string} localDateTime - 本地日期时间
- * @returns {string} UTC日期时间字符串
+ * @returns {string} 本地日期时间字符串，格式为 'yyyy-MM-dd HH:mm:ss'
  */
 export const formatDateTimeForAPI = (localDateTime) => {
   if (!localDateTime) return undefined;
@@ -210,8 +212,8 @@ export const formatDateTimeForAPI = (localDateTime) => {
       return undefined;
     }
 
-    // 返回ISO字符串，这会自动转换为UTC时间
-    return date.toISOString();
+    // 返回本地时间字符串，格式为 'yyyy-MM-dd HH:mm:ss'
+    return format(date, 'yyyy-MM-dd HH:mm:ss');
   } catch (error) {
     console.error('Error formatting datetime for API:', error, localDateTime);
     return undefined;
