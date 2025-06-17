@@ -359,7 +359,7 @@ const FileVersionList = () => {
       const fileTypeId = fileVersion.fileTypeID;
       const filePara = fileVersion.filePara;
       const ver = fileVersion.ver;
-      const fileName = `$${fileTypeId}${filePara}_${ver}.bin`;
+      const fileName = `${fileTypeId}${filePara}_${ver}.bin`;
 
       link.href = url;
       link.setAttribute('download', fileName);
@@ -522,7 +522,6 @@ const FileVersionList = () => {
         <ResponsiveTable minWidth={1100} stickyActions={true}>
           <ResponsiveTableHead>
             <ResponsiveTableRow>
-              <ResponsiveTableCell>ID</ResponsiveTableCell>
               <ResponsiveTableCell hideOn={['xs']}>商户</ResponsiveTableCell>
               <ResponsiveTableCell>文件类型</ResponsiveTableCell>
               <ResponsiveTableCell hideOn={['xs', 'sm']}>文件参数</ResponsiveTableCell>
@@ -537,30 +536,20 @@ const FileVersionList = () => {
           <ResponsiveTableBody>
             {loading ? (
               <ResponsiveTableRow>
-                <ResponsiveTableCell colSpan={10} align="center">
+                <ResponsiveTableCell colSpan={9} align="center">
                   <CircularProgress size={24} />
                 </ResponsiveTableCell>
               </ResponsiveTableRow>
             ) : fileVersions.length === 0 ? (
               <ResponsiveTableRow>
-                <ResponsiveTableCell colSpan={10} align="center">
+                <ResponsiveTableCell colSpan={9} align="center">
                   没有找到文件版本
                 </ResponsiveTableCell>
               </ResponsiveTableRow>
             ) : (
               fileVersions.map((fileVersion) => (
                 <ResponsiveTableRow key={fileVersion.id}>
-                  <ResponsiveTableCell>
-                    <Box>
-                      <Typography variant="body2" fontWeight="bold">
-                        {fileVersion.id}
-                      </Typography>
-                      {/* 在小屏幕上显示商户信息 */}
-                      <Typography variant="caption" color="textSecondary" sx={{ display: { xs: 'block', sm: 'none' } }}>
-                        {fileVersion.merchantName}
-                      </Typography>
-                    </Box>
-                  </ResponsiveTableCell>
+ 
                   <ResponsiveTableCell hideOn={['xs']}>
                     <Tooltip title={fileVersion.merchantID || ''}>
                       <span>{fileVersion.merchantName}</span>

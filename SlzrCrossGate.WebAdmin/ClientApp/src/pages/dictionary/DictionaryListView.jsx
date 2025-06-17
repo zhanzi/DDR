@@ -41,6 +41,7 @@ import { useSnackbar } from 'notistack';
 import { dictionaryAPI, merchantAPI } from '../../services/api';
 import MerchantAutocomplete from '../../components/MerchantAutocomplete';
 import DictionaryFormDialog from './DictionaryFormDialog';
+import { parseErrorMessage } from '../../utils/errorHandler';
 import { useAuth } from '../../contexts/AuthContext';
 
 const DictionaryListView = () => {
@@ -78,7 +79,7 @@ const DictionaryListView = () => {
   }, [enqueueSnackbar]);
 
   useEffect(() => {
-    if(selectedMerchant?.merchantID){ 
+    if(selectedMerchant?.merchantID){
         loadDictionaryTypes(selectedMerchant?.merchantID);
     }else{
         setTypes([]);
@@ -113,13 +114,14 @@ const DictionaryListView = () => {
       }
 
       const response = await dictionaryAPI.getDictionaries(params);
-      
+
       // 使用标准化的分页结果格式
       setTotalCount(response.totalCount || 0);
       setDictionaries(response.items || []);
     } catch (error) {
       console.error('加载商户字典列表失败', error);
-      enqueueSnackbar('加载商户字典列表失败', { variant: 'error' });
+      const errorMessage = parseErrorMessage(error, '加载商户字典列表失败');
+      enqueueSnackbar(errorMessage, { variant: 'error' });
       setDictionaries([]);
       setTotalCount(0);
     } finally {
@@ -238,12 +240,12 @@ const DictionaryListView = () => {
       <Card sx={{ mb: 3, p: 3 }}>
         <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, alignItems: 'center', mb: 2 }}>
           <Box sx={{ flexGrow: 1, display: 'flex', flexWrap: 'wrap', gap: 2 }}>
-            <MerchantAutocomplete 
+            <MerchantAutocomplete
               value={selectedMerchant}
               onChange={handleMerchantChange}
               sx={{ minWidth: '250px', width: { xs: '100%', sm: 'auto' } }}
             />
-            
+
             <FormControl sx={{ minWidth: '200px', width: { xs: '100%', sm: 'auto' } }} size="small">
               <InputLabel>字典类型</InputLabel>
               <Select
@@ -261,7 +263,7 @@ const DictionaryListView = () => {
                 ))}
               </Select>
             </FormControl>
-            
+
             <TextField
               size="small"
               label="搜索"

@@ -30,6 +30,7 @@ import { useNavigate } from 'react-router-dom';
 import { dashboardAPI, merchantAPI } from '../../services/api'; // 使用统一的API服务
 import MerchantAutocomplete from '../../components/MerchantAutocomplete';
 import { formatDateTime, formatDate } from '../../utils/dateUtils';
+import { parseErrorMessage } from '../../utils/errorHandler';
 import {
   BarChart,
   Bar,
@@ -84,7 +85,8 @@ const MerchantDashboard = () => {
       setDashboardData(response);
     } catch (error) {
       console.error('Error loading dashboard data:', error);
-      setError('加载仪表盘数据失败');
+      const errorMessage = parseErrorMessage(error, '加载仪表盘数据失败');
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }

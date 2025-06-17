@@ -35,11 +35,14 @@ import {
   History as HistoryIcon
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
+import { useSnackbar } from 'notistack';
 import { fileAPI } from '../../services/api';
 import { formatDateTime } from '../../utils/dateUtils';
+import { parseErrorMessage } from '../../utils/errorHandler';
 
 const FilePublishList = () => {
   const navigate = useNavigate();
+  const { enqueueSnackbar } = useSnackbar();
   const [tabValue, setTabValue] = useState(0); // 0: 当前发布, 1: 发布历史
   const [filePublishes, setFilePublishes] = useState([]);
   const [fileTypes, setFileTypes] = useState([]);
@@ -88,6 +91,10 @@ const FilePublishList = () => {
       setTotalCount(response.totalCount);
     } catch (error) {
       console.error('Error loading file publishes:', error);
+      const errorMessage = parseErrorMessage(error, '加载文件发布列表失败');
+      enqueueSnackbar(errorMessage, { variant: 'error' });
+      setFilePublishes([]);
+      setTotalCount(0);
     } finally {
       setLoading(false);
     }
@@ -164,9 +171,21 @@ const FilePublishList = () => {
       await fileAPI.deleteFilePublish(filePublishToDelete.id);
       setOpenDeleteDialog(false);
       loadFilePublishes();
+      enqueueSnackbar('文件发布删除成功', { variant: 'success' });
     } catch (error) {
       console.error('Error deleting file publish:', error);
-      alert(error.response?.data || '删除失败');
+      // 使用更友好的错误提示，并处理后端返回的具体错误信息
+      let errorMessage = '删除失败';
+      if (error.response?.data) {
+        if (typeof error.response.data === 'string') {
+          errorMessage = error.response.data;
+        } else if (error.response.data.message) {
+          errorMessage = error.response.data.message;
+        }
+      }
+      enqueueSnackbar(errorMessage, { variant: 'error' });
+      // 关闭删除确认对话框
+      setOpenDeleteDialog(false);
     } finally {
       setDeleteLoading(false);
     }
@@ -187,7 +206,7 @@ const FilePublishList = () => {
         const fileTypeId = fileVersion.fileTypeID;
         const filePara = fileVersion.filePara;
         const ver = fileVersion.ver;
-        const fileName = `$${fileTypeId}${filePara}_${ver}.bin`;
+        const fileName = `${fileTypeId}${filePara}_${ver}.bin`;
 
         link.href = url;
         link.setAttribute('download', fileName);
@@ -376,7 +395,6 @@ const FilePublishList = () => {
           <Table>
             <TableHead>
               <TableRow>
-                <TableCell>ID</TableCell>
                 <TableCell>商户</TableCell>
                 <TableCell>文件类型</TableCell>
                 <TableCell>文件参数</TableCell>
@@ -394,20 +412,19 @@ const FilePublishList = () => {
             <TableBody>
               {loading ? (
                 <TableRow>
-                  <TableCell colSpan={tabValue === 0 ? 11 : 11} align="center">
+                  <TableCell colSpan={tabValue === 0 ? 10 : 11} align="center">
                     <CircularProgress size={24} />
                   </TableCell>
                 </TableRow>
               ) : filePublishes.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={tabValue === 0 ? 11 : 11} align="center">
+                  <TableCell colSpan={tabValue === 0 ? 10 : 11} align="center">
                     没有找到文件发布记录
                   </TableCell>
                 </TableRow>
               ) : (
                 filePublishes.map((filePublish) => (
                   <TableRow key={filePublish.id}>
-                    <TableCell>{filePublish.id}</TableCell>
                     <TableCell>
                       <Tooltip title={filePublish.merchantID || ''}>
                           <span>{filePublish.merchantName}</span>

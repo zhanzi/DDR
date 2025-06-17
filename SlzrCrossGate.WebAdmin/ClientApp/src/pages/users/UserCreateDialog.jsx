@@ -22,6 +22,7 @@ import { useFormik } from 'formik';
 import * as Yup from 'yup';
 import { useSnackbar } from 'notistack';
 import { userAPI, roleAPI, merchantAPI } from '../../services/api';
+import { parseErrorMessage } from '../../utils/errorHandler';
 
 const UserCreateDialog = ({ open, onClose, onUserCreated }) => {
   const { enqueueSnackbar } = useSnackbar();
@@ -41,8 +42,9 @@ const UserCreateDialog = ({ open, onClose, onUserCreated }) => {
         setRoles(rolesResponse);
         setMerchants(merchantsResponse.items);
       } catch (error) {
-        enqueueSnackbar('加载数据失败', { variant: 'error' });
         console.error('加载数据失败:', error);
+        const errorMessage = parseErrorMessage(error, '加载数据失败');
+        enqueueSnackbar(errorMessage, { variant: 'error' });
       } finally {
         setLoading(false);
       }
@@ -90,7 +92,9 @@ const UserCreateDialog = ({ open, onClose, onUserCreated }) => {
         formik.resetForm();
         onUserCreated();
       } catch (error) {
-        enqueueSnackbar(`创建用户失败: ${error.response?.data?.message || error.message}`, { variant: 'error' });
+        console.error('创建用户失败:', error);
+        const errorMessage = parseErrorMessage(error, '创建用户失败');
+        enqueueSnackbar(errorMessage, { variant: 'error' });
       } finally {
         setLoading(false);
       }

@@ -305,7 +305,7 @@ const UnionPayTerminalKeyList = () => {
         {/* 搜索和筛选 */}
         <Paper sx={{ p: 2, mb: 3 }}>
           <Grid container spacing={2} alignItems="center">
-            <Grid item xs={12} sm={4} md={3}>
+            <Grid item xs={12} sm={4} md={2}>
               <TextField
                 fullWidth
                 label="搜索"
@@ -326,7 +326,7 @@ const UnionPayTerminalKeyList = () => {
                 }}
               />
             </Grid>
-            <Grid item xs={12} sm={4} md={3}>
+            <Grid item xs={12} sm={4} md={2}>
               <MerchantAutocomplete
                 value={selectedMerchant}
                 onChange={handleMerchantChange}
@@ -379,8 +379,8 @@ const UnionPayTerminalKeyList = () => {
                 </Select>
               </FormControl>
             </Grid>
-            <Grid item xs={12} md={6}>
-              <Box display="flex" justifyContent={{ xs: 'flex-start', md: 'flex-end' }}>
+            <Grid item xs={12} md={2}>
+              <Box display="flex">
                 <Button
                   variant="outlined"
                   color="secondary"

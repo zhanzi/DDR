@@ -204,7 +204,7 @@ const TerminalRecords = () => {
 
             <Grid container spacing={2} alignItems="center">
               {/* 商户选择 */}
-              <Grid item xs={12} sm={6} md={3}>
+              <Grid item xs={12} sm={6} md={2}>
                 <MerchantAutocomplete
                   value={selectedMerchant}
                   onChange={(event, newValue) => setSelectedMerchant(newValue)}
@@ -215,7 +215,7 @@ const TerminalRecords = () => {
               </Grid>
 
               {/* 出厂序列号 */}
-              <Grid item xs={12} sm={6} md={3}>
+              <Grid item xs={12} sm={6} md={2}>
                 <TextField
                   fullWidth
                   label="出厂序列号"
@@ -227,7 +227,7 @@ const TerminalRecords = () => {
               </Grid>
 
               {/* 设备编号 */}
-              <Grid item xs={12} sm={6} md={3}>
+              <Grid item xs={12} sm={6} md={2}>
                 <TextField
                   fullWidth
                   label="设备编号"
@@ -239,7 +239,7 @@ const TerminalRecords = () => {
               </Grid>
 
               {/* 开始时间 */}
-              <Grid item xs={12} sm={6} md={3}>
+              <Grid item xs={12} sm={6} md={2}>
                 <DatePicker
                   label="开始时间"
                   value={startDate}
@@ -254,7 +254,7 @@ const TerminalRecords = () => {
               </Grid>
 
               {/* 结束时间 */}
-              <Grid item xs={12} sm={6} md={3}>
+              <Grid item xs={12} sm={6} md={2}>
                 <DatePicker
                   label="结束时间"
                   value={endDate}
@@ -269,7 +269,7 @@ const TerminalRecords = () => {
               </Grid>
 
               {/* 操作按钮 */}
-              <Grid item xs={12} sm={6} md={3}>
+              <Grid item xs={12} sm={6} md={2}>
                 <Box sx={{ display: 'flex', gap: 1 }}>
                   <Button
                     variant="contained"

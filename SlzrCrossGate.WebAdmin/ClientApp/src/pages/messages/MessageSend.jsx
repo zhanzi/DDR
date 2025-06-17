@@ -40,6 +40,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { messageAPI, terminalAPI } from '../../services/api';
 import { formatDateTime } from '../../utils/dateUtils';
+import { parseErrorMessage } from '../../utils/errorHandler';
 import MerchantAutocomplete from '../../components/MerchantAutocomplete';
 
 const MessageSend = () => {
@@ -194,7 +195,8 @@ const MessageSend = () => {
       setResult(response);
     } catch (error) {
       console.error('Error sending message:', error);
-      setError(error.response?.data || '发送失败');
+      const errorMessage = parseErrorMessage(error, '发送失败');
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }

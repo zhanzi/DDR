@@ -41,12 +41,15 @@ import {
   List as ListIcon
 } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { useSnackbar } from 'notistack';
 import { fileAPI, terminalAPI } from '../../services/api';
 import { formatDateTime } from '../../utils/dateUtils';
+import { parseErrorMessage } from '../../utils/errorHandler';
 
 const FilePublish = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { enqueueSnackbar } = useSnackbar();
   const fileVersionFromState = location.state?.fileVersion;
 
   const [fileVersion, setFileVersion] = useState(fileVersionFromState || null);
@@ -105,6 +108,7 @@ const FilePublish = () => {
       setLineTotalCount(response.totalCount || 0);
     } catch (error) {
       console.error('Error loading line stats:', error);
+      // 可以添加错误提示，但不影响主要功能
     } finally {
       setLineLoading(false);
     }
@@ -130,6 +134,7 @@ const FilePublish = () => {
       setTerminalTotalCount(response.totalCount);
     } catch (error) {
       console.error('Error loading terminals:', error);
+      // 可以添加错误提示，但不影响主要功能
     } finally {
       setTerminalLoading(false);
     }
@@ -145,7 +150,8 @@ const FilePublish = () => {
       setPublishForm(prev => ({ ...prev, merchantId: response.merchantId }));
     } catch (error) {
       console.error('Error loading file version:', error);
-      setError('加载文件版本失败');
+      const errorMessage = parseErrorMessage(error, '加载文件版本失败');
+      setError(errorMessage);
     }
   };
 
@@ -275,13 +281,11 @@ const FilePublish = () => {
       });
 
       setSuccess(true);
-      // 3秒后返回列表页
-      setTimeout(() => {
-        navigate('/app/files/publish-list');
-      }, 3000);
+      enqueueSnackbar('文件发布成功！', { variant: 'success' });
     } catch (error) {
       console.error('Error publishing file:', error);
-      setError(error.response?.data || '发布失败');
+      const errorMessage = parseErrorMessage(error, '发布失败');
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -323,7 +327,7 @@ const FilePublish = () => {
           startIcon={<ArrowBackIcon />}
           onClick={() => navigate('/app/files/versions')}
         >
-          返回文件版本列表
+          返回文件版本
         </Button>
       </Box>
 
@@ -497,37 +501,77 @@ const FilePublish = () => {
 
           {success && (
             <Alert severity="success" sx={{ mb: 2 }}>
-              文件发布成功！3秒后将返回发布列表页...
+              文件发布成功！
             </Alert>
           )}
 
-          <Button
-            variant="contained"
-            color="primary"
-            startIcon={<PublishIcon />}
-            onClick={publishFile}
-            disabled={
-              loading ||
-              !fileVersion ||
-              (publishForm.publishType !== 1 && !publishForm.publishTarget)
-            }
-          >
-            {loading ? <CircularProgress size={24} /> : '发布文件'}
-          </Button>
+          <Box sx={{ display: 'flex', gap: 2 }}>
+            <Button
+              variant="contained"
+              color="primary"
+              startIcon={<PublishIcon />}
+              onClick={publishFile}
+              disabled={
+                loading ||
+                !fileVersion ||
+                (publishForm.publishType !== 1 && !publishForm.publishTarget)
+              }
+            >
+              {loading ? <CircularProgress size={24} /> : '发布文件'}
+            </Button>
+            <Button
+              variant="outlined"
+              startIcon={<ArrowBackIcon />}
+              onClick={() => navigate('/app/files/versions')}
+              disabled={loading}
+            >
+              返回文件版本
+            </Button>
+          </Box>
         </Paper>
       )}
 
       {/* 线路选择对话框 */}
-      <Dialog open={lineDialog} onClose={() => setLineDialog(false)} maxWidth="md" fullWidth>
+      <Dialog
+        open={lineDialog}
+        onClose={() => setLineDialog(false)}
+        maxWidth="md"
+        fullWidth
+        PaperProps={{
+          sx: {
+            height: '80vh',
+            maxHeight: '600px',
+            display: 'flex',
+            flexDirection: 'column'
+          }
+        }}
+      >
         <DialogTitle>选择线路</DialogTitle>
-        <DialogContent>
-          <Box sx={{ mt: 2 }}>
+        <DialogContent sx={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+          <Box sx={{ mt: 2, flex: 1, display: 'flex', flexDirection: 'column' }}>
             <Typography variant="subtitle2" gutterBottom>
               商户: {fileVersion?.merchantName}({fileVersion?.merchantID})
             </Typography>
 
-            <Paper>
-              <TableContainer sx={{ maxHeight: 400 }}>
+            <Paper sx={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+              <TableContainer sx={{
+                flex: 1,
+                overflow: 'auto',
+                '&::-webkit-scrollbar': {
+                  width: '8px',
+                },
+                '&::-webkit-scrollbar-track': {
+                  backgroundColor: '#f1f1f1',
+                  borderRadius: '4px',
+                },
+                '&::-webkit-scrollbar-thumb': {
+                  backgroundColor: '#c1c1c1',
+                  borderRadius: '4px',
+                  '&:hover': {
+                    backgroundColor: '#a8a8a8',
+                  },
+                },
+              }}>
                 <Table stickyHeader>
                   <TableHead>
                     <TableRow>
@@ -613,16 +657,29 @@ const FilePublish = () => {
       </Dialog>
 
       {/* 终端选择对话框 */}
-      <Dialog open={terminalDialog} onClose={() => setTerminalDialog(false)} maxWidth="lg" fullWidth>
+      <Dialog
+        open={terminalDialog}
+        onClose={() => setTerminalDialog(false)}
+        maxWidth="lg"
+        fullWidth
+        PaperProps={{
+          sx: {
+            height: '85vh',
+            maxHeight: '700px',
+            display: 'flex',
+            flexDirection: 'column'
+          }
+        }}
+      >
         <DialogTitle>选择终端</DialogTitle>
-        <DialogContent>
-          <Box sx={{ mt: 2 }}>
+        <DialogContent sx={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+          <Box sx={{ mt: 2, flex: 1, display: 'flex', flexDirection: 'column' }}>
             <Typography variant="subtitle2" gutterBottom>
               商户: {fileVersion?.merchantName}({fileVersion?.merchantID})
             </Typography>
 
             {/* 筛选条件 */}
-            <Paper sx={{ p: 2, mb: 2 }}>
+            <Paper sx={{ p: 2, mb: 2, flexShrink: 0 }}>
               <Typography variant="subtitle1" gutterBottom>筛选条件</Typography>
               <Grid container spacing={2} alignItems="center">
                 <Grid item xs={12} sm={3}>
@@ -689,8 +746,25 @@ const FilePublish = () => {
             </Paper>
 
             {/* 终端列表 */}
-            <Paper>
-              <TableContainer sx={{ maxHeight: 400 }}>
+            <Paper sx={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+              <TableContainer sx={{
+                flex: 1,
+                overflow: 'auto',
+                '&::-webkit-scrollbar': {
+                  width: '8px',
+                },
+                '&::-webkit-scrollbar-track': {
+                  backgroundColor: '#f1f1f1',
+                  borderRadius: '4px',
+                },
+                '&::-webkit-scrollbar-thumb': {
+                  backgroundColor: '#c1c1c1',
+                  borderRadius: '4px',
+                  '&:hover': {
+                    backgroundColor: '#a8a8a8',
+                  },
+                },
+              }}>
                 <Table stickyHeader>
                   <TableHead>
                     <TableRow>

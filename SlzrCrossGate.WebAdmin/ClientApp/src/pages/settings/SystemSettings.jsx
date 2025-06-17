@@ -17,6 +17,7 @@ import { LoadingButton } from '@mui/lab';
 import { useSnackbar } from 'notistack';
 import { systemSettingsAPI } from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
+import { parseErrorMessage } from '../../utils/errorHandler';
 import SecurityIcon from '@mui/icons-material/Security';
 import ChatIcon from '@mui/icons-material/Chat'; // 使用Chat图标替代Wechat
 import SaveIcon from '@mui/icons-material/Save';
@@ -39,7 +40,8 @@ const SystemSettings = () => {
       setSettings(data);
     } catch (err) {
       console.error('加载系统设置失败:', err);
-      setError(err.response?.data?.message || '加载系统设置失败');
+      const errorMessage = parseErrorMessage(err, '加载系统设置失败');
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -55,8 +57,9 @@ const SystemSettings = () => {
       enqueueSnackbar('系统设置已保存', { variant: 'success' });
     } catch (err) {
       console.error('保存系统设置失败:', err);
-      setError(err.response?.data?.message || '保存系统设置失败');
-      enqueueSnackbar('保存系统设置失败', { variant: 'error' });
+      const errorMessage = parseErrorMessage(err, '保存系统设置失败');
+      setError(errorMessage);
+      enqueueSnackbar(errorMessage, { variant: 'error' });
     } finally {
       setSaving(false);
     }

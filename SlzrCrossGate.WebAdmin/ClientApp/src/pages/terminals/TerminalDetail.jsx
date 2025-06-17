@@ -32,6 +32,7 @@ import {
 import { useParams, useNavigate } from 'react-router-dom';
 import { terminalAPI } from '../../services/api'; // 替换axios导入为terminalAPI
 import { formatDateTime } from '../../utils/dateUtils';
+import { parseErrorMessage } from '../../utils/errorHandler';
 
 const TerminalDetail = () => {
   const { id } = useParams();
@@ -49,7 +50,8 @@ const TerminalDetail = () => {
       setTerminal(response);
     } catch (error) {
       console.error('Error loading terminal:', error);
-      setError('加载终端信息失败');
+      const errorMessage = parseErrorMessage(error, '加载终端信息失败');
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }

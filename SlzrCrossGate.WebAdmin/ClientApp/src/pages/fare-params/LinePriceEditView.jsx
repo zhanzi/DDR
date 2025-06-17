@@ -21,6 +21,7 @@ import { useSnackbar } from 'notistack';
 import { linePriceAPI, merchantAPI } from '../../services/api';
 import MerchantAutocomplete from '../../components/MerchantAutocomplete';
 import { useAuth } from '../../contexts/AuthContext';
+import { parseErrorMessage } from '../../utils/errorHandler';
 import { is } from 'date-fns/locale';
 
 // 线路票价信息编辑组件
@@ -50,7 +51,7 @@ const LinePriceEditView = () => {
     isActive: true,
     remark: ''
   });
-  
+
   const [loading, setLoading] = useState(!isNew);
   const [saving, setSaving] = useState(false);  // 加载线路票价信息
   useEffect(() => {
@@ -79,7 +80,7 @@ const LinePriceEditView = () => {
           enqueueSnackbar('获取商户信息失败: ' + (err.response?.data?.message || err.message), { variant: 'error' });
         }
       };
-      
+
       loadUserMerchant();
     } else if (isNew && user?.roles?.includes('SystemAdmin')) {
       // 系统管理员创建新线路票价，加载商户列表
@@ -97,7 +98,7 @@ const LinePriceEditView = () => {
           console.error('获取商户列表失败:', err);
         }
       };
-      
+
       loadMerchants();
     }
   }, [id, isNew, user?.merchantId, user?.roles]);
@@ -106,7 +107,7 @@ const LinePriceEditView = () => {
     try {
       setLoading(true);
       const data = await linePriceAPI.getLinePrice(id);
-      
+
       // 如果有商户ID，则获取商户详情
       let merchantObj = null;
       if (data.merchantID) {
@@ -117,7 +118,7 @@ const LinePriceEditView = () => {
           console.error('获取商户信息失败:', err);
         }
       }
-      
+
       setFormData({
         merchantID: data.merchantID || '',
         merchantObj: merchantObj,
@@ -136,7 +137,7 @@ const LinePriceEditView = () => {
       setLoading(false);
     }
   };
-  
+
   // 处理表单字段变化
   const handleChange = (event) => {
     const { name, value, checked, type } = event.target;
@@ -159,38 +160,38 @@ const LinePriceEditView = () => {
       enqueueSnackbar(user?.roles?.includes('SystemAdmin') ? '系统管理员必须选择一个商户' : '请选择商户', { variant: 'error' });
       return false;
     }
-    
+
     if (!formData.lineNumber || formData.lineNumber.length !== 4 || !/^\d+$/.test(formData.lineNumber)) {
       enqueueSnackbar('线路号必须为4位数字', { variant: 'error' });
       return false;
     }
-    
+
     if (!formData.groupNumber || formData.groupNumber.length !== 2 || !/^\d+$/.test(formData.groupNumber)) {
       enqueueSnackbar('组号必须为2位数字', { variant: 'error' });
       return false;
     }
-    
+
     if (!formData.lineName) {
       enqueueSnackbar('请输入线路名称', { variant: 'error' });
       return false;
     }
-    
+
     if (formData.fare < 0) {
       enqueueSnackbar('票价不能为负数', { variant: 'error' });
       return false;
     }
-    
+
     return true;
   };
     // 提交表单
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!validateForm()) return;
-    
+
     try {
       setSaving(true);
-      
+
       // 准备提交数据，移除merchantObj字段，后端不需要这个字段
       const submitData = {
         merchantID: formData.merchantID,
@@ -201,7 +202,7 @@ const LinePriceEditView = () => {
         isActive: formData.isActive,
         remark: formData.remark
       };
-      
+
       if (isNew) {
         await linePriceAPI.createLinePrice(submitData);
         enqueueSnackbar('创建成功', { variant: 'success' });
@@ -218,12 +219,13 @@ const LinePriceEditView = () => {
       }
     } catch (error) {
       console.error('保存失败:', error);
-      enqueueSnackbar('保存失败: ' + (error.response?.data?.message || error.message), { variant: 'error' });
+      const errorMessage = parseErrorMessage(error, '保存失败');
+      enqueueSnackbar(errorMessage, { variant: 'error' });
     } finally {
       setSaving(false);
     }
   };
-  
+
   if (loading) {
     return (
       <Container sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}>
@@ -231,7 +233,7 @@ const LinePriceEditView = () => {
       </Container>
     );
   }
-  
+
   return (
     <Container maxWidth="lg">
       <Breadcrumbs sx={{ mb: 2 }}>
@@ -242,7 +244,7 @@ const LinePriceEditView = () => {
           {isNew ? '新建线路票价' : '编辑线路票价'}
         </Typography>
       </Breadcrumbs>
-      
+
       <Paper sx={{ p: 4 }}>
         <Box sx={{ mb: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <Typography variant="h5">
@@ -255,9 +257,9 @@ const LinePriceEditView = () => {
             返回
           </Button>
         </Box>
-        
+
         <Divider sx={{ mb: 4 }} />
-        
+
         <Box component="form" onSubmit={handleSubmit}>
           <Grid container spacing={3}>            <Grid item xs={12} md={6}>
               <MerchantAutocomplete
@@ -267,17 +269,17 @@ const LinePriceEditView = () => {
                 required
                 error={isNew && !formData.merchantObj}
                 helperText={
-                  isNew && !formData.merchantObj 
+                  isNew && !formData.merchantObj
                     ? user?.roles?.includes('SystemAdmin')
                       ? "系统管理员请选择一个商户"
-                      : "请选择商户" 
+                      : "请选择商户"
                     : ""
                 }
                 size="medium"
                 sx={{ width: '100%' }}
               />
             </Grid>
-            
+
             <Grid item xs={12} md={6}>
               <TextField
                 fullWidth
@@ -289,7 +291,7 @@ const LinePriceEditView = () => {
                 inputProps={{ maxLength: 100 }}
               />
             </Grid>
-            
+
             <Grid item xs={12} md={6}>
               <TextField
                 fullWidth
@@ -303,7 +305,7 @@ const LinePriceEditView = () => {
                 helperText="请输入4位数字"
               />
             </Grid>
-            
+
             <Grid item xs={12} md={6}>
               <TextField
                 fullWidth
@@ -317,7 +319,7 @@ const LinePriceEditView = () => {
                 helperText="请输入2位数字"
               />
             </Grid>
-            
+
             <Grid item xs={12} md={6}>
               <TextField
                 fullWidth
@@ -331,7 +333,7 @@ const LinePriceEditView = () => {
                 InputProps={{ inputProps: { min: 0 } }}
               />
             </Grid>
-            
+
             <Grid item xs={12} md={6}>
               <FormControlLabel
                 control={
@@ -345,7 +347,7 @@ const LinePriceEditView = () => {
                 label="启用"
               />
             </Grid>
-            
+
             <Grid item xs={12}>
               <TextField
                 fullWidth
@@ -358,7 +360,7 @@ const LinePriceEditView = () => {
                 inputProps={{ maxLength: 500 }}
               />
             </Grid>
-            
+
             <Grid item xs={12} sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2 }}>
               <Button
                 variant="contained"

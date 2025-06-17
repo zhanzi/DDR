@@ -204,7 +204,7 @@ namespace SlzrCrossGate.WebAdmin.Controllers
             return NoContent();
         }
 
-        // DELETE: api/FileTypes/5
+        // DELETE: api/FileTypes/5/00009998
         [HttpDelete("{code}/{merchantId}")]
         public async Task<IActionResult> DeleteFileType(string code, string merchantId)
         {

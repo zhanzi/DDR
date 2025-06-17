@@ -50,6 +50,7 @@ import { useNavigate } from 'react-router-dom';
 import { terminalAPI, messageAPI, fileAPI } from '../../services/api'; // 使用API服务代替直接的axios
 import { formatDateTime, isWithinMinutes } from '../../utils/dateUtils'; // 使用统一的时间处理工具
 import MerchantAutocomplete from '../../components/MerchantAutocomplete'; // 导入商户下拉框组件
+import { parseErrorMessage } from '../../utils/errorHandler';
 
 const TerminalList = () => {
   const navigate = useNavigate();
@@ -191,6 +192,8 @@ const TerminalList = () => {
       setStats(statsResponse);
     } catch (error) {
       console.error('Error loading terminals:', error);
+      const errorMessage = parseErrorMessage(error, '加载终端列表失败');
+      showMessage(errorMessage, 'error');
     } finally {
       setLoading(false);
     }
@@ -347,20 +350,7 @@ const TerminalList = () => {
     } catch (error) {
       console.error('Error sending message:', error);
 
-      // 处理错误信息
-      let errorMessage = '消息发送失败';
-      if (error.response?.data) {
-        if (typeof error.response.data === 'string') {
-          errorMessage = error.response.data;
-        } else if (error.response.data.message) {
-          errorMessage = error.response.data.message;
-        } else if (error.response.data.title) {
-          errorMessage = error.response.data.title;
-        }
-      } else if (error.message) {
-        errorMessage = error.message;
-      }
-
+      const errorMessage = parseErrorMessage(error, '消息发送失败');
       showMessage(errorMessage, 'error');
     }
   };
@@ -404,24 +394,7 @@ const TerminalList = () => {
     } catch (error) {
       console.error('Error publishing file:', error);
 
-      // 处理错误信息，确保显示用户友好的错误消息
-      let errorMessage = '文件发布失败';
-      if (error.response?.data) {
-        if (typeof error.response.data === 'string') {
-          errorMessage = error.response.data;
-        } else if (error.response.data.message) {
-          errorMessage = error.response.data.message;
-        } else if (error.response.data.title) {
-          errorMessage = error.response.data.title;
-        } else if (error.response.data.errors) {
-          // 处理验证错误
-          const errors = Object.values(error.response.data.errors).flat();
-          errorMessage = errors.join(', ');
-        }
-      } else if (error.message) {
-        errorMessage = error.message;
-      }
-
+      const errorMessage = parseErrorMessage(error, '文件发布失败');
       showMessage(errorMessage, 'error');
     } finally {
       setPublishLoading(false);
@@ -577,7 +550,7 @@ const TerminalList = () => {
               <MenuItem value="2">离线</MenuItem>
             </TextField>
           </Grid>
-          <Grid item xs={12} sm={6} md={2}>
+          <Grid item xs={12} sm={6} md={1}>
             <Button
               fullWidth
               variant="contained"
@@ -588,7 +561,7 @@ const TerminalList = () => {
               搜索
             </Button>
           </Grid>
-          <Grid item xs={12} sm={6} md={2}>
+          <Grid item xs={12} sm={6} md={1}>
             <Button
               fullWidth
               variant="outlined"
@@ -598,7 +571,7 @@ const TerminalList = () => {
               清除
             </Button>
           </Grid>
-          <Grid item xs={12} sm={6} md={2}>
+          <Grid item xs={12} sm={6} md={1}>
             <Button
               fullWidth
               variant="outlined"
@@ -609,7 +582,7 @@ const TerminalList = () => {
               刷新
             </Button>
           </Grid>
-          <Grid item xs={12} sm={6} md={2}>
+          <Grid item xs={12} sm={6} md={1}>
             <Button
               fullWidth
               variant="outlined"

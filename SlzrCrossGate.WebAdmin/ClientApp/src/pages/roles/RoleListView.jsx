@@ -31,6 +31,7 @@ import {
 import { useSnackbar } from 'notistack';
 import { roleAPI } from '../../services/api';
 import { useFormik } from 'formik';
+import { parseErrorMessage } from '../../utils/errorHandler';
 import * as Yup from 'yup';
 
 const RoleListView = () => {
@@ -81,7 +82,9 @@ const RoleListView = () => {
       enqueueSnackbar('角色删除成功', { variant: 'success' });
       loadRoles(); // 重新加载角色列表
     } catch (error) {
-      enqueueSnackbar(`删除角色失败: ${error.message}`, { variant: 'error' });
+      console.error('删除角色失败:', error);
+      const errorMessage = parseErrorMessage(error, '删除角色失败');
+      enqueueSnackbar(errorMessage, { variant: 'error' });
     } finally {
       handleCloseDeleteDialog();
     }
@@ -105,7 +108,9 @@ const RoleListView = () => {
         setCreateDialogOpen(false);
         loadRoles(); // 重新加载角色列表
       } catch (error) {
-        enqueueSnackbar(`创建角色失败: ${error.message}`, { variant: 'error' });
+        console.error('创建角色失败:', error);
+        const errorMessage = parseErrorMessage(error, '创建角色失败');
+        enqueueSnackbar(errorMessage, { variant: 'error' });
       }
     }
   });

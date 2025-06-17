@@ -108,12 +108,15 @@ namespace SlzrCrossGate.Core.Database
 
             });
 
-            modelBuilder.Entity<FilePublish>(builder=>
+            modelBuilder.Entity<FilePublish>(builder =>
             {
                 builder.HasKey(e => new { e.ID }).IsClustered();
-                builder.HasIndex(e => new { e.MerchantID, e.FileTypeID, e.FilePara, e.Ver }).IsUnique();
-                builder.HasIndex(e => new { e.MerchantID, e.FileFullType, e.Ver }).IsUnique();
+                builder.HasIndex(e => new { e.MerchantID, e.FileTypeID, e.FilePara, e.PublishType, e.PublishTarget }).IsUnique();
+                builder.HasIndex(e => new { e.MerchantID, e.FileFullType, e.PublishType, e.PublishTarget }).IsUnique();
                 builder.HasIndex(e => new { e.MerchantID, e.FileTypeID, e.PublishTime });
+                builder.HasIndex(e => new { e.PublishTime })
+                    .IsDescending([true])
+                    .IncludeProperties(e => new { e.MerchantID, e.FileTypeID, e.Ver, e.FilePara, e.FileFullType, e.PublishTarget });
             });
 
             modelBuilder.Entity<FilePublishHistory>(builder=>
@@ -121,7 +124,7 @@ namespace SlzrCrossGate.Core.Database
                 builder.HasKey(e => new { e.ID }).IsClustered();
                 //给FilePublishHistory的OperationType字段添加check约束，限制值只能为"Publish"或"Revoke"
                 builder.ToTable(t => t.HasCheckConstraint("CK_FilePublishHistory_OperationType", "OperationType IN ('Publish', 'Revoke')"));
-                builder.HasIndex(e => new { e.MerchantID, e.FileTypeID, e.FilePara, e.Ver }).IsUnique();
+                builder.HasIndex(e => new { e.MerchantID, e.FileTypeID, e.FilePara, e.Ver });
                 builder.HasIndex(e => new { e.PublishTime })
                     .IsDescending([true])
                     .IncludeProperties(e => new { e.MerchantID, e.FileTypeID, e.Ver, e.FilePara, e.FileFullType, e.PublishTarget, e.OperationType });
@@ -130,8 +133,11 @@ namespace SlzrCrossGate.Core.Database
             modelBuilder.Entity<FileVer>(builder=>
             {
                 builder.HasKey(e => new { e.ID }).IsClustered();
-                builder.HasIndex(e => new { e.MerchantID, e.FileFullType, e.Ver }).IsUnique();
-                builder.HasIndex(e => new { e.MerchantID, e.FileTypeID, e.FilePara, e.Ver }).IsUnique();
+                builder.HasIndex(e => new { e.MerchantID, e.FileFullType, e.Ver });
+                builder.HasIndex(e => new { e.MerchantID, e.FileTypeID, e.FilePara, e.Ver });
+                builder.HasIndex(e => new { e.CreateTime })
+                    .IsDescending([true])
+                    .IncludeProperties(e => new { e.MerchantID, e.FileTypeID, e.Ver, e.FilePara, e.FileFullType });
             });
 
 
@@ -154,8 +160,11 @@ namespace SlzrCrossGate.Core.Database
                 builder.HasKey(e=>e.MerchantID).IsClustered();
             });
 
-            modelBuilder.Entity<MsgContent>(builder=>{
-                builder.HasKey(e=>e.ID).IsClustered();
+            modelBuilder.Entity<MsgContent>(builder=>
+            {
+                builder.HasKey(e => e.ID).IsClustered();
+                builder.HasIndex(e => new { e.MerchantID, e.CreateTime })
+                    .IsDescending([false, true]);
             });
 
             modelBuilder.Entity<MsgBox>(builder=>
@@ -163,6 +172,9 @@ namespace SlzrCrossGate.Core.Database
                 builder.HasKey(e => new { e.ID }).IsClustered();
                 builder.HasIndex(e => new { e.MerchantID, e.Status, e.TerminalID, e.SendTime })
                     .IsDescending([false, false, false, false]);
+                builder.HasIndex(e => new { e.SendTime })
+                    .IsDescending([true])
+                    .IncludeProperties(e => new { e.MerchantID, e.Status, e.TerminalID, e.MsgContentID });
             });
 
 
@@ -173,14 +185,14 @@ namespace SlzrCrossGate.Core.Database
                 builder.HasIndex(e => new { e.MerchantID, e.DeviceNO });
             });
 
-            modelBuilder.Entity<TerminalEvent>(builder=>{
+            modelBuilder.Entity<TerminalEvent>(builder=> {
                 builder.HasKey(e => e.ID).IsClustered();
-                builder.HasIndex(e => new { e.MerchantID, e.TerminalID, e.EventType, e.EventTime })
-                    .IsDescending([false, false, false, true]);
-                builder.HasIndex(e => new { e.MerchantID, e.TerminalID, e.EventTime })
-                    .IsDescending([false, false, true]);
-                builder.HasIndex(e => new { e.EventTime  })
-                    .IsDescending([true]);
+                builder.HasIndex(e => new {e.TerminalID, e.EventTime })
+                    .IsDescending([false, true])
+                    .IncludeProperties(e => new { e.MerchantID, e.EventType });
+                builder.HasIndex(e => new { e.EventTime })
+                    .IsDescending([true])
+                    .IncludeProperties(e => new { e.MerchantID, e.TerminalID, e.EventType });
             });
 
             modelBuilder.Entity<TerminalStatus>(builder =>

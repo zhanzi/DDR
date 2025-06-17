@@ -18,6 +18,7 @@ import {
 } from '@mui/material';
 import { useAuth } from '../../contexts/AuthContext';
 import { useSnackbar } from 'notistack';
+import { parseErrorMessage } from '../../utils/errorHandler';
 import WechatIcon from '../../components/icons/WechatIcon';
 
 const Login = () => {
@@ -69,7 +70,8 @@ const Login = () => {
         }
       } catch (err) {
         console.error('登录异常:', err);
-        setError('登录过程中发生错误，请稍后再试');
+        const errorMessage = parseErrorMessage(err, '登录过程中发生错误，请稍后再试');
+        setError(errorMessage);
       } finally {
         setLoading(false);
       }
@@ -191,7 +193,7 @@ const Login = () => {
               {loading ? '登录中...' : '登录'}
             </Button>
           </form>
-        {/* 
+        {/*
           <Divider sx={{ my: 3 }}>
             <Typography variant="body2" color="text.secondary">
               或者

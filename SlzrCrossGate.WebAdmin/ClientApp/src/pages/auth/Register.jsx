@@ -20,6 +20,7 @@ import {
 import { Visibility, VisibilityOff } from '@mui/icons-material';
 import { useAuth } from '../../contexts/AuthContext';
 import { useSnackbar } from 'notistack';
+import { parseErrorMessage } from '../../utils/errorHandler';
 
 const Register = () => {
   const { register } = useAuth();
@@ -67,8 +68,9 @@ const Register = () => {
           setError(result.message || '注册失败，请稍后再试');
         }
       } catch (err) {
-        setError('注册过程中发生错误，请稍后再试');
-        console.error(err);
+        console.error('注册异常:', err);
+        const errorMessage = parseErrorMessage(err, '注册过程中发生错误，请稍后再试');
+        setError(errorMessage);
       } finally {
         setLoading(false);
       }

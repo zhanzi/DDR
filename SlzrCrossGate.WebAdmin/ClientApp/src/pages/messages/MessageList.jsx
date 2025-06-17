@@ -341,7 +341,7 @@ const MessageList = () => {
               />
             </LocalizationProvider>
           </Grid>
-          <Grid item xs={12} sm={6} md={2}>
+          <Grid item xs={12} sm={6} md={1}>
             <Button
               fullWidth
               variant="contained"
@@ -352,7 +352,7 @@ const MessageList = () => {
               搜索
             </Button>
           </Grid>
-          <Grid item xs={12} sm={6} md={2}>
+          <Grid item xs={12} sm={6} md={1}>
             <Button
               fullWidth
               variant="outlined"
@@ -362,7 +362,7 @@ const MessageList = () => {
               清除
             </Button>
           </Grid>
-          <Grid item xs={12} sm={6} md={2}>
+          <Grid item xs={12} sm={6} md={1}>
             <Button
               fullWidth
               variant="outlined"

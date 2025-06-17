@@ -28,6 +28,7 @@ import ResponsiveTable, {
   ResponsiveTableCell
 } from '../../components/ResponsiveTable';
 import { useNavigate } from 'react-router-dom';
+import { useSnackbar } from 'notistack';
 import {
   Refresh as RefreshIcon,
   ArrowBack as ArrowBackIcon,
@@ -39,9 +40,11 @@ import {
 } from '@mui/icons-material';
 import { messageAPI } from '../../services/api';
 import MerchantAutocomplete from '../../components/MerchantAutocomplete';
+import { parseErrorMessage } from '../../utils/errorHandler';
 
 const MessageTypeList = () => {
   const navigate = useNavigate();
+  const { enqueueSnackbar } = useSnackbar();
   const [messageTypes, setMessageTypes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(0);
@@ -97,6 +100,10 @@ const MessageTypeList = () => {
       setTotalCount(response.totalCount);
     } catch (error) {
       console.error('Error loading message types:', error);
+      const errorMessage = parseErrorMessage(error, '加载消息类型列表失败');
+      enqueueSnackbar(errorMessage, { variant: 'error' });
+      setMessageTypes([]);
+      setTotalCount(0);
     } finally {
       setLoading(false);
     }
@@ -217,9 +224,11 @@ const MessageTypeList = () => {
 
       setOpenDialog(false);
       loadMessageTypes();
+      enqueueSnackbar(dialogMode === 'create' ? '消息类型创建成功' : '消息类型更新成功', { variant: 'success' });
     } catch (error) {
       console.error('Error saving message type:', error);
-      setDialogError(error.response?.data || '保存失败');
+      const errorMessage = parseErrorMessage(error, '保存失败');
+      setDialogError(errorMessage);
     } finally {
       setDialogLoading(false);
     }
@@ -237,12 +246,24 @@ const MessageTypeList = () => {
 
     setDeleteLoading(true);
     try {
-      await messageAPI.deleteMessageType(messageTypeToDelete.code, messageTypeToDelete.merchantId);
+      await messageAPI.deleteMessageType(messageTypeToDelete.code, messageTypeToDelete.merchantID);
       setOpenDeleteDialog(false);
       loadMessageTypes();
+      enqueueSnackbar('消息类型删除成功', { variant: 'success' });
     } catch (error) {
       console.error('Error deleting message type:', error);
-      alert(error.response?.data || '删除失败');
+      // 使用更友好的错误提示，并处理后端返回的具体错误信息
+      let errorMessage = '删除失败';
+      if (error.response?.data) {
+        if (typeof error.response.data === 'string') {
+          errorMessage = error.response.data;
+        } else if (error.response.data.message) {
+          errorMessage = error.response.data.message;
+        }
+      }
+      enqueueSnackbar(errorMessage, { variant: 'error' });
+      // 关闭删除确认对话框
+      setOpenDeleteDialog(false);
     } finally {
       setDeleteLoading(false);
     }

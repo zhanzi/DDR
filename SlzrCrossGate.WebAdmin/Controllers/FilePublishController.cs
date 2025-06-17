@@ -218,17 +218,48 @@ namespace SlzrCrossGate.WebAdmin.Controllers
                 model.PublishTarget= fileVersion.MerchantID;
             }
 
-            // 检查文件版本是否已发布
-            var existingFilePublish = await _dbContext.FilePublishs
-                .FirstOrDefaultAsync(p => p.FileVerID == fileVersion.ID && p.PublishType == model.PublishType && p.PublishTarget == model.PublishTarget && p.MerchantID == model.MerchantID);
-            if (existingFilePublish != null)
+            var now=DateTime.Now;
+            // 检查该文件类型和发布目标与发布类型是否已存在
+            var filePublish = await _dbContext.FilePublishs
+                .FirstOrDefaultAsync(p =>p.FileFullType== fileVersion.FileFullType && p.PublishType == model.PublishType && p.PublishTarget == model.PublishTarget && p.MerchantID == model.MerchantID);
+            if (filePublish != null)
             {
-                return Conflict("该发布已存在");
+                if(filePublish.FileVerID == fileVersion.ID)
+                {
+                    return Conflict("该发布已存在");
+                }
+                //存在其它版本的发布，更新版本信息
+                filePublish.FileVerID = fileVersion.ID;
+                filePublish.Ver = fileVersion.Ver;
+                filePublish.FileSize = fileVersion.FileSize;
+                filePublish.Crc = fileVersion.Crc;
+                filePublish.UploadFileID = fileVersion.UploadFileID;
+                filePublish.PublishTime = now;
+                filePublish.Operator = username;
             }
-            
-
-            // 创建文件发布记录
-            var filePublish = new FilePublish
+            else
+            {
+                // 创建文件发布记录
+                filePublish = new FilePublish
+                {
+                    MerchantID = model.MerchantID,
+                    FileTypeID = fileVersion.FileTypeID,
+                    FilePara = fileVersion.FilePara,
+                    FileFullType = fileVersion.FileFullType,
+                    Ver = fileVersion.Ver,
+                    FileSize = fileVersion.FileSize,
+                    Crc = fileVersion.Crc,
+                    FileVerID = fileVersion.ID,
+                    UploadFileID = fileVersion.UploadFileID,
+                    PublishType = model.PublishType,
+                    PublishTarget = model.PublishTarget,
+                    PublishTime = now,
+                    Operator = username
+                };
+                _dbContext.FilePublishs.Add(filePublish);
+            }
+            // 创建文件发布历史记录
+            var filePublishHistory = new FilePublishHistory
             {
                 MerchantID = model.MerchantID,
                 FileTypeID = fileVersion.FileTypeID,
@@ -241,27 +272,7 @@ namespace SlzrCrossGate.WebAdmin.Controllers
                 UploadFileID = fileVersion.UploadFileID,
                 PublishType = model.PublishType,
                 PublishTarget = model.PublishTarget,
-                PublishTime = DateTime.Now,
-                Operator = username
-            };
-
-            _dbContext.FilePublishs.Add(filePublish);
-
-            // 创建文件发布历史记录
-            var filePublishHistory = new FilePublishHistory
-            {
-                MerchantID = model.MerchantID,
-                FileTypeID = fileVersion.FileTypeID,
-                FilePara = fileVersion.FilePara,
-                FileFullType = fileVersion.FileFullType,
-                Ver = fileVersion.Ver,
-                FileSize = fileVersion.FileSize,
-                Crc = fileVersion.Crc,
-                 FileVerID = fileVersion.ID,
-                UploadFileID = fileVersion.UploadFileID,
-                PublishType = model.PublishType,
-                PublishTarget = model.PublishTarget,
-                PublishTime = filePublish.PublishTime,
+                PublishTime = now,
                 Operator = username
             };
 

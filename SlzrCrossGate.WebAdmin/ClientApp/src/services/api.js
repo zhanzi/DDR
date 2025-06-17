@@ -32,21 +32,28 @@ api.interceptors.request.use(
 // 响应拦截器
 api.interceptors.response.use(
   (response) => {
-    console.log('响应成功:', response.config.url, response.data);
+    // 只在开发环境输出详细日志
+    if (import.meta.env.DEV) {
+      console.log('响应成功:', response.config.url, response.data);
+    }
     return response.data;
   },
   (error) => {
-    console.error('响应错误:', error.config?.url, error.response?.status, error.response?.data);
-    console.error('错误详情:', error);
+    // 只记录真正的错误，不记录业务逻辑错误（如删除已使用的文件类型）
+    if (error.response?.status >= 500) {
+      console.error('服务器错误:', error.config?.url, error.response?.status, error.response?.data);
+    } else if (import.meta.env.DEV) {
+      // 开发环境下记录所有错误
+      console.error('响应错误:', error.config?.url, error.response?.status, error.response?.data);
+    }
 
-    // 临时禁用自动跳转到登录页面，方便调试
-    // 处理401错误
-    // if (error.response && error.response.status === 401) {
-    //   // 清除token
-    //   localStorage.removeItem('token');
-    //   // 重定向到登录页
-    //   window.location.href = '/login';
-    // }
+    // 处理401错误 - 自动跳转到登录页面
+    if (error.response && error.response.status === 401) {
+      // 清除token
+      localStorage.removeItem('token');
+      // 重定向到登录页
+      window.location.href = '/login';
+    }
     return Promise.reject(error);
   }
 );
@@ -200,7 +207,7 @@ export const fileAPI = {
   getFileType: (id) => api.get(`/FileTypes/${id}`),
   createFileType: (data) => api.post('/FileTypes', data),
   updateFileType: (code, merchantId, data) => api.put(`/FileTypes/${code}/${merchantId}`, data),
-  deleteFileType: (id) => api.delete(`/FileTypes/${id}`),
+  deleteFileType: (code, merchantId) => api.delete(`/FileTypes/${code}/${merchantId}`),
 
   getFileVersions: (params) => api.get('/FileVersions', { params }),
   getFileVersion: (id) => api.get(`/FileVersions/${id}`),

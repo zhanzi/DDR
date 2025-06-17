@@ -32,6 +32,7 @@ import {
 import { useParams, useNavigate } from 'react-router-dom';
 import { terminalAPI } from '../../services/api'; // 使用API服务代替直接的axios
 import { formatDateTime, formatDateForAPI } from '../../utils/dateUtils'; // 使用统一的时间处理工具
+import { parseErrorMessage } from '../../utils/errorHandler';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
@@ -61,7 +62,8 @@ const TerminalEvents = () => {
       setTerminal(response);
     } catch (error) {
       console.error('Error loading terminal:', error);
-      setError('加载终端信息失败');
+      const errorMessage = parseErrorMessage(error, '加载终端信息失败');
+      setError(errorMessage);
     }
   };
 
@@ -83,7 +85,8 @@ const TerminalEvents = () => {
       setTotalCount(response.totalCount);
     } catch (error) {
       console.error('Error loading events:', error);
-      setError('加载事件记录失败');
+      const errorMessage = parseErrorMessage(error, '加载事件记录失败');
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }

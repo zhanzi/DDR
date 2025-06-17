@@ -37,6 +37,7 @@ import {
   Delete as DeleteIcon
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
+import { useSnackbar } from 'notistack';
 import { fileAPI, merchantAPI } from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
 import MerchantAutocomplete from '../../components/MerchantAutocomplete';
@@ -44,6 +45,7 @@ import MerchantAutocomplete from '../../components/MerchantAutocomplete';
 const FileTypeList = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { enqueueSnackbar } = useSnackbar();
   const [fileTypes, setFileTypes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(0);
@@ -111,21 +113,21 @@ const FileTypeList = () => {
       if (user?.roles) {
         const admin = user.roles.includes('SystemAdmin');
         setIsSystemAdmin(admin);
-        
+
         // 如果不是系统管理员且有商户ID，则将筛选条件和当前文件类型的商户ID设为当前用户的商户ID
         if (!admin && user.merchantId) {
           setFilters(prev => ({ ...prev, merchantID: user.merchantId }));
           setCurrentFileType(prev => ({ ...prev, merchantID: user.merchantId }));
         }
       }
-      
+
       // 加载商户列表
       await loadMerchants();
     };
-    
+
     initializeComponent();
   }, [user]);
-  
+
   // 加载商户列表
   const loadMerchants = async () => {
     try {
@@ -211,7 +213,7 @@ const FileTypeList = () => {
   // 处理对话框输入变更
   const handleDialogInputChange = (event) => {
     const { name, value } = event.target;
-    
+
     // 对code字段进行特殊处理，限制为三位字母或数字
     if (name === 'code') {
       // 只允许字母和数字
@@ -276,12 +278,25 @@ const FileTypeList = () => {
 
     setDeleteLoading(true);
     try {
-      await fileAPI.deleteFileType(fileTypeToDelete.code);
+      await fileAPI.deleteFileType(fileTypeToDelete.code, fileTypeToDelete.merchantID);
       setOpenDeleteDialog(false);
       loadFileTypes();
+      enqueueSnackbar('文件类型删除成功', { variant: 'success' });
     } catch (error) {
       console.error('Error deleting file type:', error);
-      alert(error.response?.data || '删除失败');
+      // 使用更友好的错误提示，并处理后端返回的具体错误信息
+      let errorMessage = '删除失败';
+      if (error.response?.data) {
+        if (typeof error.response.data === 'string') {
+          errorMessage = error.response.data;
+        } else if (error.response.data.message) {
+          errorMessage = error.response.data.message;
+        }
+      }
+      // 使用更友好的错误提示方式，替换原来的alert
+      enqueueSnackbar(errorMessage, { variant: 'error' });
+      // 关闭删除确认对话框
+      setOpenDeleteDialog(false);
     } finally {
       setDeleteLoading(false);
     }
@@ -416,7 +431,7 @@ const FileTypeList = () => {
                 fileTypes.map((fileType) => (
                   <TableRow key={`${fileType.code}-${fileType.merchantID}`}>
                     <TableCell>{fileType.code}</TableCell>
-                    <TableCell>  
+                    <TableCell>
                       <Tooltip title={fileType.merchantID || ''}>
                         <span>{fileType.merchantName}</span>
                       </Tooltip>
@@ -481,7 +496,7 @@ const FileTypeList = () => {
                   required
                   error={Boolean(dialogMode === 'create' && currentFileType.code && !isValidCode(currentFileType.code))}
                   helperText={
-                    dialogMode === 'create' 
+                    dialogMode === 'create'
                       ? (currentFileType.code && !isValidCode(currentFileType.code))
                         ? '类型代码必须为3位字母或数字'
                         : '请输入3位字母或数字（将自动转为大写）'
@@ -573,3 +588,4 @@ const FileTypeList = () => {
 };
 
 export default FileTypeList;
+

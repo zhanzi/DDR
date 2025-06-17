@@ -187,7 +187,7 @@ const LinePriceListView = () => {
       {/* 筛选条件 */}      <Paper sx={{ p: 3, mb: 3 }}>
         <Grid container spacing={2} alignItems="center">
           {user?.roles?.includes('SystemAdmin') && (
-            <Grid item xs={12} md={3}>
+            <Grid item xs={12} md={2}>
               <MerchantAutocomplete
                 value={filters.selectedMerchant}
                 onChange={handleMerchantChange}

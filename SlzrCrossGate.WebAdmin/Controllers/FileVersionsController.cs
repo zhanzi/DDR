@@ -84,7 +84,7 @@ namespace SlzrCrossGate.WebAdmin.Controllers
 
             // 应用分页和排序
             var fileVersions = await query
-                .OrderByDescending(f => f.FileVer.CreateTime)
+                .OrderByDescending(f => f.FileVer.ID)
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
                 .ToListAsync();
