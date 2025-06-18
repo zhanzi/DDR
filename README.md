@@ -136,4 +136,5 @@ git svn dcommit  # 推送
 
 
 cd ClientApp
+npm run build
 cp -r dist/* ../wwwroot/

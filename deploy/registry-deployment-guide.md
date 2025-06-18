@@ -856,6 +856,16 @@ docker run -d -p 8090:80 --name registry-ui \
    -e CATALOG_ELEMENTS_LIMIT=100 \
    -e DELETE_IMAGES=true \
    joxit/docker-registry-ui:main
+
+# 用私有仓库镜像启用仓库管理界面
+docker run -d -p 8090:80 --name registry-ui \
+   -e NGINX_PROXY_PASS_URL=https://devtest.pointlife365.net:5180 \
+   -e REGISTRY_USER=slzr \
+   -e REGISTRY_PASS=slzr.12345 \
+   -e CATALOG_ELEMENTS_LIMIT=100 \
+   -e DELETE_IMAGES=true \
+   devtest.pointlife365.net:5180/library/registry-ui:main
+
 ```
 
 ### 13.5 故障排除检查清单

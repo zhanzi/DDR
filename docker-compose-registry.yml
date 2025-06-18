@@ -93,7 +93,7 @@ services:
       - ASPNETCORE_ENVIRONMENT=Production
       - HTTP_PORT=8000
       - TCP_PORT=8001
-      - ConnectionStrings__DefaultConnection=Server=host.docker.internal;Port=3306;Database=tcpserver;User=root;Password=${MYSQL_ROOT_PASSWORD:-slzr!12345};SslMode=Required;
+      - ConnectionStrings__DefaultConnection=Server=host.docker.internal;Port=3306;Database=tcpserver;User=root;Password=${MYSQL_ROOT_PASSWORD:-slzr!12345};SslMode=Required;AllowLoadLocalInfile=true;
       - DatabaseProvider=MySql
       - RabbitMQ__HostName=slzr-rabbitmq
       - RabbitMQ__Port=5672
