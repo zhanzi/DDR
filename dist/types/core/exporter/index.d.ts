@@ -92,6 +92,10 @@ export declare class Exporter {
      */
     private static _createPrintContainer;
     /**
+     * 确保表格边框在打印时正确显示
+     */
+    private static _ensureTableBorders;
+    /**
      * 应用打印表格布局 - 重用PDF的列宽逻辑
      */
     private static _applyPrintTableLayout;

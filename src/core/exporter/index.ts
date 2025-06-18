@@ -2184,7 +2184,10 @@ export class Exporter {
   ): Promise<HTMLElement> {
     // 克隆原始元素
     const printContainer = element.cloneNode(true) as HTMLElement;
-    printContainer.className = 'ddr-print-container';
+
+    // 保留原有的类名，并添加打印容器类
+    const originalClasses = printContainer.className;
+    printContainer.className = `${originalClasses} ddr-print-container`;
 
     // 设置打印容器样式
     printContainer.style.width = '100%';
@@ -2213,11 +2216,16 @@ export class Exporter {
     // 重用PDF的列宽重制逻辑
     await this._applyPrintTableLayout(printContainer, config, pdfOptions);
 
+    // 强制应用表格边框样式
+    this._ensureTableBorders(printContainer);
+
     // 优化表头和表尾
     const headerElement = printContainer.querySelector('.ddr-report-header') as HTMLElement;
     if (headerElement) {
       headerElement.style.pageBreakInside = 'avoid';
-      headerElement.style.marginBottom = '20px';
+      headerElement.style.marginBottom = '0px'; // 移除底部间距
+      headerElement.style.borderBottom = 'none'; // 移除底部边框
+      headerElement.style.paddingBottom = '16px'; // 添加适当的内边距
     }
 
     const footerElement = printContainer.querySelector('.ddr-report-footer') as HTMLElement;
@@ -2232,6 +2240,39 @@ export class Exporter {
     }
 
     return printContainer;
+  }
+
+  /**
+   * 确保表格边框在打印时正确显示
+   */
+  private static _ensureTableBorders(container: HTMLElement): void {
+    console.log('🖨️ 强制应用表格边框样式');
+
+    // 查找所有表格相关元素
+    const tables = container.querySelectorAll('table');
+    const cells = container.querySelectorAll('td, th');
+    const ddrCells = container.querySelectorAll('.ddr-body-cell, .ddr-header-cell, .ddr-table-cell');
+
+    // 为表格设置边框
+    tables.forEach(table => {
+      const tableElement = table as HTMLElement;
+      tableElement.style.setProperty('border-collapse', 'collapse', 'important');
+      tableElement.style.setProperty('border', '1px solid #ddd', 'important');
+    });
+
+    // 为所有单元格设置边框
+    cells.forEach(cell => {
+      const cellElement = cell as HTMLElement;
+      cellElement.style.setProperty('border', '1px solid #ddd', 'important');
+    });
+
+    // 为DDR特定的单元格设置边框
+    ddrCells.forEach(cell => {
+      const cellElement = cell as HTMLElement;
+      cellElement.style.setProperty('border', '1px solid #ddd', 'important');
+    });
+
+    console.log(`🖨️ 已为 ${tables.length} 个表格和 ${cells.length + ddrCells.length} 个单元格应用边框样式`);
   }
 
   /**
@@ -2329,11 +2370,13 @@ export class Exporter {
       });
     }
 
-    // 优化单元格样式
+    // 优化单元格样式 - 确保边框在打印时显示
     const cells = tableElement.querySelectorAll('td, th');
     cells.forEach(cell => {
       const cellElement = cell as HTMLElement;
-      cellElement.style.border = '1px solid #ddd';
+      // 使用!important确保打印时边框不被覆盖
+      cellElement.style.setProperty('border', '1px solid #ddd', 'important');
+      cellElement.style.setProperty('border-collapse', 'collapse', 'important');
       cellElement.style.padding = '6px 8px';
       cellElement.style.fontSize = '11px';
       cellElement.style.lineHeight = '1.3';
@@ -2348,6 +2391,8 @@ export class Exporter {
       cellElement.style.backgroundColor = '#f5f5f5';
       cellElement.style.fontWeight = 'bold';
       cellElement.style.fontSize = '11px';
+      // 确保表头边框
+      cellElement.style.setProperty('border', '1px solid #ddd', 'important');
     });
   }
 
@@ -2422,6 +2467,53 @@ export class Exporter {
           width: 100% !important;
           border-collapse: collapse !important;
           page-break-inside: auto !important;
+          border: 1px solid #ddd !important;
+        }
+
+        .ddr-table td,
+        .ddr-table th {
+          border: 1px solid #ddd !important;
+          padding: 6px 8px !important;
+          font-size: 11px !important;
+          line-height: 1.3 !important;
+        }
+
+        .ddr-table th {
+          background-color: #f5f5f5 !important;
+          font-weight: bold !important;
+        }
+
+        /* 确保DDR组件的所有单元格都有边框 */
+        .ddr-body-cell,
+        .ddr-header-cell,
+        .ddr-table-cell,
+        .ddr-table-header-cell {
+          border: 1px solid #ddd !important;
+          padding: 6px 8px !important;
+        }
+
+        /* 确保bordered模式的边框显示 */
+        .ddr-bordered .ddr-table,
+        .ddr-bordered .ddr-body-cell,
+        .ddr-bordered .ddr-header-cell,
+        .ddr-bordered .ddr-table-cell,
+        .ddr-bordered .ddr-table-header-cell {
+          border: 1px solid #ddd !important;
+        }
+
+        /* 强制显示所有表格边框，无论是否有bordered类 */
+        table,
+        table td,
+        table th {
+          border: 1px solid #ddd !important;
+          border-collapse: collapse !important;
+        }
+
+        /* 确保表格容器内的所有元素都有边框 */
+        .ddr-table-container table,
+        .ddr-table-container td,
+        .ddr-table-container th {
+          border: 1px solid #ddd !important;
         }
 
         .ddr-table-row {
@@ -2432,6 +2524,8 @@ export class Exporter {
         .ddr-header, .ddr-report-header {
           page-break-inside: avoid !important;
           page-break-after: avoid !important;
+          border-bottom: none !important;
+          margin-bottom: 0 !important;
         }
 
         .ddr-footer, .ddr-report-footer {

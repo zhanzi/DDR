@@ -7138,12 +7138,13 @@ var Exporter = /** @class */function () {
    */
   Exporter._createPrintContainer = function (element, config, pdfOptions, watermark) {
     return __awaiter(this, void 0, void 0, function () {
-      var printContainer, existingWatermarks, headerFooterElements, headerElement, footerElement;
+      var printContainer, originalClasses, existingWatermarks, headerFooterElements, headerElement, footerElement;
       return __generator(this, function (_a) {
         switch (_a.label) {
           case 0:
             printContainer = element.cloneNode(true);
-            printContainer.className = 'ddr-print-container';
+            originalClasses = printContainer.className;
+            printContainer.className = "".concat(originalClasses, " ddr-print-container");
             // 设置打印容器样式
             printContainer.style.width = '100%';
             printContainer.style.height = 'auto';
@@ -7171,10 +7172,14 @@ var Exporter = /** @class */function () {
           case 1:
             // 重用PDF的列宽重制逻辑
             _a.sent();
+            // 强制应用表格边框样式
+            this._ensureTableBorders(printContainer);
             headerElement = printContainer.querySelector('.ddr-report-header');
             if (headerElement) {
               headerElement.style.pageBreakInside = 'avoid';
-              headerElement.style.marginBottom = '20px';
+              headerElement.style.marginBottom = '0px'; // 移除底部间距
+              headerElement.style.borderBottom = 'none'; // 移除底部边框
+              headerElement.style.paddingBottom = '16px'; // 添加适当的内边距
             }
             footerElement = printContainer.querySelector('.ddr-report-footer');
             if (footerElement) {
@@ -7189,6 +7194,33 @@ var Exporter = /** @class */function () {
         }
       });
     });
+  };
+  /**
+   * 确保表格边框在打印时正确显示
+   */
+  Exporter._ensureTableBorders = function (container) {
+    console.log('🖨️ 强制应用表格边框样式');
+    // 查找所有表格相关元素
+    var tables = container.querySelectorAll('table');
+    var cells = container.querySelectorAll('td, th');
+    var ddrCells = container.querySelectorAll('.ddr-body-cell, .ddr-header-cell, .ddr-table-cell');
+    // 为表格设置边框
+    tables.forEach(function (table) {
+      var tableElement = table;
+      tableElement.style.setProperty('border-collapse', 'collapse', 'important');
+      tableElement.style.setProperty('border', '1px solid #ddd', 'important');
+    });
+    // 为所有单元格设置边框
+    cells.forEach(function (cell) {
+      var cellElement = cell;
+      cellElement.style.setProperty('border', '1px solid #ddd', 'important');
+    });
+    // 为DDR特定的单元格设置边框
+    ddrCells.forEach(function (cell) {
+      var cellElement = cell;
+      cellElement.style.setProperty('border', '1px solid #ddd', 'important');
+    });
+    console.log("\uD83D\uDDA8\uFE0F \u5DF2\u4E3A ".concat(tables.length, " \u4E2A\u8868\u683C\u548C ").concat(cells.length + ddrCells.length, " \u4E2A\u5355\u5143\u683C\u5E94\u7528\u8FB9\u6846\u6837\u5F0F"));
   };
   /**
    * 应用打印表格布局 - 重用PDF的列宽逻辑
@@ -7264,7 +7296,9 @@ var Exporter = /** @class */function () {
         cells = tableElement.querySelectorAll('td, th');
         cells.forEach(function (cell) {
           var cellElement = cell;
-          cellElement.style.border = '1px solid #ddd';
+          // 使用!important确保打印时边框不被覆盖
+          cellElement.style.setProperty('border', '1px solid #ddd', 'important');
+          cellElement.style.setProperty('border-collapse', 'collapse', 'important');
           cellElement.style.padding = '6px 8px';
           cellElement.style.fontSize = '11px';
           cellElement.style.lineHeight = '1.3';
@@ -7277,6 +7311,8 @@ var Exporter = /** @class */function () {
           cellElement.style.backgroundColor = '#f5f5f5';
           cellElement.style.fontWeight = 'bold';
           cellElement.style.fontSize = '11px';
+          // 确保表头边框
+          cellElement.style.setProperty('border', '1px solid #ddd', 'important');
         });
         return [2 /*return*/];
       });
@@ -7308,7 +7344,7 @@ var Exporter = /** @class */function () {
     // 根据页面方向和大小设置样式
     var pageRule = orientation === 'landscape' ? 'landscape' : 'portrait';
     var sizeRule = pageSize.toLowerCase();
-    style.textContent = "\n      @media print {\n        @page {\n          size: ".concat(sizeRule, " ").concat(pageRule, ";\n          margin: 15mm;\n        }\n\n        body {\n          margin: 0;\n          padding: 0;\n          font-family: Arial, sans-serif;\n          font-size: 12px;\n          line-height: 1.4;\n          color: #000;\n          background: #fff;\n        }\n\n        .ddr-print-container {\n          width: 100% !important;\n          height: auto !important;\n          overflow: visible !important;\n          position: relative !important;\n          left: 0 !important;\n          top: 0 !important;\n          margin: 0 !important;\n          padding: 0 !important;\n          box-shadow: none !important;\n          border: none !important;\n        }\n\n        .ddr-table-container {\n          overflow: visible !important;\n          height: auto !important;\n          max-height: none !important;\n        }\n\n        .ddr-table {\n          width: 100% !important;\n          border-collapse: collapse !important;\n          page-break-inside: auto !important;\n        }\n\n        .ddr-table-row {\n          page-break-inside: avoid !important;\n          page-break-after: auto !important;\n        }\n\n        .ddr-header, .ddr-report-header {\n          page-break-inside: avoid !important;\n          page-break-after: avoid !important;\n        }\n\n        .ddr-footer, .ddr-report-footer {\n          page-break-inside: avoid !important;\n          page-break-before: avoid !important;\n        }\n\n        .ddr-print-watermark {\n          position: fixed !important;\n          top: 0 !important;\n          left: 0 !important;\n          width: 100vw !important;\n          height: 100vh !important;\n          pointer-events: none !important;\n          z-index: 999 !important;\n          opacity: 0.15 !important;\n          overflow: hidden !important;\n        }\n\n        .ddr-print-watermark-text {\n          position: absolute !important;\n          font-size: 24px !important;\n          font-weight: bold !important;\n          color: #ccc !important;\n          transform: rotate(-45deg) !important;\n          white-space: nowrap !important;\n          user-select: none !important;\n        }\n\n        /* \u9690\u85CF\u4E0D\u9700\u8981\u6253\u5370\u7684\u5143\u7D20 */\n        .no-print {\n          display: none !important;\n        }\n      }\n    ");
+    style.textContent = "\n      @media print {\n        @page {\n          size: ".concat(sizeRule, " ").concat(pageRule, ";\n          margin: 15mm;\n        }\n\n        body {\n          margin: 0;\n          padding: 0;\n          font-family: Arial, sans-serif;\n          font-size: 12px;\n          line-height: 1.4;\n          color: #000;\n          background: #fff;\n        }\n\n        .ddr-print-container {\n          width: 100% !important;\n          height: auto !important;\n          overflow: visible !important;\n          position: relative !important;\n          left: 0 !important;\n          top: 0 !important;\n          margin: 0 !important;\n          padding: 0 !important;\n          box-shadow: none !important;\n          border: none !important;\n        }\n\n        .ddr-table-container {\n          overflow: visible !important;\n          height: auto !important;\n          max-height: none !important;\n        }\n\n        .ddr-table {\n          width: 100% !important;\n          border-collapse: collapse !important;\n          page-break-inside: auto !important;\n          border: 1px solid #ddd !important;\n        }\n\n        .ddr-table td,\n        .ddr-table th {\n          border: 1px solid #ddd !important;\n          padding: 6px 8px !important;\n          font-size: 11px !important;\n          line-height: 1.3 !important;\n        }\n\n        .ddr-table th {\n          background-color: #f5f5f5 !important;\n          font-weight: bold !important;\n        }\n\n        /* \u786E\u4FDDDDR\u7EC4\u4EF6\u7684\u6240\u6709\u5355\u5143\u683C\u90FD\u6709\u8FB9\u6846 */\n        .ddr-body-cell,\n        .ddr-header-cell,\n        .ddr-table-cell,\n        .ddr-table-header-cell {\n          border: 1px solid #ddd !important;\n          padding: 6px 8px !important;\n        }\n\n        /* \u786E\u4FDDbordered\u6A21\u5F0F\u7684\u8FB9\u6846\u663E\u793A */\n        .ddr-bordered .ddr-table,\n        .ddr-bordered .ddr-body-cell,\n        .ddr-bordered .ddr-header-cell,\n        .ddr-bordered .ddr-table-cell,\n        .ddr-bordered .ddr-table-header-cell {\n          border: 1px solid #ddd !important;\n        }\n\n        /* \u5F3A\u5236\u663E\u793A\u6240\u6709\u8868\u683C\u8FB9\u6846\uFF0C\u65E0\u8BBA\u662F\u5426\u6709bordered\u7C7B */\n        table,\n        table td,\n        table th {\n          border: 1px solid #ddd !important;\n          border-collapse: collapse !important;\n        }\n\n        /* \u786E\u4FDD\u8868\u683C\u5BB9\u5668\u5185\u7684\u6240\u6709\u5143\u7D20\u90FD\u6709\u8FB9\u6846 */\n        .ddr-table-container table,\n        .ddr-table-container td,\n        .ddr-table-container th {\n          border: 1px solid #ddd !important;\n        }\n\n        .ddr-table-row {\n          page-break-inside: avoid !important;\n          page-break-after: auto !important;\n        }\n\n        .ddr-header, .ddr-report-header {\n          page-break-inside: avoid !important;\n          page-break-after: avoid !important;\n          border-bottom: none !important;\n          margin-bottom: 0 !important;\n        }\n\n        .ddr-footer, .ddr-report-footer {\n          page-break-inside: avoid !important;\n          page-break-before: avoid !important;\n        }\n\n        .ddr-print-watermark {\n          position: fixed !important;\n          top: 0 !important;\n          left: 0 !important;\n          width: 100vw !important;\n          height: 100vh !important;\n          pointer-events: none !important;\n          z-index: 999 !important;\n          opacity: 0.15 !important;\n          overflow: hidden !important;\n        }\n\n        .ddr-print-watermark-text {\n          position: absolute !important;\n          font-size: 24px !important;\n          font-weight: bold !important;\n          color: #ccc !important;\n          transform: rotate(-45deg) !important;\n          white-space: nowrap !important;\n          user-select: none !important;\n        }\n\n        /* \u9690\u85CF\u4E0D\u9700\u8981\u6253\u5370\u7684\u5143\u7D20 */\n        .no-print {\n          display: none !important;\n        }\n      }\n    ");
     return style;
   };
   /**
