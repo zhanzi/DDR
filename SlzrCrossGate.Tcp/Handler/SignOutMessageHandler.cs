@@ -32,7 +32,8 @@ namespace SlzrCrossGate.Tcp.Handler
                 TerminalID = message.TerimalID,
                 EventType = TerminalEventType.SignOut,
                 Severity = EventSeverity.Info,
-                Remark = $"Terminal sign out",
+                //Remark = $"Terminal sign out",
+                Remark = $"终端签退",
                 Operator = ""
             }); 
 

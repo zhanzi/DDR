@@ -412,6 +412,112 @@ namespace SlzrCrossGate.WebAdmin.Controllers
             }
         }
 
+        // GET: api/Terminals/Events - 获取所有终端事件列表
+        [HttpGet("events")]
+        public async Task<ActionResult<PaginatedResult<TerminalEventDto>>> GetAllTerminalEvents(
+            [FromQuery] string? merchantId = null,
+            [FromQuery] string? serialNo = null,
+            [FromQuery] string? deviceNo = null,
+            [FromQuery] TerminalEventType? eventType = null,
+            [FromQuery] DateTime? startDate = null,
+            [FromQuery] DateTime? endDate = null,
+            [FromQuery] int page = 1,
+            [FromQuery] int pageSize = 10)
+        {
+            // 获取当前用户的商户ID
+            var currentUserMerchantId = await _userService.GetUserMerchantIdAsync(User);
+            var isSystemAdmin = User.IsInRole("SystemAdmin");
+
+            // 如果不是系统管理员，只能查看自己商户的事件
+            if (!isSystemAdmin && merchantId != null && merchantId != currentUserMerchantId)
+            {
+                return Forbid();
+            }
+
+            // 构建查询 - 联接终端表和商户表以支持按序列号、设备编号筛选和获取商户名称
+            var query = from e in _dbContext.TerminalEvents
+                        join t in _dbContext.Terminals on e.TerminalID equals t.ID
+                        join m in _dbContext.Merchants on e.MerchantID equals m.MerchantID
+                        where !t.IsDeleted
+                        select new { Event = e, Terminal = t, Merchant = m };
+
+            // 商户筛选
+            if (!isSystemAdmin)
+            {
+                // 非系统管理员只能查看自己商户的事件
+                query = query.Where(x => x.Event.MerchantID == currentUserMerchantId);
+            }
+            else if (!string.IsNullOrEmpty(merchantId))
+            {
+                // 系统管理员可以筛选指定商户
+                query = query.Where(x => x.Event.MerchantID == merchantId);
+            }
+
+            // 出厂序列号筛选
+            if (!string.IsNullOrEmpty(serialNo))
+            {
+                query = query.Where(x => x.Terminal.MachineID.Contains(serialNo));
+            }
+
+            // 设备编号筛选
+            if (!string.IsNullOrEmpty(deviceNo))
+            {
+                query = query.Where(x => x.Terminal.DeviceNO.Contains(deviceNo));
+            }
+
+            // 事件类型筛选
+            if (eventType.HasValue)
+            {
+                query = query.Where(x => x.Event.EventType == eventType.Value);
+            }
+
+            // 时间范围筛选
+            if (startDate.HasValue)
+            {
+                query = query.Where(x => x.Event.EventTime >= startDate.Value);
+            }
+
+            if (endDate.HasValue)
+            {
+                query = query.Where(x => x.Event.EventTime <= endDate.Value);
+            }
+
+            // 获取总记录数
+            var count = await query.CountAsync();
+
+            // 应用分页和排序
+            var events = await query
+                .OrderByDescending(x => x.Event.EventTime)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .Select(x => new TerminalEventDto
+                {
+                    ID = x.Event.ID,
+                    MerchantID = x.Event.MerchantID,
+                    TerminalID = x.Event.TerminalID,
+                    EventTime = x.Event.EventTime,
+                    EventName = x.Event.EventName,
+                    EventType = x.Event.EventType,
+                    Severity = x.Event.Severity,
+                    Remark = x.Event.Remark,
+                    Operator = x.Event.Operator,
+                    // 添加终端信息
+                    MachineID = x.Terminal.MachineID,
+                    DeviceNO = x.Terminal.DeviceNO,
+                    // 添加商户信息
+                    MerchantName = x.Merchant.Name
+                })
+                .ToListAsync();
+
+            return new PaginatedResult<TerminalEventDto>
+            {
+                Items = events,
+                TotalCount = count,
+                Page = page,
+                PageSize = pageSize
+            };
+        }
+
         // GET: api/Terminals/5/Events
         [HttpGet("{id}/events")]
         public async Task<ActionResult<PaginatedResult<TerminalEventDto>>> GetTerminalEvents(

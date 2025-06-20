@@ -147,6 +147,67 @@ export const isWithinMinutes = (dateInput, minutes = 5) => {
 };
 
 /**
+ * 格式化离线时长显示，提供友好的时间格式
+ * @param {string|Date} lastActiveTime - 最后活跃时间
+ * @returns {string} 格式化后的离线时长字符串
+ */
+export const formatOfflineDuration = (lastActiveTime) => {
+  if (!lastActiveTime) return '未知';
+
+  try {
+    let lastActive;
+    if (typeof lastActiveTime === 'string') {
+      if (BACKEND_USES_LOCAL_TIME) {
+        // 后端使用本地时间，直接解析
+        const cleanDateStr = lastActiveTime.replace(/[Z]$/, '').replace(/[+-]\d{2}:\d{2}$/, '');
+        lastActive = new Date(cleanDateStr);
+      } else {
+        lastActive = parseISO(lastActiveTime);
+      }
+    } else if (lastActiveTime instanceof Date) {
+      lastActive = lastActiveTime;
+    } else {
+      return '未知';
+    }
+
+    if (!isValid(lastActive)) {
+      return '未知';
+    }
+
+    const now = new Date();
+    const diffMs = now - lastActive;
+
+    // 如果时间差为负数或很小，说明可能是时间同步问题
+    if (diffMs < 0) return '刚离线';
+
+    // 计算各个时间单位
+    const minutes = Math.floor(diffMs / (1000 * 60));
+    const hours = Math.floor(diffMs / (1000 * 60 * 60));
+    const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+    const months = Math.floor(diffMs / (1000 * 60 * 60 * 24 * 30));
+    const years = Math.floor(diffMs / (1000 * 60 * 60 * 24 * 365));
+
+    // 根据时长选择合适的显示格式
+    if (years > 0) {
+      return `离线${years}年`;
+    } else if (months > 0) {
+      return `离线${months}个月`;
+    } else if (days > 0) {
+      return `离线${days}天`;
+    } else if (hours > 0) {
+      return `离线${hours}小时`;
+    } else if (minutes > 0) {
+      return `离线${minutes}分钟`;
+    } else {
+      return '刚离线';
+    }
+  } catch (error) {
+    console.error('Error formatting offline duration:', error, lastActiveTime);
+    return '未知';
+  }
+};
+
+/**
  * 将本地日期转换为本地日期时间字符串（用于API查询）
  * 注意：后端已使用本地时间，不再需要UTC转换
  * @param {Date} localDate - 本地日期对象
@@ -243,6 +304,7 @@ export default {
   formatTime,
   formatRelativeTime,
   isWithinMinutes,
+  formatOfflineDuration,
   formatDateForAPI,
   formatDateTimeForAPI,
   getTimezoneInfo

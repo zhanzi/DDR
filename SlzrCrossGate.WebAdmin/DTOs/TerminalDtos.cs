@@ -44,6 +44,11 @@ namespace SlzrCrossGate.WebAdmin.DTOs
         public EventSeverity Severity { get; set; }
         public string? Remark { get; set; }
         public string? Operator { get; set; }
+
+        // 终端信息（用于事件列表页面）
+        public string? MachineID { get; set; }
+        public string? DeviceNO { get; set; }
+        public string? MerchantName { get; set; }
     }
 
     public class TerminalStatsDto

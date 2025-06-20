@@ -38,7 +38,8 @@ namespace SlzrCrossGate.Core.Service.BusinessServices
                     TerminalID = terminalId,
                     EventType = TerminalEventType.UnionPayKeyBound,
                     Severity = EventSeverity.Info,
-                    Remark = $"bind unionpay key:UnionpayMerchantID={result.Item2.UP_MerchantID},UnionpayTerminalID={result.Item2.UP_TerminalID}",
+                    //Remark = $"bind unionpay key:UnionpayMerchantID={result.Item2.UP_MerchantID},UnionpayTerminalID={result.Item2.UP_TerminalID}",
+                    Remark = $"绑定银联终端密钥: 银联商户号={result.Item2.UP_MerchantID},银联终端号={result.Item2.UP_TerminalID},银联密钥={result.Item2.UP_Key},设备编号={busno}",
                     Operator = ""
                 });
             }

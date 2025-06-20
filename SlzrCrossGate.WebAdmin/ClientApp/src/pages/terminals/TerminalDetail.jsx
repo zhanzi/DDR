@@ -4,8 +4,6 @@ import {
   Paper,
   Typography,
   Grid,
-  Card,
-  CardContent,
   Button,
   Chip,
   Divider,
@@ -18,20 +16,15 @@ import {
   TableContainer,
   TableHead,
   TableRow,
-  IconButton,
-  Tooltip,
   CircularProgress
 } from '@mui/material';
 import {
   ArrowBack as ArrowBackIcon,
-  Refresh as RefreshIcon,
-  Message as MessageIcon,
-  Publish as PublishIcon,
-  History as HistoryIcon
+  Refresh as RefreshIcon
 } from '@mui/icons-material';
 import { useParams, useNavigate } from 'react-router-dom';
 import { terminalAPI } from '../../services/api'; // 替换axios导入为terminalAPI
-import { formatDateTime } from '../../utils/dateUtils';
+import { formatDateTime, isWithinMinutes, formatOfflineDuration } from '../../utils/dateUtils';
 import { parseErrorMessage } from '../../utils/errorHandler';
 
 const TerminalDetail = () => {
@@ -65,10 +58,13 @@ const TerminalDetail = () => {
   const getStatusChip = (status) => {
     if (!status) return <Chip label="未知" color="default" />;
 
-    if (status.activeStatus==1 && status.lastActiveTime> new Date(Date.now() - 5 * 60 * 1000)) {
+    // 使用统一的时间处理工具判断是否在线（5分钟内活跃且状态为激活）
+    if (status.activeStatus === 1 && isWithinMinutes(status.lastActiveTime, 5)) {
       return <Chip label="在线" color="success" size="small" />;
     } else {
-        return <Chip label="离线" color="error" size="small" />;
+      // 使用友好的离线时长显示
+      const offlineDuration = formatOfflineDuration(status.lastActiveTime);
+      return <Chip label={offlineDuration} color="error" size="small" />;
     }
   };
 
@@ -269,7 +265,7 @@ const TerminalDetail = () => {
         </Paper>
       )}
 
-      {/* 操作按钮  
+      {/* 操作按钮
       <Paper sx={{ p: 3 }}>
         <Typography variant="h6" gutterBottom>
           操作

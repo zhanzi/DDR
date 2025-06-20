@@ -120,7 +120,8 @@ namespace SlzrCrossGate.Tcp.Handler
                             TerminalID = terminalId,
                             EventType = TerminalEventType.FileDownloadStart,
                             Severity = EventSeverity.Info,
-                            Remark = $"FileCode={fileCode},FileVersion={fileVersion},FilePath={filePublish.FilePath},FileID={filePublish.ID}",
+                            //Remark = $"FileCode={fileCode},FileVersion={fileVersion},FilePath={filePublish.FilePath},FileID={filePublish.ID}",
+                            Remark = $"开始下载文件[{fileCode}]，版本: {fileVersion}，文件路径: {filePublish.FilePath}，文件ID: {filePublish.ID}",
                             Operator = ""
                         });
                     
@@ -136,7 +137,8 @@ namespace SlzrCrossGate.Tcp.Handler
                             TerminalID = terminalId,
                             EventType = TerminalEventType.FileDownloadEnd,
                             Severity = EventSeverity.Info,
-                            Remark = $"FileCode={fileCode},FileVersion={fileVersion},FilePath={filePublish.FilePath},FileID={filePublish.ID}",
+                            //Remark = $"FileCode={fileCode},FileVersion={fileVersion},FilePath={filePublish.FilePath},FileID={filePublish.ID}",
+                            Remark = $"结束下载文件[{fileCode}]，版本: {fileVersion}，文件路径: {filePublish.FilePath}，文件ID: {filePublish.ID}",
                             Operator = ""
                         });
                     

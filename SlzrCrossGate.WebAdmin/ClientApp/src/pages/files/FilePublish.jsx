@@ -43,7 +43,7 @@ import {
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useSnackbar } from 'notistack';
 import { fileAPI, terminalAPI } from '../../services/api';
-import { formatDateTime } from '../../utils/dateUtils';
+import { formatDateTime, isWithinMinutes, formatOfflineDuration } from '../../utils/dateUtils';
 import { parseErrorMessage } from '../../utils/errorHandler';
 
 const FilePublish = () => {
@@ -308,15 +308,13 @@ const FilePublish = () => {
   const getStatusChip = (status) => {
     if (!status) return <Chip label="未知" color="default" size="small" />;
 
-    // 判断是否在线（5分钟内活跃且状态为激活）
-    const isOnline = status.activeStatus === 1 &&
-      status.lastActiveTime &&
-      new Date() - new Date(status.lastActiveTime) < 5 * 60 * 1000;
-
-    if (isOnline) {
+    // 使用统一的时间处理工具判断是否在线（5分钟内活跃且状态为激活）
+    if (status.activeStatus === 1 && isWithinMinutes(status.lastActiveTime, 5)) {
       return <Chip label="在线" color="success" size="small" />;
     } else {
-      return <Chip label="离线" color="error" size="small" />;
+      // 使用友好的离线时长显示
+      const offlineDuration = formatOfflineDuration(status.lastActiveTime);
+      return <Chip label={offlineDuration} color="error" size="small" />;
     }
   };
 

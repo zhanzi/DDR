@@ -39,7 +39,7 @@ import {
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { messageAPI, terminalAPI } from '../../services/api';
-import { formatDateTime } from '../../utils/dateUtils';
+import { formatDateTime, isWithinMinutes, formatOfflineDuration } from '../../utils/dateUtils';
 import { parseErrorMessage } from '../../utils/errorHandler';
 import MerchantAutocomplete from '../../components/MerchantAutocomplete';
 
@@ -493,8 +493,16 @@ const MessageSend = () => {
                         />
                         {terminal.status && (
                           <Chip
-                            label={terminal.status.activeStatus === 0 ? "在线" : "离线"}
-                            color={terminal.status.activeStatus === 0 ? "success" : "error"}
+                            label={
+                              terminal.status.activeStatus === 1 && isWithinMinutes(terminal.status.lastActiveTime, 5)
+                                ? "在线"
+                                : formatOfflineDuration(terminal.status.lastActiveTime)
+                            }
+                            color={
+                              terminal.status.activeStatus === 1 && isWithinMinutes(terminal.status.lastActiveTime, 5)
+                                ? "success"
+                                : "error"
+                            }
                             size="small"
                           />
                         )}

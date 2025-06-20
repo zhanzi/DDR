@@ -188,6 +188,7 @@ export const terminalAPI = {
   getTerminal: (id) => api.get(`/Terminals/${id}`),
   updateTerminal: (id, data) => api.put(`/Terminals/${id}`, data),
   deleteTerminal: (id) => api.delete(`/Terminals/${id}`),
+  getAllTerminalEvents: (params) => api.get('/Terminals/events', { params }),
   getTerminalEvents: (id, params) => api.get(`/Terminals/${id}/events`, { params }),
   getTerminalTypes: (params) => api.get('/TerminalTypes', { params }),
   createTerminalType: (data) => api.post('/TerminalTypes', data),

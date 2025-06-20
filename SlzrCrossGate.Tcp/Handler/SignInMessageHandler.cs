@@ -72,7 +72,8 @@ namespace SlzrCrossGate.Tcp.Handler
                     TerminalID = message.TerimalID,
                     EventType = TerminalEventType.SignIn,
                     Severity = EventSeverity.Info,
-                    Remark = $"Sign in success",
+                    //Remark = $"Sign in success",
+                    Remark = $"终端签到成功",
                     Operator = ""
                 });
 

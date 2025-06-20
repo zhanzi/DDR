@@ -414,7 +414,9 @@ namespace SlzrCrossGate.Core.Service
                     TerminalID = terminal.ID,
                     EventType = TerminalEventType.MerchantIDChanged,
                     Severity = EventSeverity.Info,
-                    Remark = $"Merchant changed from {terminal.MerchantID} to {dto.MerchantID}.",
+                    //Remark = $"Merchant changed from {terminal.MerchantID} to {dto.MerchantID}.",
+                    //Remark 中文
+                    Remark = $"商户变更: {terminal.MerchantID} => {dto.MerchantID}.",
                     Operator = ""
                 });
                 terminal.MerchantID = dto.MerchantID;
@@ -429,7 +431,8 @@ namespace SlzrCrossGate.Core.Service
                     TerminalID = terminal.ID,
                     EventType = TerminalEventType.LineNOChanged,
                     Severity = EventSeverity.Info,
-                    Remark = $"LineNO  changed from {terminal.LineNO}to {dto.LineNO}.",
+                    //Remark = $"LineNO  changed from {terminal.LineNO}to {dto.LineNO}.",
+                    Remark = $"线路变更: {terminal.LineNO} => {dto.LineNO}.",
                     Operator = ""
                 });
                 terminal.LineNO = dto.LineNO;
@@ -444,7 +447,8 @@ namespace SlzrCrossGate.Core.Service
                     TerminalID = terminal.ID,
                     EventType = TerminalEventType.DeviceNOChanged,
                     Severity = EventSeverity.Info,
-                    Remark = $"DeviceNO changed from {terminal.DeviceNO} to {dto.DeviceNO}.",
+                    //Remark = $"DeviceNO changed from {terminal.DeviceNO} to {dto.DeviceNO}.",
+                    Remark = $"设备编号变更: {terminal.DeviceNO} => {dto.DeviceNO}.",
                     Operator = ""
                 });
                 terminal.DeviceNO = dto.DeviceNO;
@@ -468,7 +472,8 @@ namespace SlzrCrossGate.Core.Service
                                 TerminalID = terminal.ID,
                                 EventType = TerminalEventType.PropertyChanged,
                                 Severity = EventSeverity.Info,
-                                Remark = $"Property {item.Key} changed from {property} to {item.Value}.",
+                                //Remark = $"Property {item.Key} changed from {property} to {item.Value}.",
+                                Remark = $"属性[{item.Key}]变更: {property} => {item.Value}.",
                                 Operator = ""
                             });
                             ischanged = true;
@@ -482,7 +487,26 @@ namespace SlzrCrossGate.Core.Service
                             TerminalID = terminal.ID,
                             EventType = TerminalEventType.PropertyChanged,
                             Severity = EventSeverity.Info,
-                            Remark = $"New Property {item.Key} added with value {item.Value}.",
+                            //Remark = $"New Property {item.Key} added with value {item.Value}.",
+                            Remark = $"新增属性[{item.Key}]，值: {item.Value}.",
+                            Operator = ""
+                        });
+                        ischanged = true;
+                    }
+                }
+                //terminal.Status.PropertyMetadata 中存在，但 dto.PropertiesMetaData 中不存在
+                foreach (var item in terminal.Status.PropertyMetadata)
+                {
+                    if (!dto.PropertiesMetaData.TryGetValue(item.Key, out var property))
+                    {
+                        RecordTerminalEvent(new TerminalEvent
+                        {
+                            MerchantID = terminal.MerchantID,
+                            TerminalID = terminal.ID,
+                            EventType = TerminalEventType.PropertyChanged,
+                            Severity = EventSeverity.Info,
+                            //Remark = $"Property {item.Key} removed.",
+                            Remark = $"删除属性[{item.Key}]，值: {item.Value}.",
                             Operator = ""
                         });
                         ischanged = true;
@@ -528,9 +552,10 @@ namespace SlzrCrossGate.Core.Service
                 return false;
             }
             bool result = false;
+            var currentVersions = terminal.Status.FileVersionMetadata;
             foreach (var item in signDto.ClientFileVersionsMetaData)
             {
-                if (terminal.Status.FileVersionMetadata.TryGetValue(item.Key, out var version))
+                if (currentVersions.TryGetValue(item.Key, out var version))
                 {
                     if (item.Value != version.Current)
                     {
@@ -540,10 +565,10 @@ namespace SlzrCrossGate.Core.Service
                             TerminalID = terminal.ID,
                             EventType = TerminalEventType.FileVersionUpdated,
                             Severity = EventSeverity.Info,
-                            Remark = $"File {item.Key} , Version from {version.Current} changed to {item.Value}.",
+                            //Remark = $"File {item.Key} , Version from {version.Current} changed to {item.Value}.",
+                            Remark = $"文件[{item.Key}]版本变更: {version.Current} => {item.Value}.",
                             Operator = ""
                         });
-
                         version.Current = item.Value;
                         result = true;
                     }
@@ -565,18 +590,38 @@ namespace SlzrCrossGate.Core.Service
                         TerminalID = terminal.ID,
                         EventType = TerminalEventType.FileVersionUpdated,
                         Severity = EventSeverity.Info,
-                        Remark = $"New File {item.Key} , Version  {item.Value}.",
+                        //Remark = $"New File {item.Key} , Version  {item.Value}.",
+                        Remark = $"新增文件[{item.Key}]，版本: {item.Value}.",
+                        Operator = ""
+                    });
+                }
+            }
+            //terminal.Status.FileVersionMetadata 中存在，但 signDto.ClientFileVersionsMetaData 中不存在
+            foreach (var item in currentVersions)
+            {
+                if (!signDto.ClientFileVersionsMetaData.TryGetValue(item.Key, out var version))
+                {
+                    currentVersions.Remove(item.Key);
+                    result = true;
+                    RecordTerminalEvent(new TerminalEvent
+                    {
+                        MerchantID = terminal.MerchantID,
+                        TerminalID = terminal.ID,
+                        EventType = TerminalEventType.FileVersionUpdated,
+                        Severity = EventSeverity.Info,
+                        Remark = $"删除文件[{item.Key}]，版本: {item.Value.Current}.",
                         Operator = ""
                     });
                 }
             }
 
-            // if (result)
-            // {
-            //     using var scope = _scopeFactory.CreateScope();
-            //     var terminalStatusRepository = scope.ServiceProvider.GetRequiredService<Repository<TerminalStatus>>();
-            //     await terminalStatusRepository.UpdateAsync(terminal.Status);
-            // }
+            if (result)
+            {
+                // using var scope = _scopeFactory.CreateScope();
+                // var terminalStatusRepository = scope.ServiceProvider.GetRequiredService<Repository<TerminalStatus>>();
+                // await terminalStatusRepository.UpdateAsync(terminal.Status);
+                terminal.Status.FileVersionMetadata= currentVersions;
+            }
 
             return result;
         }
@@ -811,68 +856,76 @@ namespace SlzrCrossGate.Core.Service
         //对终端期望版本过期的进行批量更新
         public async Task<bool> UpdateExpiredTerminalVersion()
         {
-            var expiredTerminals = _terminals
-                .Where(p => p.Value.Status != null
-                    && p.Value.Status.FileVersionMetadata.Any(v => v.Value.IsExpired == true))
-                .Select(p => p.Value).ToList();
-
-            if(expiredTerminals.Count == 0) return false;
-
-            using var scope = _scopeFactory.CreateScope();
-            var filePublishCachedService = scope.ServiceProvider.GetRequiredService<FilePublishCachedService>();
-
-
-            foreach (var terminal in expiredTerminals)
+            try
             {
-                if (terminal.Status == null) continue;
+                var expiredTerminals = _terminals
+                    .Where(p => p.Value.Status != null
+                        && p.Value.Status.FileVersionMetadata.Any(v => v.Value.IsExpired == true))
+                    .Select(p => p.Value).ToList();
 
-                await filePublishCachedService.LoadMerchantPublish(terminal.MerchantID);
+                if (expiredTerminals.Count == 0) return false;
 
-                // 使用新的辅助方法来批量更新文件版本信息
-                terminal.Status.UpdateFileVersions(metadata =>
+                using var scope = _scopeFactory.CreateScope();
+                var filePublishCachedService = scope.ServiceProvider.GetRequiredService<FilePublishCachedService>();
+
+
+                foreach (var terminal in expiredTerminals)
                 {
-                    foreach (var item in metadata)
+                    if (terminal.Status == null) continue;
+
+                    await filePublishCachedService.LoadMerchantPublish(terminal.MerchantID);
+
+                    // 使用新的辅助方法来批量更新文件版本信息
+                    terminal.Status.UpdateFileVersions(metadata =>
                     {
-                        if (filePublishCachedService.TryGetValue(filePublishCachedService.GetKey(terminal.MerchantID, item.Key, PublishTypeOption.Terminal, terminal.ID), out FilePublish? publish) && publish != null)
+                        foreach (var item in metadata)
                         {
-                            item.Value.Expected = publish.Ver;
-                            item.Value.ExpectedFileCrc = publish.Crc;
-                            item.Value.ExpectedFileSize = publish.FileSize;
+                            if (filePublishCachedService.TryGetValue(filePublishCachedService.GetKey(terminal.MerchantID, item.Key, PublishTypeOption.Terminal, terminal.ID), out FilePublish? publish) && publish != null)
+                            {
+                                item.Value.Expected = publish.Ver;
+                                item.Value.ExpectedFileCrc = publish.Crc;
+                                item.Value.ExpectedFileSize = publish.FileSize;
+                                item.Value.IsExpired = false;
+                                continue;
+                            }
+                            if (filePublishCachedService.TryGetValue(filePublishCachedService.GetKey(terminal.MerchantID, item.Key, PublishTypeOption.Line, terminal.LineNO), out publish) && publish != null)
+                            {
+                                item.Value.Expected = publish.Ver;
+                                item.Value.ExpectedFileCrc = publish.Crc;
+                                item.Value.ExpectedFileSize = publish.FileSize;
+                                item.Value.IsExpired = false;
+                                continue;
+                            }
+                            if (filePublishCachedService.TryGetValue(filePublishCachedService.GetKey(terminal.MerchantID, item.Key, PublishTypeOption.Merchant, terminal.MerchantID), out publish) && publish != null)
+                            {
+                                item.Value.Expected = publish.Ver;
+                                item.Value.ExpectedFileCrc = publish.Crc;
+                                item.Value.ExpectedFileSize = publish.FileSize;
+                                item.Value.IsExpired = false;
+                                continue;
+                            }
+                            item.Value.Expected = "";
+                            item.Value.ExpectedFileCrc = "";
+                            item.Value.ExpectedFileSize = 0;
                             item.Value.IsExpired = false;
-                            continue;
                         }
-                        if (filePublishCachedService.TryGetValue(filePublishCachedService.GetKey(terminal.MerchantID, item.Key, PublishTypeOption.Line, terminal.LineNO), out publish) && publish != null)
-                        {
-                            item.Value.Expected = publish.Ver;
-                            item.Value.ExpectedFileCrc = publish.Crc;
-                            item.Value.ExpectedFileSize = publish.FileSize;
-                            item.Value.IsExpired = false;
-                            continue;
-                        }
-                        if (filePublishCachedService.TryGetValue(filePublishCachedService.GetKey(terminal.MerchantID, item.Key, PublishTypeOption.Merchant, terminal.MerchantID), out publish) && publish != null)
-                        {
-                            item.Value.Expected = publish.Ver;
-                            item.Value.ExpectedFileCrc = publish.Crc;
-                            item.Value.ExpectedFileSize = publish.FileSize;
-                            item.Value.IsExpired = false;
-                            continue;
-                        }
-                        item.Value.Expected = "";
-                        item.Value.ExpectedFileCrc = "";
-                        item.Value.ExpectedFileSize = 0;
-                        item.Value.IsExpired = false;
-                    }
-                });
+                    });
+                }
+
+
+                //批量更新数据库
+                //using var scope = _scopeFactory.CreateScope();
+                var terminalStatusRepository = scope.ServiceProvider.GetRequiredService<Repository<TerminalStatus>>();
+                // 使用专门的方法更新 FileVersions 字段，避免其他字段的约束问题
+                await terminalStatusRepository.BulkUpdateFileVersionsAsync(expiredTerminals.Where(p => p.Status != null).Select(p => p.Status!).ToList());
+
+                return true;
             }
-
-
-            //批量更新数据库
-            //using var scope = _scopeFactory.CreateScope();
-            var terminalStatusRepository = scope.ServiceProvider.GetRequiredService<Repository<TerminalStatus>>();
-            // 使用专门的方法更新 FileVersions 字段，避免其他字段的约束问题
-            await terminalStatusRepository.BulkUpdateFileVersionsAsync(expiredTerminals.Where(p => p.Status != null).Select(p => p.Status!).ToList());
-
-            return true;
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "批量更新终端期望版本失败");
+                return false;
+            }
         }
 
         //检查终端文件版本与期望版本不一致的，提醒更新

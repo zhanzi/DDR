@@ -48,7 +48,7 @@ import {
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { terminalAPI, messageAPI, fileAPI } from '../../services/api'; // 使用API服务代替直接的axios
-import { formatDateTime, isWithinMinutes } from '../../utils/dateUtils'; // 使用统一的时间处理工具
+import { formatDateTime, isWithinMinutes, formatOfflineDuration } from '../../utils/dateUtils'; // 使用统一的时间处理工具
 import MerchantAutocomplete from '../../components/MerchantAutocomplete'; // 导入商户下拉框组件
 import { parseErrorMessage } from '../../utils/errorHandler';
 
@@ -424,7 +424,9 @@ const TerminalList = () => {
     if (status.activeStatus === 1 && isWithinMinutes(status.lastActiveTime, 5)) {
       return <Chip label="在线" color="success" size="small" />;
     } else {
-      return <Chip label="离线" color="error" size="small" />;
+      // 使用友好的离线时长显示
+      const offlineDuration = formatOfflineDuration(status.lastActiveTime);
+      return <Chip label={offlineDuration} color="error" size="small" />;
     }
   };
 

@@ -54,6 +54,12 @@ const items = [
     roles: ['SystemAdmin', 'MerchantAdmin']
   },
   {
+    href: '/app/terminal-events',
+    icon: CpuIcon,
+    title: '终端事件',
+    roles: ['SystemAdmin', 'MerchantAdmin']
+  },
+  {
     href: '/app/files',
     icon: ArchiveIcon,
     title: '文件管理',

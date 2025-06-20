@@ -25,6 +25,7 @@ import MerchantDetailView from './pages/merchants/MerchantDetailView';
 import TerminalList from './pages/terminals/TerminalList';
 import TerminalDetail from './pages/terminals/TerminalDetail';
 import TerminalEvents from './pages/terminals/TerminalEvents';
+import TerminalEventsList from './pages/terminals/TerminalEventsList';
 import TerminalRecords from './pages/terminals/TerminalRecords';
 import FileManagementView from './pages/files/FileManagementView';
 import FileTypeList from './pages/files/FileTypeList';
@@ -127,6 +128,14 @@ const routes = [
         element: (
           <RoleGuard roles={['SystemAdmin', 'MerchantAdmin']}>
             <TerminalEvents />
+          </RoleGuard>
+        )
+      },
+      {
+        path: 'terminal-events',
+        element: (
+          <RoleGuard roles={['SystemAdmin', 'MerchantAdmin']}>
+            <TerminalEventsList />
           </RoleGuard>
         )
       },
