@@ -133,7 +133,7 @@ const menuGroups = [
       {
         href: '/app/fare-params',
         icon: CreditCardIcon,
-        title: '票价参数',
+        title: '线路参数',
         roles: ['SystemAdmin', 'MerchantAdmin']
       },
       {
@@ -290,10 +290,11 @@ const DashboardSidebar = ({
         <ListItemButton
           onClick={() => toggleGroup(group.id)}
           sx={{
-            py: 1,
+            py: 1.25,
             px: 2,
             borderRadius: 2,
-            mb: 0.5,
+            mb: 0.75,
+            mt: group.id === 'overview' ? 0 : 1,
             transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
             '&:hover': {
               backgroundColor: mode === 'dark'
@@ -314,10 +315,10 @@ const DashboardSidebar = ({
           <ListItemText
             primary={group.title}
             primaryTypographyProps={{
-              fontSize: '0.9rem',
+              fontSize: '1rem',
               fontWeight: 600,
               textTransform: 'none',
-              letterSpacing: '0.25px',
+              letterSpacing: '0.15px',
               color: mode === 'dark' ? theme.palette.primary.light : theme.palette.primary.main,
             }}
           />

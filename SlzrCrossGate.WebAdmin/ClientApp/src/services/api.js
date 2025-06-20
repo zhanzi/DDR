@@ -200,6 +200,11 @@ export const terminalAPI = {
     api.post('/Terminals/PublishFile', { terminalIds, fileVerId }),
   getTerminalStats: (params) => api.get(`/Terminals/Stats`,{ params }),
   getLineStats: (params) => api.get('/Terminals/LineStats', { params }),
+  // 导出终端列表
+  exportTerminals: (params) => api.get('/Terminals/export', {
+    params,
+    responseType: 'blob',
+  }),
 };
 
 // 文件相关API

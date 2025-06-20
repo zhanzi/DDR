@@ -100,7 +100,7 @@ const NavItem = ({
         <ListItemText
           primary={title}
           primaryTypographyProps={{
-            fontSize: '0.8125rem',
+            fontSize: '0.875rem',
             fontWeight: 500,
           }}
         />
@@ -113,7 +113,7 @@ const NavItem = ({
       disableGutters
       sx={{
         display: 'flex',
-        py: 0.5,
+        py: 0.25,
         px: 1,
       }}
       {...rest}

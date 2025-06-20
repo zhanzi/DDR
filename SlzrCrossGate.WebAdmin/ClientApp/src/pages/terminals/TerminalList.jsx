@@ -48,7 +48,7 @@ import {
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { terminalAPI, messageAPI, fileAPI } from '../../services/api'; // 使用API服务代替直接的axios
-import { formatDateTime, isWithinMinutes, formatOfflineDuration } from '../../utils/dateUtils'; // 使用统一的时间处理工具
+import { formatDateTime,formatDate, isWithinMinutes, formatOfflineDuration } from '../../utils/dateUtils'; // 使用统一的时间处理工具
 import MerchantAutocomplete from '../../components/MerchantAutocomplete'; // 导入商户下拉框组件
 import { parseErrorMessage } from '../../utils/errorHandler';
 
@@ -402,18 +402,46 @@ const TerminalList = () => {
   };
 
   // 导出终端列表
-  const exportTerminals = () => {
-    // 构建查询参数
-    const params = Object.fromEntries(
-      Object.entries(filters).filter(([_, value]) => value !== '')
-    );
+  const exportTerminals = async () => {
+    try {
+      // 构建查询参数
+      const params = Object.fromEntries(
+        Object.entries(filters).filter(([_, value]) => value !== '')
+      );
 
-    // 创建URL
-    const queryString = new URLSearchParams(params).toString();
-    const url = `/api/Terminals/export?${queryString}`;
+      // 如果选择了商户，添加商户ID
+      if (selectedMerchant) {
+        params.merchantId = selectedMerchant.merchantID;
+      }
 
-    // 打开下载链接
-    window.open(url, '_blank');
+      showMessage('正在导出终端列表...', 'info');
+
+      // 调用API导出
+      const blob = await terminalAPI.exportTerminals(params);
+
+      // 创建下载链接
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+
+      // 生成文件名
+      const timestamp = new Date().toISOString().slice(0, 19).replace(/[:-]/g, '');
+      link.download = `terminals_${timestamp}.csv`;
+
+      // 触发下载
+      document.body.appendChild(link);
+      link.click();
+
+      // 清理
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+
+      showMessage('终端列表导出成功！', 'success');
+    } catch (error) {
+      console.error('Error exporting terminals:', error);
+      const errorMessage = parseErrorMessage(error, '导出终端列表失败');
+      showMessage(errorMessage, 'error');
+    }
   };
 
   // 获取终端状态的显示样式
@@ -609,21 +637,24 @@ const TerminalList = () => {
               <ResponsiveTableCell>设备编号</ResponsiveTableCell>
               <ResponsiveTableCell hideOn={['xs', 'sm']}>线路编号</ResponsiveTableCell>
               <ResponsiveTableCell hideOn={['xs', 'sm']}>终端类型</ResponsiveTableCell>
-              <ResponsiveTableCell>状态</ResponsiveTableCell>
+              <ResponsiveTableCell hideOn={['xs', 'sm']}>注册日期</ResponsiveTableCell>
               <ResponsiveTableCell hideOn={['xs']}>最后活跃时间</ResponsiveTableCell>
+              <ResponsiveTableCell>状态</ResponsiveTableCell>
+              <ResponsiveTableCell hideOn={['xs', 'sm']}>APP版本</ResponsiveTableCell>
+              <ResponsiveTableCell hideOn={['xs', 'sm']}>黑名单版本</ResponsiveTableCell>
               <ResponsiveTableCell sticky={true} minWidth={160}>操作</ResponsiveTableCell>
             </ResponsiveTableRow>
           </ResponsiveTableHead>
           <ResponsiveTableBody>
             {loading ? (
               <ResponsiveTableRow>
-                <ResponsiveTableCell colSpan={9} align="center">
+                <ResponsiveTableCell colSpan={12} align="center">
                   加载中...
                 </ResponsiveTableCell>
               </ResponsiveTableRow>
             ) : terminals.length === 0 ? (
               <ResponsiveTableRow>
-                <ResponsiveTableCell colSpan={9} align="center">
+                <ResponsiveTableCell colSpan={12} align="center">
                   没有找到终端
                 </ResponsiveTableCell>
               </ResponsiveTableRow>
@@ -660,6 +691,10 @@ const TerminalList = () => {
                   </ResponsiveTableCell>
                   <ResponsiveTableCell hideOn={['xs', 'sm']}>{terminal.lineNO}</ResponsiveTableCell>
                   <ResponsiveTableCell hideOn={['xs', 'sm']}>{terminal.terminalType}</ResponsiveTableCell>
+                  <ResponsiveTableCell hideOn={['xs', 'sm']}>{terminal.createTime ? formatDate(terminal.createTime) : '-'}</ResponsiveTableCell>
+                  <ResponsiveTableCell hideOn={['xs']}>
+                    {terminal.status ? formatDateTime(terminal.status.lastActiveTime) : '-'}
+                  </ResponsiveTableCell>
                   <ResponsiveTableCell>
                     <Box>
                       {getStatusChip(terminal.status)}
@@ -670,7 +705,10 @@ const TerminalList = () => {
                     </Box>
                   </ResponsiveTableCell>
                   <ResponsiveTableCell hideOn={['xs']}>
-                    {terminal.status ? formatDateTime(terminal.status.lastActiveTime) : '-'}
+                    {terminal.status ? terminal.status.fileVersionMetadata.PROPIS?.current || terminal.status.fileVersionMetadata.PROPLT?.current : '-'}
+                  </ResponsiveTableCell>
+                  <ResponsiveTableCell hideOn={['xs']}>
+                    {terminal.status ? terminal.status.fileVersionMetadata.BLKBUS?.current : '-'}
                   </ResponsiveTableCell>
                   <ResponsiveTableCell sticky={true}>
                     <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>

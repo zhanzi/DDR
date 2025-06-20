@@ -189,15 +189,15 @@ export const formatOfflineDuration = (lastActiveTime) => {
 
     // 根据时长选择合适的显示格式
     if (years > 0) {
-      return `离线${years}年`;
+      return `离线 ${years} 年`;
     } else if (months > 0) {
-      return `离线${months}个月`;
+      return `离线 ${months} 月`;
     } else if (days > 0) {
-      return `离线${days}天`;
+      return `离线 ${days} 天`;
     } else if (hours > 0) {
-      return `离线${hours}小时`;
+      return `离线 ${hours} 小时`;
     } else if (minutes > 0) {
-      return `离线${minutes}分钟`;
+      return `离线 ${minutes} 分钟`;
     } else {
       return '刚离线';
     }
