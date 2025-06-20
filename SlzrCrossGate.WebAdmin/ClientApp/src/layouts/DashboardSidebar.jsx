@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Link as RouterLink, useLocation } from 'react-router-dom';
 import PropTypes from 'prop-types';
 import {
@@ -9,7 +9,15 @@ import {
   List,
   Typography,
   useMediaQuery,
-  useTheme as useMuiTheme
+  useTheme as useMuiTheme,
+  Accordion,
+  AccordionSummary,
+  AccordionDetails,
+  Collapse,
+  ListItemButton,
+  ListItemIcon,
+  ListItemText,
+  alpha
 } from '@mui/material';
 import {
   BarChart as BarChartIcon,
@@ -28,102 +36,150 @@ import {
   Book as BookIcon,
   Smartphone as SmartphoneIcon,
   Cpu as CpuIcon,
-  List as ListIcon
+  List as ListIcon,
+  ChevronDown as ChevronDownIcon,
+  ChevronRight as ChevronRightIcon,
+  Activity as ActivityIcon,
+  Folder as FolderIcon,
+  Sliders as SlidersIcon,
+  Shield as ShieldIcon
 } from 'react-feather';
 import NavItem from './NavItem';
 import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
 
-const items = [
+// 菜单分组配置
+const menuGroups = [
   {
-    href: '/app/dashboard',
-    icon: BarChartIcon,
-    title: '仪表盘',
-    roles: [] // 空数组表示所有角色可见
+    id: 'overview',
+    title: '概览监控',
+    icon: ActivityIcon,
+    items: [
+      {
+        href: '/app/dashboard',
+        icon: BarChartIcon,
+        title: '仪表盘',
+        roles: []
+      }
+    ]
   },
   {
-    href: '/app/terminals',
-    icon: SmartphoneIcon,
+    id: 'terminal',
     title: '终端管理',
-    roles: []
+    icon: SmartphoneIcon,
+    items: [
+      {
+        href: '/app/terminals',
+        icon: SmartphoneIcon,
+        title: '终端管理',
+        roles: []
+      },
+      {
+        href: '/app/terminal-records',
+        icon: ListIcon,
+        title: '终端记录',
+        roles: ['SystemAdmin', 'MerchantAdmin']
+      },
+      {
+        href: '/app/terminal-events',
+        icon: CpuIcon,
+        title: '终端事件',
+        roles: ['SystemAdmin', 'MerchantAdmin']
+      }
+    ]
   },
   {
-    href: '/app/terminal-records',
-    icon: ListIcon,
-    title: '终端记录',
-    roles: ['SystemAdmin', 'MerchantAdmin']
+    id: 'content',
+    title: '内容管理',
+    icon: FolderIcon,
+    items: [
+      {
+        href: '/app/files/types',
+        icon: FileTextIcon,
+        title: '文件类型',
+        roles: []
+      },
+      {
+        href: '/app/files/versions',
+        icon: ArchiveIcon,
+        title: '文件版本',
+        roles: []
+      },
+      {
+        href: '/app/files/publish-list',
+        icon: ServerIcon,
+        title: '发布记录',
+        roles: []
+      },
+      {
+        href: '/app/messages-types',
+        icon: ListIcon,
+        title: '消息类型',
+        roles: []
+      },
+      {
+        href: '/app/messages',
+        icon: MessageCircleIcon,
+        title: '消息管理',
+        roles: []
+      }
+    ]
   },
   {
-    href: '/app/terminal-events',
-    icon: CpuIcon,
-    title: '终端事件',
-    roles: ['SystemAdmin', 'MerchantAdmin']
+    id: 'business',
+    title: '业务配置',
+    icon: SlidersIcon,
+    items: [
+      {
+        href: '/app/fare-params',
+        icon: CreditCardIcon,
+        title: '票价参数',
+        roles: ['SystemAdmin', 'MerchantAdmin']
+      },
+      {
+        href: '/app/union-pay-terminal-keys',
+        icon: DatabaseIcon,
+        title: '银联密钥',
+        roles: ['SystemAdmin', 'MerchantAdmin']
+      },
+      {
+        href: '/app/dictionary',
+        icon: BookIcon,
+        title: '商户字典',
+        roles: ['SystemAdmin', 'MerchantAdmin']
+      }
+    ]
   },
   {
-    href: '/app/files',
-    icon: ArchiveIcon,
-    title: '文件管理',
-    roles: []
-  },
-  {
-    href: '/app/messages',
-    icon: MessageCircleIcon,
-    title: '消息管理',
-    roles: []
-  },
-  {
-    href: '/app/fare-params',
-    icon: CreditCardIcon,
-    title: '票价参数',
-    roles: ['SystemAdmin', 'MerchantAdmin']
-  },
-  {
-    href: '/app/union-pay-terminal-keys',
-    icon: DatabaseIcon,
-    title: '银联密钥',
-    roles: ['SystemAdmin', 'MerchantAdmin']
-  },
-  // {
-  //   href: '/app/account',
-  //   icon: UserIcon,
-  //   title: '账户设置',
-  //   roles: [] // 所有角色可见
-  // },
-  {
-    href: '/app/users',
-    icon: UsersIcon,
-    title: '用户管理',
-    roles: ['SystemAdmin', 'MerchantAdmin'] // 仅系统管理员和商户管理员可见
-  },
-  {
-    href: '/app/roles',
-    icon: LockIcon,
-    title: '角色管理',
-    roles: ['SystemAdmin'] // 仅系统管理员可见
-  },
-  {
-    href: '/app/merchants',
-    icon: ShoppingBagIcon,
-    title: '商户管理',
-    roles: ['SystemAdmin'] // 仅系统管理员可见
-  },
-  {
-    href: '/app/dictionary',
-    icon: BookIcon,
-    title: '商户字典',
-    roles: ['SystemAdmin', 'MerchantAdmin']
-  },
-  // {
-  //   href: '/app/monitor',
-  //   icon: MonitorIcon,
-  //   title: '系统监控',
-  //   roles: ['SystemAdmin']
-  // },
-  {
-    href: '/app/settings',
-    icon: SettingsIcon,
-    title: '系统设置',
-    roles: ['SystemAdmin']
+    id: 'system',
+    title: '系统管理',
+    icon: ShieldIcon,
+    items: [
+      {
+        href: '/app/users',
+        icon: UsersIcon,
+        title: '用户管理',
+        roles: ['SystemAdmin', 'MerchantAdmin']
+      },
+      {
+        href: '/app/roles',
+        icon: LockIcon,
+        title: '角色管理',
+        roles: ['SystemAdmin']
+      },
+      {
+        href: '/app/merchants',
+        icon: ShoppingBagIcon,
+        title: '商户管理',
+        roles: ['SystemAdmin']
+      },
+      {
+        href: '/app/settings',
+        icon: SettingsIcon,
+        title: '系统设置',
+        roles: ['SystemAdmin']
+      }
+    ]
   }
 ];
 
@@ -142,6 +198,159 @@ const DashboardSidebar = ({
   const isFirstRender = useRef(true);
   // 记录上一次的路径
   const prevPathRef = useRef(location.pathname);
+
+  // 分组展开状态管理
+  const [expandedGroups, setExpandedGroups] = useState(() => {
+    // 从localStorage读取展开状态，默认全部展开
+    const saved = localStorage.getItem('sidebar-expanded-groups');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        console.warn('Failed to parse saved expanded groups:', e);
+      }
+    }
+    // 默认全部展开
+    return menuGroups.reduce((acc, group) => {
+      acc[group.id] = true;
+      return acc;
+    }, {});
+  });
+
+  // 保存展开状态到localStorage
+  const saveExpandedState = (newState) => {
+    try {
+      localStorage.setItem('sidebar-expanded-groups', JSON.stringify(newState));
+    } catch (e) {
+      console.warn('Failed to save expanded groups:', e);
+    }
+  };
+
+  // 切换分组展开状态
+  const toggleGroup = (groupId) => {
+    const newState = {
+      ...expandedGroups,
+      [groupId]: !expandedGroups[groupId]
+    };
+    setExpandedGroups(newState);
+    saveExpandedState(newState);
+  };
+
+  // 检查用户是否有权限访问菜单项
+  const hasPermission = (item) => {
+    // 如果没有指定角色限制或数组为空，所有用户可见
+    if (!item.roles || item.roles.length === 0) {
+      return true;
+    }
+
+    // 如果用户没有角色信息，只显示无角色限制的菜单
+    if (!user || !user.roles || user.roles.length === 0) {
+      return false;
+    }
+
+    // 检查用户是否拥有所需角色
+    return item.roles.some(role => user.roles.includes(role));
+  };
+
+  // 检查分组是否有可见的菜单项
+  const hasVisibleItems = (group) => {
+    return group.items.some(item => hasPermission(item));
+  };
+
+  // 分组菜单项组件
+  const MenuGroup = ({ group }) => {
+    const GroupIcon = group.icon;
+    const isExpanded = expandedGroups[group.id];
+    const visibleItems = group.items.filter(item => hasPermission(item));
+
+    if (visibleItems.length === 0) {
+      return null;
+    }
+
+    // 折叠模式下的处理
+    if (isCollapsed && !isMobile) {
+      return (
+        <Box sx={{ mb: 1 }}>
+          {visibleItems.map((item) => (
+            <NavItem
+              key={item.title}
+              href={item.href}
+              title={item.title}
+              icon={item.icon}
+              isCollapsed={true}
+            />
+          ))}
+        </Box>
+      );
+    }
+
+    return (
+      <Box sx={{ mb: 1 }}>
+        {/* 分组标题 */}
+        <ListItemButton
+          onClick={() => toggleGroup(group.id)}
+          sx={{
+            py: 1,
+            px: 2,
+            borderRadius: 2,
+            mb: 0.5,
+            transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+            '&:hover': {
+              backgroundColor: mode === 'dark'
+                ? alpha(theme.palette.primary.main, 0.08)
+                : alpha(theme.palette.primary.main, 0.04),
+            }
+          }}
+        >
+          <ListItemIcon
+            sx={{
+              minWidth: 'auto',
+              mr: 1,
+              color: mode === 'dark' ? theme.palette.primary.light : theme.palette.primary.main,
+            }}
+          >
+            <GroupIcon size="18" />
+          </ListItemIcon>
+          <ListItemText
+            primary={group.title}
+            primaryTypographyProps={{
+              fontSize: '0.9rem',
+              fontWeight: 600,
+              textTransform: 'none',
+              letterSpacing: '0.25px',
+              color: mode === 'dark' ? theme.palette.primary.light : theme.palette.primary.main,
+            }}
+          />
+          {isExpanded ? (
+            <ChevronDownIcon size="16" style={{
+              color: mode === 'dark' ? theme.palette.primary.light : theme.palette.primary.main,
+              transition: 'transform 0.2s'
+            }} />
+          ) : (
+            <ChevronRightIcon size="16" style={{
+              color: mode === 'dark' ? theme.palette.primary.light : theme.palette.primary.main,
+              transition: 'transform 0.2s'
+            }} />
+          )}
+        </ListItemButton>
+
+        {/* 分组菜单项 */}
+        <Collapse in={isExpanded} timeout="auto" unmountOnExit>
+          <List sx={{ pl: 1 }}>
+            {visibleItems.map((item) => (
+              <NavItem
+                key={item.title}
+                href={item.href}
+                title={item.title}
+                icon={item.icon}
+                isCollapsed={false}
+              />
+            ))}
+          </List>
+        </Collapse>
+      </Box>
+    );
+  };
 
   // 只在路由变化时关闭移动端侧边栏，而不是在openMobile变化时
   useEffect(() => {
@@ -245,30 +454,11 @@ const DashboardSidebar = ({
       </Box>
       <Divider />
       <Box sx={{ p: isCollapsed && !isMobile ? 1 : 2 }}>
-        <List>
-          {items
-            .filter(item => {
-              // 如果没有指定角色限制或数组为空，所有用户可见
-              if (!item.roles || item.roles.length === 0) {
-                return true;
-              }
-
-              // 如果用户没有角色信息，只显示无角色限制的菜单
-              if (!user || !user.roles || user.roles.length === 0) {
-                return false;
-              }
-
-              // 检查用户是否拥有所需角色
-              return item.roles.some(role => user.roles.includes(role));
-            })
-            .map((item) => (
-              <NavItem
-                href={item.href}
-                key={item.title}
-                title={item.title}
-                icon={item.icon}
-                isCollapsed={isCollapsed && !isMobile}
-              />
+        <List sx={{ py: 0 }}>
+          {menuGroups
+            .filter(group => hasVisibleItems(group))
+            .map((group) => (
+              <MenuGroup key={group.id} group={group} />
             ))}
         </List>
       </Box>

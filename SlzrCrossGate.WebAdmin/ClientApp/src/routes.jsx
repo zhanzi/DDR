@@ -188,7 +188,7 @@ const routes = [
         )
       },
       {
-        path: 'messages/types',
+        path: 'messages-types',
         element: (
           <RoleGuard roles={['SystemAdmin', 'MerchantAdmin']}>
             <MessageTypeList />

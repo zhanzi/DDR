@@ -283,14 +283,7 @@ const MessageTypeList = () => {
 
   return (
     <Box sx={{ p: 3 }}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3 }}>
-          <Button
-            startIcon={<ArrowBackIcon />}
-            onClick={() => navigate('/app/messages')}
-          >
-            返回消息列表
-          </Button>
-        </Box>
+
 
       <Typography variant="h4" gutterBottom>
         消息类型管理

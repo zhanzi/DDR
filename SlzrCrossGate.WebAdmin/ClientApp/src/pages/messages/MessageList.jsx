@@ -455,7 +455,7 @@ const MessageList = () => {
           variant="outlined"
           color="secondary" // 由 "info" 修改为 "secondary"
           startIcon={<ListIcon />}
-          onClick={() => navigate('/app/messages/types')}
+          onClick={() => navigate('/app/messages-types')}
         >
           消息类型管理
         </Button>

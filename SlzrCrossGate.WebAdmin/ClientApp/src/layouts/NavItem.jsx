@@ -100,7 +100,7 @@ const NavItem = ({
         <ListItemText
           primary={title}
           primaryTypographyProps={{
-            fontSize: '0.875rem',
+            fontSize: '0.8125rem',
             fontWeight: 500,
           }}
         />
