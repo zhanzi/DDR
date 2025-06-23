@@ -421,6 +421,14 @@ namespace SlzrCrossGate.Core.Service
                 });
                 terminal.MerchantID = dto.MerchantID;
                 ischanged = true;
+                //商户变更需要将版本信息全部设置为过期
+                terminal.Status?.UpdateFileVersions(versions =>
+                {
+                    foreach (var item in versions.Values)
+                    {
+                        item.IsExpired = true;
+                    }
+                });
             }
 
             if (terminal.LineNO != dto.LineNO)
@@ -437,6 +445,17 @@ namespace SlzrCrossGate.Core.Service
                 });
                 terminal.LineNO = dto.LineNO;
                 ischanged = true;
+                //线路变更需要将优先级不高于线路发布的版本信息全部设置为过期
+                terminal.Status?.UpdateFileVersions(versions =>
+                {
+                    foreach (var item in versions.Values)
+                    {
+                        if (item.PublishType <= PublishTypeOption.Line)
+                        {
+                            item.IsExpired = true;
+                        }
+                    }
+                });
             }
 
             if (terminal.DeviceNO != dto.DeviceNO)

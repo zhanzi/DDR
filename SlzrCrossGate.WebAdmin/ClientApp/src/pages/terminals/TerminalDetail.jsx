@@ -68,6 +68,20 @@ const TerminalDetail = () => {
     }
   };
 
+  // 获取发布类型显示
+  const getPublishTypeChip = (type) => {
+    switch (type) {
+      case 1: // Merchant
+        return <Chip label="商户级别" color="primary" size="small" />;
+      case 2: // Line
+        return <Chip label="线路级别" color="secondary" size="small" />;
+      case 3: // Terminal
+        return <Chip label="终端级别" color="success" size="small" />;
+      default:
+        return <Chip label="无" color="default" size="small" />;
+    }
+  };
+
   if (loading) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
@@ -217,22 +231,26 @@ const TerminalDetail = () => {
                   <TableCell>文件类型</TableCell>
                   <TableCell>当前版本</TableCell>
                   <TableCell>期望版本</TableCell>
+                  <TableCell>发布级别</TableCell>
                   <TableCell>状态</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
-                {Object.entries(terminal.status.fileVersionMetadata).map(([fileType, version]) => (
+                {Object.entries(terminal.status.fileVersionMetadata).sort(([fileTypeA, versionA], [fileTypeB, versionB]) => {
+                  return fileTypeA.localeCompare(fileTypeB);
+                }).map(([fileType, version]) => (
                   <TableRow key={fileType}>
                     <TableCell>{fileType}</TableCell>
                     <TableCell>{version.current || '-'}</TableCell>
                     <TableCell>{version.expected || '-'}</TableCell>
+                    <TableCell>{getPublishTypeChip(version.publishType)}</TableCell>
                     <TableCell>
                       {version.current === version.expected ? (
                         <Chip label="最新" color="success" size="small" />
                       ) : version.expected ? (
                         <Chip label="需更新" color="warning" size="small" />
                       ) : (
-                        <Chip label="无期望版本" color="default" size="small" />
+                        <Chip label="无发布" color="default" size="small" />
                       )}
                     </TableCell>
                   </TableRow>
